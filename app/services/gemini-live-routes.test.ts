@@ -44,3 +44,13 @@ test("Gemini Live handles provider errors and invalid token payloads without lea
   t.mock.method(globalThis, "fetch", async () => Response.json({ name: "not-an-ephemeral-token" }));
   assert.equal((await action(args(await request()))).status, 502);
 });
+
+test("Gemini ephemeral tokens lock the same read-only file and RAG tools as the client setup", async t => {
+  t.mock.method(globalThis, "fetch", async (_input: unknown, init?: RequestInit) => {
+    const setup = JSON.parse(String(init?.body)).bidiGenerateContentSetup;
+    assert.deepEqual(setup.tools[0].functionDeclarations.map((tool: { name: string }) => tool.name), ["read_current_file", "read_drive_file", "search_drive_files", "list_drive_files", "search_rag"]);
+    assert.ok(!JSON.stringify(setup.tools).includes("update_drive_file"));
+    return Response.json({ name: "auth_tokens/file-access" });
+  });
+  assert.equal((await action(args(await request({ ...body, fileAccess: true, ragEnabled: true, tools: [{ name: "create_drive_file" }] })))).status, 200);
+});

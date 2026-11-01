@@ -49,7 +49,7 @@ GemiHub はオフラインファーストです。ファイルは IndexedDB に�
 
 **ダッシュボード** — Undo/Redo・ワンクリック整列・複数ダッシュボード・ホーム固定に対応したドラッグ＆ドロップグリッド · File / Memo List / Base（`.base` クエリをテーブル・カード・リストで表示）/ Kanban（`.kanban` YAML、ドラッグでのステータス変更を Markdown に書き戻し）/ Secret Manager / Timeline / ワークフロー出力（自動更新可）/ Web ウィジェット
 
-**AI チャット** — Gemini・OpenAI・OpenRouter・OpenCode Goによるストリーミングチャット。OpenAI・OpenRouter・OpenCode Goはモデル情報を取得して複数選択可能（ツール・添付の対応はモデルによる）· 音声選択・割り込み・ミュート・会話記録に対応したGemini／OpenAI Live会話モード · Gemini画像生成 · `{content}` / `{selection}` / `@file` テンプレートとコマンド別のモデル・ツール上書きを持つスラッシュコマンド · チャットからの `/run @workflow.yaml`
+**AI チャット** — Gemini・OpenAI・OpenRouter・OpenCode Goによるストリーミングチャット。OpenAI・OpenRouter・OpenCode Goはモデル情報を取得して複数選択可能（ツール・添付の対応はモデルによる）· 音声選択・割り込み・ミュート・会話記録・ファイル参照／RAG検索に対応したGemini／OpenAI Live会話モード · Gemini画像生成 · `{content}` / `{selection}` / `@file` テンプレートとコマンド別のモデル・ツール上書きを持つスラッシュコマンド · チャットからの `/run @workflow.yaml`
 
 **ナレッジ** — 有料ユーザー向けFirestore RAG。RAGごとにGemini／OpenAIのembeddingモデルとTop Kを選択し、任意でJevによる一致判定と「一致するまで検索」を利用可能 · チャットごとに選べる OKF ナレッジバンドル · MCP サーバーのツール化（OAuth 対応、インタラクティブな MCP Apps）· Agent Skills（カタログからワンクリック導入できる外部スキルを含む）· GitHub からインストール、あるいはローカル開発できるプラグイン
 

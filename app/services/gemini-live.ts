@@ -1,9 +1,12 @@
 import { geminiLiveSetup } from "./gemini-live-config";
 import type { LiveCallbacks, LiveOptions, LiveSession, LiveTranscript } from "./live-session";
+import { LiveToolDispatcher } from "./live-tool-definitions";
 
 interface GeminiLiveMessage {
   setupComplete?: unknown;
   error?: { message?: string };
+  toolCall?: { functionCalls?: { id?: string; name?: string; args?: Record<string, unknown> }[] };
+  toolCallCancellation?: { ids?: string[] };
   serverContent?: {
     interrupted?: boolean;
     turnComplete?: boolean;
@@ -33,6 +36,8 @@ export class GeminiLiveSession implements LiveSession {
   private transcripts = new Map<string, LiveTranscript>();
   private inputTurn = 0;
   private outputTurn = 0;
+  private tools: LiveToolDispatcher | null = null;
+  private handledTools = new Set<string>();
 
   constructor(private callbacks: LiveCallbacks) {}
 
@@ -45,6 +50,7 @@ export class GeminiLiveSession implements LiveSession {
   stop() {
     this.generation++;
     this.active = false; this.ready = false;
+    this.tools?.cancel(); this.tools = null;
     if (this.timeout) clearTimeout(this.timeout);
     this.timeout = null;
     this.abort?.abort(); this.abort = null;
@@ -84,6 +90,19 @@ export class GeminiLiveSession implements LiveSession {
 
   private receive(message: GeminiLiveMessage) {
     if (message.error) { this.fail(message.error.message || "Gemini Live failed"); return; }
+    if (message.toolCallCancellation?.ids) this.tools?.cancel(message.toolCallCancellation.ids);
+    if (message.toolCall?.functionCalls) {
+      const tools = this.tools, socket = this.socket, generation = this.generation;
+      const calls = message.toolCall.functionCalls.map((call, index) => ({ ...call, key: call.id || `live-tool-${this.handledTools.size + index}` })).filter(call => !this.handledTools.has(call.key));
+      if (tools && socket && calls.length) {
+        calls.forEach(call => this.handledTools.add(call.key));
+        void Promise.all(calls.map(async call => ({ call, result: await tools.run({ id: call.key, name: call.name || "", args: call.args || {} }) }))).then(results => {
+          if (!this.active || generation !== this.generation) return;
+          const functionResponses = results.filter(({ call }) => !tools.isCancelled(call.key)).map(({ call, result }) => ({ id: call.id, name: call.name, response: result && typeof result === "object" ? result : { result } }));
+          if (functionResponses.length) socket.send(JSON.stringify({ toolResponse: { functionResponses } }));
+        }).catch(() => { if (this.active && generation === this.generation) this.fail("Could not return file results to Gemini Live."); });
+      }
+    }
     if (message.setupComplete) {
       this.ready = true;
       this.recorder?.port.postMessage("reset");
@@ -133,6 +152,7 @@ export class GeminiLiveSession implements LiveSession {
     const generation = this.generation;
     const current = () => this.active && this.generation === generation;
     this.active = true; this.muted = false;
+    this.tools = new LiveToolDispatcher(options, this.callbacks.onToolCall); this.handledTools.clear();
     this.transcripts.clear(); this.inputTurn = 0; this.outputTurn = 0;
     this.callbacks.onTranscript([]); this.callbacks.onState("connecting");
     this.abort = new AbortController();
@@ -145,7 +165,7 @@ export class GeminiLiveSession implements LiveSession {
       const context = new AudioContextClass(); this.context = context;
       this.output = context.createMediaStreamDestination();
       this.callbacks.audio.srcObject = this.output.stream;
-      void this.callbacks.audio.play().catch(() => { if (current()) this.callbacks.onError("Press play in the audio controls to hear Gemini."); });
+      void this.callbacks.audio.play().catch(() => { if (current()) this.callbacks.onError("Tap the conversation screen to enable audio."); });
       await context.resume();
       if (!current()) return;
       const response = await fetch("/api/gemini/live", {

@@ -51,7 +51,7 @@ access. Gemini offers `gemini-3.8-live`, `gemini-3.8-live-extended-thinking`, an
 `gemini-3.1-flash-live-preview`, subject to account access. It obtains a
 single-use, short-lived token from `/api/gemini/live` using the unlocked
 server-session key. The token locks the selected model, voice, instructions
-and audio/transcription configuration. Browser audio travels directly to
+and audio/transcription/tool configuration. Browser audio travels directly to
 Gemini over WebSockets: microphone PCM16 is resampled to 16 kHz in an
 AudioWorklet; 24 kHz model audio is queued for playback. Interruptions clear
 queued audio; mute stops sending microphone frames and signals audio-stream
@@ -60,11 +60,33 @@ end. OpenAI continues to use Realtime/WebRTC through `/api/openai/live`.
 Live requires HTTPS (or localhost), microphone access, and Web Audio /
 AudioWorklet for Gemini or WebRTC for OpenAI. The response voice is AI generated.
 Voice activity detection allows natural turn-taking and interruptions. Both
-providers support mute/unmute, playback controls, and transcripts. Ending or
+providers support mute/unmute and automatic audio playback. Live has no playback
+bar or on-screen chat transcript; the transcript is retained for chat history. Ending or
 closing Live stops the microphone and saves the transcript to chat history.
 Leaving the page also releases the microphone and connection. Connection loss
 ends the call; reconnect explicitly by starting a new conversation. Live is
-for voice conversations; Drive and MCP operations use text chat.
+for voice conversations with read-only file access; edits and MCP operations use text chat.
+
+Enable **Read and search files** (on by default) before connecting. Live can
+read the currently open editor text, including unsaved changes, find files by
+name, list folders, search cached text, and read matching text/PDF/DOCX/XLSX/PPTX
+files. File reads are limited to the current workspace's tree. Text reads are
+paginated; PDFs use up to 16 pages per call and binary documents are limited to
+20 MB. Scanned PDFs without a text layer require an indexed RAG excerpt or text
+chat. Encrypted files, private folders and credential/settings files are excluded.
+Tools cannot create, edit, rename or delete files. The screen only shows a brief
+reading/searching status while tools run, then the AI uses results in its spoken
+answer. Tool results are source data, never instructions.
+
+Paid users with RAG enabled can select a synchronized **RAG** index inside Live.
+The `search_rag` tool uses that index's embedding provider, Top K and Jev options;
+server entitlement checks remain in `/api/rag/context`. It searches only server
+indexed content, while file tools can read the latest local editor text. Turning
+file access off removes all file/RAG tools from the session. Interrupted Gemini
+tool calls and ended sessions cancel pending reads; late results never reach a
+new session. Repeated tool-call IDs execute once. Function results are returned
+through Gemini `toolResponse` or OpenAI `function_call_output` plus
+`response.create`, so the conversation continues with the retrieved content.
 
 Gemini implementation follows the official [Live API guide](https://ai.google.dev/gemini-api/docs/live-api/capabilities)
 and [ephemeral-token documentation](https://ai.google.dev/gemini-api/docs/live-api/ephemeral-tokens).

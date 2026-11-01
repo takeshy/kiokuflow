@@ -89,3 +89,13 @@ test("OpenAI credentials are encrypted in cookies and bound to their Drive root 
   const second = new Request("http://localhost/", { headers: { Cookie: (await commitSession(changed)).split(";")[0] } });
   assert.equal((await getTokens(second))?.openaiApiKey, undefined);
 });
+
+test("OpenAI Live sessions advertise only fixed read-only file and selected-RAG functions", async t => {
+  t.mock.method(globalThis, "fetch", async (_input: unknown, init: RequestInit) => {
+    const session = JSON.parse(String((init.body as FormData).get("session")));
+    assert.deepEqual(session.tools.map((tool: { name: string }) => tool.name), ["read_current_file", "read_drive_file", "search_drive_files", "list_drive_files", "search_rag"]);
+    assert.ok(session.tools.every((tool: { type: string }) => tool.type === "function"));
+    assert.ok(!JSON.stringify(session.tools).includes("create_drive_file")); return new Response("sdp-answer");
+  });
+  assert.equal((await live(args(await request("/api/openai/live", { ...liveBody, fileAccess: true, ragEnabled: true, tools: [{ name: "create_drive_file" }] })))).status, 200);
+});

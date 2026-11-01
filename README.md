@@ -49,7 +49,7 @@ GemiHub is offline-first: files are cached in IndexedDB and load instantly, edit
 
 **Dashboard** — Drag-and-drop grid with undo/redo, one-click column/row alignment, multiple dashboards and a pinned home · File, Memo List, Base (Obsidian `.base` queries as table/cards/list), Kanban (`.kanban` YAML, drag-to-restatus written back to Markdown), Secret Manager, Timeline, Workflow output (with auto-refresh), and Web widgets
 
-**AI chat** — Gemini, OpenAI, OpenRouter, and OpenCode Go streaming chat with fetched model catalogues and multiple enabled models, plus model-dependent tools and attachments · Gemini / OpenAI Live voice conversations with voice selection, interruption, mute, and transcripts · Gemini image generation · user-defined slash commands with `{content}` / `{selection}` / `@file` templates and per-command model and tool overrides · `/run @workflow.yaml` from chat
+**AI chat** — Gemini, OpenAI, OpenRouter, and OpenCode Go streaming chat with fetched model catalogues and multiple enabled models, plus model-dependent tools and attachments · Gemini / OpenAI Live voice conversations with voice selection, interruption, mute, saved transcripts, and read-only file/RAG search · Gemini image generation · user-defined slash commands with `{content}` / `{selection}` / `@file` templates and per-command model and tool overrides · `/run @workflow.yaml` from chat
 
 **Knowledge** — Paid Firestore RAG using per-index Gemini/OpenAI embedding models, Top K, and optional Jev relevance filtering with search until a match is found · OKF knowledge bundles selectable per chat · MCP servers as tools (OAuth support, interactive MCP Apps) · Agent Skills, including one-click external skills from the catalog · plugins installed from GitHub or developed locally
 

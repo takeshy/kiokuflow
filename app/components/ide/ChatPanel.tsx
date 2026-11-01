@@ -243,6 +243,7 @@ async function runWebpageAutoReview(args: RunAutoReviewArgs): Promise<void> {
 }
 
 interface ChatPanelProps {
+  activeFile?: { id: string; name: string } | null;
   settings: UserSettings;
   rootFolderId: string;
   hasApiKey: boolean;
@@ -259,6 +260,7 @@ interface ChatPanelProps {
 }
 
 export function ChatPanel({
+  activeFile,
   settings,
   rootFolderId,
   hasApiKey,
@@ -1701,7 +1703,12 @@ export function ChatPanel({
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      {liveOpen && liveProvider && <LiveConversation key={liveProvider} provider={liveProvider} systemPrompt={settings.systemPrompt} messages={messages} onClose={(transcript) => {
+      {liveOpen && liveProvider && <LiveConversation key={`${liveProvider}:${rootFolderId}`} provider={liveProvider} systemPrompt={settings.systemPrompt} messages={messages}
+        fileContext={{ rootFolderId, files: editorCtx.fileList, secretFolder: settings.secretManagerFolder,
+          currentFile: activeFile === null ? null : activeFile ? { ...activeFile, content: editorCtx.activeFileId === activeFile.id ? editorCtx.activeFileContent : null }
+            : editorCtx.activeFileId ? { id: editorCtx.activeFileId, name: editorCtx.activeFileName || editorCtx.activeFileId, content: editorCtx.activeFileContent } : null }}
+        ragSettings={ragFeatureEnabled ? settings.ragSettings : undefined} selectedRagSetting={selectedRagSetting}
+        onClose={(transcript) => {
         setLiveOpen(false);
         if (transcript.length) {
           const next = [...messages, ...transcript];

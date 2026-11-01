@@ -1352,6 +1352,7 @@ function IDEContent({
       {/* ChatPanel is always mounted so streaming state survives tab switches */}
       <div className={`h-full flex flex-col ${rightPanel === "chat" && !activePluginSidebarView ? "" : "hidden"}`}>
         <ChatPanel
+          activeFile={activeFileId ? { id: activeFileId, name: activeFileName || activeFileId } : null}
           settings={settings}
           rootFolderId={rootFolderId}
           hasApiKey={hasGeminiApiKey}

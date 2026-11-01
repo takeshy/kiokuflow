@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-11-01
+* **Update**: Gemini/OpenAI Live now read the current editor file, list/find workspace files, search cached text and query a selected paid RAG index through read-only function tools. Removed the playback bar and on-screen transcript; conversations are still saved to history. Tool cancellation, bounded reads and source/private-file checks preserve workspace isolation (`features/chat.md`).
 * **New**: Gemini Live voice conversations using the active Gemini API provider, constrained single-use tokens, WebSocket audio, worklet recording/resampling, voice selection, interruption, mute, and transcripts. Live follows the saved Gemini/OpenAI provider on desktop and phones; Gemini requires an unlocked personal key (`features/chat.md`).
 * **Fix**: Live voice conversations now open outside the mobile swipe strip, preventing the dialog from being translated and clipped off screen. Larger touch targets, scrollable content, pinned call controls, and inline audio playback improve phone and landscape use (`features/chat.md`).
 * **Update**: Chat's model menu now only offers the active provider selected in settings. Switching providers selects its saved default; unavailable models and cross-provider slash-command overrides cannot be sent. Organization projects retain their Vertex model restrictions (`features/chat.md`).

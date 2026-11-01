@@ -1,6 +1,7 @@
 export const LIVE_MODELS = ["gpt-realtime-2.1", "gpt-realtime-2.1-mini", "gpt-realtime", "gpt-realtime-mini"] as const;
 export const LIVE_VOICES = ["marin", "cedar", "alloy", "ash", "ballad", "coral", "echo", "sage", "shimmer", "verse"] as const;
 import type { LiveCallbacks, LiveOptions, LiveTranscript } from "./live-session";
+import { LiveToolDispatcher } from "./live-tool-definitions";
 export type { LiveState, LiveTranscript } from "./live-session";
 
 /** Owns every resource in one call, including cancellation during mic permission/SDP negotiation. */
@@ -13,11 +14,18 @@ export class OpenAILiveSession {
   private generation = 0;
   private active = false;
   private transcripts = new Map<string, LiveTranscript>();
+  private tools: LiveToolDispatcher | null = null;
+  private handledTools = new Set<string>();
+  private responseActive = false;
+  private pendingToolBatches = 0;
+  private needsToolResponse = false;
   constructor(private callbacks: LiveCallbacks) {}
 
   stop() {
     this.generation++;
     this.active = false;
+    this.tools?.cancel(); this.tools = null;
+    this.responseActive = false; this.pendingToolBatches = 0; this.needsToolResponse = false;
     if (this.timeout) clearTimeout(this.timeout);
     this.timeout = null;
     this.abort?.abort(); this.abort = null;
@@ -33,11 +41,19 @@ export class OpenAILiveSession {
 
   private fail(message: string) { this.stop(); this.callbacks.onError(message); }
 
+  private continueAfterTools() {
+    if (!this.needsToolResponse || this.responseActive || this.pendingToolBatches || !this.channel) return;
+    this.needsToolResponse = false; this.responseActive = true;
+    this.channel.send(JSON.stringify({ type: "response.create" }));
+  }
+
   private receive(raw: string) {
     const event = JSON.parse(raw) as {
       type: string; item_id?: string; delta?: string; transcript?: string;
-      error?: { message?: string }; response?: { status?: string; status_details?: { error?: { message?: string } } };
+      error?: { message?: string }; response?: { status?: string; status_details?: { error?: { message?: string } }; output?: { type?: string; call_id?: string; name?: string; arguments?: string }[] };
     };
+    if (event.type === "response.created") this.responseActive = true;
+    if (event.type === "response.done") this.responseActive = false;
     if (event.type === "input_audio_buffer.speech_started" && event.item_id) {
       const id = `user:${event.item_id}`;
       this.transcripts.set(id, { id, role: "user", text: "" });
@@ -48,6 +64,25 @@ export class OpenAILiveSession {
     if (event.type === "response.done" && event.response?.status === "failed") {
       this.fail(event.response.status_details?.error?.message || "Live response failed"); return;
     }
+    if (event.type === "response.done" && event.response?.status === "completed") {
+      const calls = (event.response.output || []).filter(call => call.type === "function_call" && call.call_id && !this.handledTools.has(call.call_id));
+      const tools = this.tools, channel = this.channel, generation = this.generation;
+      if (tools && channel && calls.length) {
+        this.pendingToolBatches++;
+        calls.forEach(call => this.handledTools.add(call.call_id!));
+        void Promise.all(calls.map(async call => {
+          let args: Record<string, unknown>;
+          try { args = JSON.parse(call.arguments || "{}"); } catch { return { id: call.call_id!, result: { error: "Invalid JSON tool arguments." } }; }
+          return { id: call.call_id!, result: await tools.run({ id: call.call_id!, name: call.name || "", args }) };
+        })).then(results => {
+          if (!this.active || generation !== this.generation) return;
+          for (const { id, result } of results) channel.send(JSON.stringify({ type: "conversation.item.create", item: { type: "function_call_output", call_id: id, output: JSON.stringify(result) } }));
+          this.pendingToolBatches--; this.needsToolResponse = true;
+          this.continueAfterTools();
+        }).catch(() => { if (this.active && generation === this.generation) this.fail("Could not return file results to Live."); });
+      }
+    }
+    if (event.type === "response.done") this.continueAfterTools();
     const user = event.type === "conversation.item.input_audio_transcription.delta" || event.type === "conversation.item.input_audio_transcription.completed";
     const assistant = event.type === "response.output_audio_transcript.delta" || event.type === "response.output_audio_transcript.done";
     if ((!user && !assistant) || !event.item_id) return;
@@ -64,6 +99,7 @@ export class OpenAILiveSession {
     this.stop();
     const generation = this.generation;
     this.active = true;
+    this.tools = new LiveToolDispatcher(options, this.callbacks.onToolCall); this.handledTools.clear();
     this.transcripts.clear(); this.callbacks.onTranscript([]);
     this.callbacks.onState("connecting");
     this.abort = new AbortController();
@@ -82,7 +118,7 @@ export class OpenAILiveSession {
         if (!isCurrent()) return;
         this.callbacks.audio.srcObject = event.streams[0] || new MediaStream([event.track]);
         void this.callbacks.audio.play().catch(() => {
-          if (isCurrent()) this.callbacks.onError("Audio playback is blocked. Press play in the audio controls.");
+          if (isCurrent()) this.callbacks.onError("Audio playback is blocked. Tap the conversation screen to enable audio.");
         });
       };
       peer.onconnectionstatechange = () => {

@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { OpenAILiveSession, type LiveState, type LiveTranscript } from "./openai-live";
+import type { LiveCallbacks } from "./live-session";
 
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>((r) => { resolve = r; }); return { promise, resolve }; }
-function fixture(t: import("node:test").TestContext, mic?: Promise<unknown>) {
+function fixture(t: import("node:test").TestContext, mic?: Promise<unknown>, onToolCall?: LiveCallbacks["onToolCall"]) {
   let stopped = 0;
   const track = { enabled: true, stop() { stopped++; } };
   const stream = { getTracks: () => [track], getAudioTracks: () => [track] };
@@ -11,7 +12,8 @@ function fixture(t: import("node:test").TestContext, mic?: Promise<unknown>) {
   const states: LiveState[] = [];
   const errors: string[] = [];
   let transcript: LiveTranscript[] = [];
-  const channel = { onopen: null as (() => void) | null, onmessage: null as ((event: { data: string }) => void) | null, onclose: null as (() => void) | null, onerror: null, close() {} };
+  const sent: unknown[] = [];
+  const channel = { send: (raw: string) => sent.push(JSON.parse(raw)), onopen: null as (() => void) | null, onmessage: null as ((event: { data: string }) => void) | null, onclose: null as (() => void) | null, onerror: null, close() {} };
   let peerClosed = false;
   const peer = {
     connectionState: "new", onconnectionstatechange: null as (() => void) | null, ontrack: null,
@@ -27,9 +29,9 @@ function fixture(t: import("node:test").TestContext, mic?: Promise<unknown>) {
   globals.RTCPeerConnection = function () { return peer; };
   t.after(() => { globals.RTCPeerConnection = previousPeer; });
   t.mock.method(globalThis, "fetch", async () => new Response("answer"));
-  const session = new OpenAILiveSession({ audio: audio as unknown as HTMLAudioElement, onState: (state) => states.push(state), onError: (error) => errors.push(error), onTranscript: (items) => { transcript = items; } });
+  const session = new OpenAILiveSession({ audio: audio as unknown as HTMLAudioElement, onState: (state) => states.push(state), onToolCall, onError: (error) => errors.push(error), onTranscript: (items) => { transcript = items; } });
   t.after(() => session.stop());
-  return { session, track, stream, states, errors, channel, peer, get stopped() { return stopped; }, get peerClosed() { return peerClosed; }, get transcript() { return transcript; } };
+  return { session, track, stream, states, errors, channel, peer, sent, get stopped() { return stopped; }, get peerClosed() { return peerClosed; }, get transcript() { return transcript; } };
 }
 const options = { model: "gpt-realtime-2.1", voice: "marin", language: "ja" as const, instructions: "Converse" };
 
@@ -104,4 +106,40 @@ test("cancelling an in-flight SDP exchange ignores a late answer", async (t) => 
   await starting;
   assert.equal(f.stopped, 1); assert.equal(f.peerClosed, true);
   assert.ok(!f.states.includes("connected"));
+});
+
+test("OpenAI Live returns file tool results and continues speaking once per completed response", async t => {
+  let executions = 0;
+  const f = fixture(t, undefined, async call => { executions++; assert.equal(call.name, "read_current_file"); return { source: "notes.md", content: "The launch is Friday" }; });
+  await f.session.start({ ...options, fileAccess: true });
+  const event = { type: "response.done", response: { status: "completed", output: [{ type: "function_call", call_id: "read-1", name: "read_current_file", arguments: "{}" }] } };
+  f.channel.onmessage?.({ data: JSON.stringify(event) }); f.channel.onmessage?.({ data: JSON.stringify(event) });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(executions, 1);
+  assert.deepEqual(f.sent, [{ type: "conversation.item.create", item: { type: "function_call_output", call_id: "read-1", output: JSON.stringify({ source: "notes.md", content: "The launch is Friday" }) } }, { type: "response.create" }]);
+});
+
+test("OpenAI Live rejects write tools and ignores late file results after stopping", async t => {
+  const result = deferred<unknown>(); let signal: AbortSignal | undefined;
+  const f = fixture(t, undefined, async (_call, currentSignal) => { signal = currentSignal; return result.promise; });
+  await f.session.start({ ...options, fileAccess: true });
+  const emit = (call_id: string, name: string) => f.channel.onmessage?.({ data: JSON.stringify({ type: "response.done", response: { status: "completed", output: [{ type: "function_call", call_id, name, arguments: "{}" }] } }) });
+  emit("write", "create_drive_file"); await new Promise(resolve => setImmediate(resolve));
+  assert.match(JSON.stringify(f.sent), /unavailable/); assert.equal(signal, undefined);
+  f.sent.length = 0; emit("read", "read_current_file"); await new Promise(resolve => setImmediate(resolve));
+  f.session.stop(); result.resolve({ content: "late private text" }); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(signal?.aborted, true); assert.deepEqual(f.sent, []);
+});
+
+test("OpenAI waits for an overlapping voice response to finish before following up on file results", async t => {
+  const result = deferred<unknown>();
+  const f = fixture(t, undefined, async () => result.promise);
+  await f.session.start({ ...options, fileAccess: true });
+  f.channel.onmessage?.({ data: JSON.stringify({ type: "response.done", response: { status: "completed", output: [{ type: "function_call", call_id: "file-1", name: "read_current_file", arguments: "{}" }] } }) });
+  await new Promise(resolve => setImmediate(resolve));
+  f.channel.onmessage?.({ data: JSON.stringify({ type: "response.created" }) });
+  result.resolve({ content: "Friday" }); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(f.sent.length, 1); assert.equal((f.sent[0] as { type: string }).type, "conversation.item.create");
+  f.channel.onmessage?.({ data: JSON.stringify({ type: "response.done", response: { status: "completed", output: [] } }) });
+  assert.deepEqual(f.sent.at(-1), { type: "response.create" });
 });

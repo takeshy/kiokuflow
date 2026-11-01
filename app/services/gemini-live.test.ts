@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { GeminiLiveSession } from "./gemini-live";
-import type { LiveState, LiveTranscript } from "./live-session";
+import type { LiveState, LiveTranscript, LiveCallbacks, LiveOptions } from "./live-session";
 
 const options = { model: "gemini-3.8-live", voice: "Kore", language: "ja" as const, instructions: "Talk naturally" };
 const tick = () => new Promise(resolve => setImmediate(resolve));
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>(r => { resolve = r; }); return { promise, resolve }; }
-function fixture(t: import("node:test").TestContext, pendingMic?: Promise<unknown>) {
+function fixture(t: import("node:test").TestContext, pendingMic?: Promise<unknown>, onToolCall?: LiveCallbacks["onToolCall"], access: Partial<LiveOptions> = {}) {
+  const sessionOptions = { ...options, ...access };
   let microphoneStops = 0, outputStops = 0, contextCloses = 0, micRequests = 0;
   const track = { enabled: true, stop() { microphoneStops++; } };
   const stream = { getTracks: () => [track], getAudioTracks: () => [track] };
@@ -39,14 +40,14 @@ function fixture(t: import("node:test").TestContext, pendingMic?: Promise<unknow
     t.after(() => { if (previous) Object.defineProperty(globalThis, name, previous); else Reflect.deleteProperty(globalThis, name); });
   }
   t.mock.method(globalThis, "fetch", async (url: unknown, init?: RequestInit) => {
-    assert.equal(url, "/api/gemini/live"); assert.deepEqual(JSON.parse(String(init?.body)), options);
+    assert.equal(url, "/api/gemini/live"); assert.deepEqual(JSON.parse(String(init?.body)), sessionOptions);
     return Response.json({ token: "auth_tokens/synthetic-token" });
   });
-  const session = new GeminiLiveSession({ audio: audio as unknown as HTMLAudioElement, onState: state => states.push(state), onError: error => errors.push(error), onTranscript: items => { transcript = items; } });
+  const session = new GeminiLiveSession({ audio: audio as unknown as HTMLAudioElement, onToolCall, onState: state => states.push(state), onError: error => errors.push(error), onTranscript: items => { transcript = items; } });
   t.after(() => session.stop());
   const event = async (body: unknown) => { sockets[0].onmessage?.({ data: JSON.stringify(body) }); await tick(); };
   const connect = async () => {
-    const starting = session.start(options);
+    const starting = session.start(sessionOptions);
     for (let i = 0; i < 20 && !sockets.length; i++) await tick();
     assert.equal(sockets.length, 1); sockets[0].onopen?.();
     assert.equal(states.at(-1), "connecting");
@@ -130,4 +131,25 @@ test("Gemini transport errors stop the microphone and close the connection", asy
 test("Gemini worklet load failure releases the microphone and creates no socket", async t => {
   const f = fixture(t); t.mock.method(f.context.audioWorklet, "addModule", async () => { throw new Error("Could not load recorder"); });
   await f.session.start(options); assert.equal(f.errors.at(-1), "Could not load recorder"); assert.equal(f.microphoneStops, 1); assert.equal(f.sockets.length, 0);
+});
+
+test("Gemini Live returns file tool results and keeps receiving audio during the read", async t => {
+  const result = deferred<unknown>(); let executions = 0;
+  const f = fixture(t, undefined, async call => { executions++; assert.equal(call.name, "read_current_file"); return result.promise; }, { fileAccess: true });
+  await f.connect(); const sentBefore = f.sockets[0].sent.length;
+  const tool = { toolCall: { functionCalls: [{ id: "file-1", name: "read_current_file", args: {} }] } };
+  await f.event(tool); await f.event(tool);
+  await f.event({ serverContent: { modelTurn: { parts: [{ inlineData: { mimeType: "audio/pcm;rate=24000", data: "AAAAAA==" } }] } } });
+  assert.equal(f.sources.length, 1); assert.equal(executions, 1); assert.equal(f.sockets[0].sent.length, sentBefore);
+  result.resolve({ content: "Friday launch", source: "plan.md" }); await tick();
+  assert.deepEqual(JSON.parse(f.sockets[0].sent.at(-1)!), { toolResponse: { functionResponses: [{ id: "file-1", name: "read_current_file", response: { content: "Friday launch", source: "plan.md" } }] } });
+});
+
+test("Gemini tool cancellation aborts an in-flight read and never sends a stale result", async t => {
+  const result = deferred<unknown>(); let signal: AbortSignal | undefined;
+  const f = fixture(t, undefined, async (_call, currentSignal) => { signal = currentSignal; return result.promise; }, { fileAccess: true });
+  await f.connect(); const before = f.sockets[0].sent.length;
+  await f.event({ toolCall: { functionCalls: [{ id: "read-1", name: "read_current_file", args: {} }] } });
+  await f.event({ toolCallCancellation: { ids: ["read-1"] } }); result.resolve({ content: "late text" }); await tick();
+  assert.equal(signal?.aborted, true); assert.equal(f.sockets[0].sent.length, before);
 });

@@ -7,6 +7,7 @@ import { GEMINI_LIVE_MODELS, GEMINI_LIVE_VOICES, geminiLiveSetup } from "~/servi
 const schema = z.object({
   model: z.enum(GEMINI_LIVE_MODELS), voice: z.enum(GEMINI_LIVE_VOICES),
   instructions: z.string().max(100_000), language: z.enum(["ja", "en"]),
+  fileAccess: z.boolean().optional(), ragEnabled: z.boolean().optional(),
 });
 const headers = { "Cache-Control": "no-store" };
 

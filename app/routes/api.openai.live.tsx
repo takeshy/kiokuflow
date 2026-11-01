@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { Route } from "./+types/api.openai.live";
 import { validateOrigin } from "~/utils/security";
 import { OPENAI_API_URL, requireOpenAIKey, openAIError } from "~/services/openai.server";
+import { openAILiveTools } from "~/services/live-tool-definitions";
 
 const schema = z.object({
   sdp: z.string().min(1).max(100_000),
@@ -9,6 +10,7 @@ const schema = z.object({
   voice: z.enum(["marin", "cedar", "alloy", "ash", "ballad", "coral", "echo", "sage", "shimmer", "verse"]),
   instructions: z.string().max(100_000).optional(),
   language: z.enum(["ja", "en"]),
+  fileAccess: z.boolean().optional(), ragEnabled: z.boolean().optional(),
 });
 
 export async function action({ request }: Route.ActionArgs) {
@@ -23,6 +25,7 @@ export async function action({ request }: Route.ActionArgs) {
   form.set("session", JSON.stringify({
     type: "realtime", model,
     instructions: instructions || "You are a helpful voice assistant. Converse naturally with the user.",
+    tools: openAILiveTools(parsed.data),
     audio: {
       input: { transcription: { model: "gpt-4o-mini-transcribe", language }, turn_detection: { type: "server_vad", create_response: true, interrupt_response: true } },
       output: { voice },
