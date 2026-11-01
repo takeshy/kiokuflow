@@ -76,6 +76,7 @@ export default [
   route("api/openai/settings", "routes/api.openai.settings.tsx"),
   route("api/openai/responses", "routes/api.openai.responses.tsx"),
   route("api/openai/live", "routes/api.openai.live.tsx"),
+  route("api/gemini/live", "routes/api.gemini.live.tsx"),
   route("api/bluesky", "routes/api.bluesky.tsx"),
   route("api/bluesky/client-metadata.json", "routes/api.bluesky.metadata.tsx"),
   route("auth/bluesky/callback", "routes/auth.bluesky.callback.tsx"),

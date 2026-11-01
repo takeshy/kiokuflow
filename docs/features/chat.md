@@ -9,7 +9,7 @@ tags:
 
 AI chat with Gemini, OpenAI, OpenRouter, and OpenCode Go streaming, function calling, RAG, image generation, and MCP integration.
 
-## OpenAI and Live voice conversations
+## OpenAI chat
 
 On **My Drive**, create encryption keys once in
 **Settings > General**, then save the API key in **Settings > AI providers > OpenAI**.
@@ -31,19 +31,43 @@ and personal Vertex keep their Vertex execution paths.
 
 OpenAI chat accepts images, PDFs and text. RAG uses Gemini or OpenAI embeddings and Firestore and requires a paid GemiHub
 plan. Gemini image generation remains a Gemini feature. Audio/video attachments require Gemini;
-use **Live** for an OpenAI voice conversation. Scheduled/background workflows
+use **Live** for a Gemini or OpenAI voice conversation. Scheduled/background workflows
 do not store OpenAI, OpenRouter, or OpenCode Go keys outside the user's session.
 
-Click **Live** in the chat header to open a speech-to-speech conversation.
-Choose a Realtime model and voice, optionally include the current text chat as
-context, then click **Start conversation** and grant microphone access. Live
-requires HTTPS (or localhost), WebRTC, and a microphone. The response voice is
-AI generated. The OpenAI Realtime API uses automatic turn detection and supports
-interrupting a response by speaking. Mute/unmute and audio playback controls are
-available during the call. Ending or closing Live disconnects the call and stops
-the microphone; the displayed transcript is appended to the current chat and
-saved through normal chat history. Live is a voice conversation mode; Drive and
-MCP operations use the text chat. Leaving the page ends the call.
+## Live voice conversations (Gemini / OpenAI)
+
+Select **Gemini API** or **OpenAI** as the active provider in settings. On
+phones, open the bottom **Chat** tab and tap **Live** in the chat header.
+The conversation opens above the swipe panels, with scrollable content and
+always-visible call controls, including in landscape. Live uses the saved
+provider, independently of its text-chat model. Unlock that provider's saved
+API key in **Settings > General** before connecting. Gemini Live requires your
+own Gemini key, even on a paid GemiHub plan; it never uses a shared server key
+or Vertex balance. Vertex and OpenRouter/OpenCode Go have no Live option.
+
+Choose a Live model and voice, optionally include the last 20 text-chat
+messages as context, then click **Start conversation** and grant microphone
+access. Gemini offers `gemini-3.8-live`, `gemini-3.8-live-extended-thinking`, and
+`gemini-3.1-flash-live-preview`, subject to account access. It obtains a
+single-use, short-lived token from `/api/gemini/live` using the unlocked
+server-session key. The token locks the selected model, voice, instructions
+and audio/transcription configuration. Browser audio travels directly to
+Gemini over WebSockets: microphone PCM16 is resampled to 16 kHz in an
+AudioWorklet; 24 kHz model audio is queued for playback. Interruptions clear
+queued audio; mute stops sending microphone frames and signals audio-stream
+end. OpenAI continues to use Realtime/WebRTC through `/api/openai/live`.
+
+Live requires HTTPS (or localhost), microphone access, and Web Audio /
+AudioWorklet for Gemini or WebRTC for OpenAI. The response voice is AI generated.
+Voice activity detection allows natural turn-taking and interruptions. Both
+providers support mute/unmute, playback controls, and transcripts. Ending or
+closing Live stops the microphone and saves the transcript to chat history.
+Leaving the page also releases the microphone and connection. Connection loss
+ends the call; reconnect explicitly by starting a new conversation. Live is
+for voice conversations; Drive and MCP operations use text chat.
+
+Gemini implementation follows the official [Live API guide](https://ai.google.dev/gemini-api/docs/live-api/capabilities)
+and [ephemeral-token documentation](https://ai.google.dev/gemini-api/docs/live-api/ephemeral-tokens).
 
 Implementation follows the official OpenAI [Responses tool-calling](https://developers.openai.com/api/docs/guides/function-calling)
 and [Realtime WebRTC](https://developers.openai.com/api/docs/guides/voice-webrtc?voice-api=realtime)
@@ -63,7 +87,7 @@ and workflow execution/generation. Requests use a same-origin server proxy,
 with each provider's own key and fixed endpoint. OpenCode Go sends GemiHub's
 user agent and a stable conversation routing ID. Native web search uses
 OpenRouter's web plugin; OpenCode Go can use a web search MCP tool.
-Live voice conversations continue to use the OpenAI Realtime connection.
+Live voice conversations are available when Gemini API or OpenAI is the active provider.
 RAG keeps its separately configured Gemini/OpenAI embedding provider and
 requires a paid GemiHub account. Organization projects use Vertex AI.
 

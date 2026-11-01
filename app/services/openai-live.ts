@@ -1,11 +1,7 @@
 export const LIVE_MODELS = ["gpt-realtime-2.1", "gpt-realtime-2.1-mini", "gpt-realtime", "gpt-realtime-mini"] as const;
 export const LIVE_VOICES = ["marin", "cedar", "alloy", "ash", "ballad", "coral", "echo", "sage", "shimmer", "verse"] as const;
-export type LiveState = "idle" | "connecting" | "connected";
-export interface LiveTranscript {
-  id: string;
-  role: "user" | "assistant";
-  text: string;
-}
+import type { LiveCallbacks, LiveOptions, LiveTranscript } from "./live-session";
+export type { LiveState, LiveTranscript } from "./live-session";
 
 /** Owns every resource in one call, including cancellation during mic permission/SDP negotiation. */
 export class OpenAILiveSession {
@@ -17,12 +13,7 @@ export class OpenAILiveSession {
   private generation = 0;
   private active = false;
   private transcripts = new Map<string, LiveTranscript>();
-  constructor(private callbacks: {
-    audio: HTMLAudioElement;
-    onState: (state: LiveState) => void;
-    onTranscript: (transcript: LiveTranscript[]) => void;
-    onError: (message: string) => void;
-  }) {}
+  constructor(private callbacks: LiveCallbacks) {}
 
   stop() {
     this.generation++;
@@ -69,7 +60,7 @@ export class OpenAILiveSession {
     this.callbacks.onTranscript([...this.transcripts.values()]);
   }
 
-  async start(options: { model: string; voice: string; instructions: string; language: "ja" | "en" }) {
+  async start(options: LiveOptions) {
     this.stop();
     const generation = this.generation;
     this.active = true;

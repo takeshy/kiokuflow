@@ -124,7 +124,7 @@ const en: LpStrings = {
   features: [
     { icon: Highlighter, title: "Read & Memo", description: "Open PDFs, EPUBs, Markdown, and images, select a passage, and attach a memo right where you read. Quotes are highlighted and jump both ways. Notes are saved as plain Markdown in your Drive." },
     { icon: LayoutDashboard, title: "Personal Dashboards", description: "Build a home screen from file viewers (Markdown, PDF, EPUB, images), memo lists, cards, editable tables, kanban boards, workflow output, and web embeds." },
-    { icon: MessageSquare, title: "AI Chat", description: "Choose Gemini, OpenAI, OpenRouter, or OpenCode Go to work with your files and tools. Fetch and enable multiple models for OpenAI, OpenRouter, or OpenCode Go. OpenAI Live lets you talk naturally with AI, interrupt, and mute the microphone." },
+    { icon: MessageSquare, title: "AI Chat", description: "Choose Gemini, OpenAI, OpenRouter, or OpenCode Go to work with your files and tools. Fetch and enable multiple models for OpenAI, OpenRouter, or OpenCode Go. Gemini and OpenAI Live let you talk naturally with AI, interrupt, and mute the microphone." },
     { icon: Search, title: "Ask Your Files", description: "Switch between file-name and content search. Search words locally, or ask questions against synced server indexes with paid RAG. Expand results with fuzzy matching." },
     { icon: BookOpen, title: "Notes & Editor", description: "Jot down notes in Markdown. Save ideas and meeting notes straight to Drive." },
     { icon: GitBranch, title: "Workflows", description: "Just describe what you want and AI builds an automation workflow. Works with Drive, the web, and external services." },
@@ -272,7 +272,7 @@ const ja: LpStrings = {
   features: [
     { icon: Highlighter, title: "読んで、線を引いて、メモ", description: "PDF・EPUB・Markdown・画像を開いて文章を選択するだけで、その場に引用付きメモを添付。引用はハイライトされ、本文⇄メモを双方向ジャンプ。メモはプレーンな Markdown として Drive に保存されます。" },
     { icon: LayoutDashboard, title: "パーソナルダッシュボード", description: "ファイルビューア（Markdown・PDF・EPUB・画像）、メモ一覧、カード、編集可能テーブル、カンバン、ワークフロー出力、Web埋め込みをホーム画面に配置できます。" },
-    { icon: MessageSquare, title: "AIチャット", description: "Gemini・OpenAI・OpenRouter・OpenCode Goを選び、ファイルやツールと連携。OpenAI・OpenRouter・OpenCode Goは取得したモデルから複数選択できます。OpenAI Liveでは自然に話し、AIへの割り込みやマイクのミュートもできます。" },
+    { icon: MessageSquare, title: "AIチャット", description: "Gemini・OpenAI・OpenRouter・OpenCode Goを選び、ファイルやツールと連携。OpenAI・OpenRouter・OpenCode Goは取得したモデルから複数選択できます。GeminiとOpenAIのLiveでは自然に話し、AIへの割り込みやマイクのミュートもできます。" },
     { icon: Search, title: "ファイルに質問", description: "ファイル名と内容をタブで切り替え。単語は端末内で検索し、文章は有料RAGでサーバー同期済みの資料を検索。結果にあいまい検索も追加できます。" },
     { icon: BookOpen, title: "メモ・エディタ", description: "Markdownでさっとメモ。アイデアや議事録をそのままDriveに保存できます。" },
     { icon: GitBranch, title: "ワークフロー", description: "やりたいことを言葉で伝えるだけでAIが自動化ワークフローを作成。Drive や Web、外部サービスとも連携。" },

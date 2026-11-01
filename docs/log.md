@@ -1,6 +1,8 @@
 # Update Log
 
 ## 2026-11-01
+* **New**: Gemini Live voice conversations using the active Gemini API provider, constrained single-use tokens, WebSocket audio, worklet recording/resampling, voice selection, interruption, mute, and transcripts. Live follows the saved Gemini/OpenAI provider on desktop and phones; Gemini requires an unlocked personal key (`features/chat.md`).
+* **Fix**: Live voice conversations now open outside the mobile swipe strip, preventing the dialog from being translated and clipped off screen. Larger touch targets, scrollable content, pinned call controls, and inline audio playback improve phone and landscape use (`features/chat.md`).
 * **Update**: Chat's model menu now only offers the active provider selected in settings. Switching providers selects its saved default; unavailable models and cross-provider slash-command overrides cannot be sent. Organization projects retain their Vertex model restrictions (`features/chat.md`).
 * **Update**: Jev combines verification and saving; failed checks preserve the saved key and mode. OpenAI/OpenRouter/OpenCode Go require a successful model fetch and nonempty selection before saving, with no key-only save. The landing page now names all supported providers in its common AI descriptions.
 * **Update**: API keys are now saved with public-key encryption without password entry. The common password is used to unlock the private key; existing password-encrypted credentials remain readable.

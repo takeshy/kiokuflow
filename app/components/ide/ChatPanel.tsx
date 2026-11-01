@@ -1,7 +1,7 @@
 import { SHOW_WEBPAGE_BUILDER } from "~/config/feature-visibility";
 import { resolveRagTopK } from "~/services/rag-search-options";
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
-import { Plus, Trash2, ChevronDown, HardDrive, Loader2, Check } from "lucide-react";
+import { Plus, Trash2, ChevronDown, HardDrive, Loader2, Check, AudioLines } from "lucide-react";
 import { ICON } from "~/utils/icon-sizes";
 import type {
   Message,
@@ -24,6 +24,7 @@ import type { TranslationStrings } from "~/i18n/translations";
 import { MessageList } from "~/components/chat/MessageList";
 import { ChatInput, type ChatInputHandle } from "~/components/chat/ChatInput";
 import { LiveConversation } from "~/components/chat/LiveConversation";
+import { getLiveProvider } from "~/services/live-session";
 import { openAIChatWithToolsStream } from "~/services/openai-chat";
 import { isExternalChatModel, getReasoningEfforts } from "~/types/settings";
 import { EditConfirmationDialog } from "~/components/chat/EditConfirmationDialog";
@@ -388,6 +389,7 @@ export function ChatPanel({
   const [showCryptoPrompt, setShowCryptoPrompt] = useState(false);
   const [isCompacting, setIsCompacting] = useState(false);
   const [liveOpen, setLiveOpen] = useState(false);
+  const liveProvider = getLiveProvider(settings, enterpriseSelection);
 
   // Project mount: the model list comes from the Vertex catalogue, narrowed
   // by the project's allowedModels; the user's apiPlan does not apply there.
@@ -1699,7 +1701,7 @@ export function ChatPanel({
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      {liveOpen && !enterpriseSelection && <LiveConversation systemPrompt={settings.systemPrompt} messages={messages} onClose={(transcript) => {
+      {liveOpen && liveProvider && <LiveConversation key={liveProvider} provider={liveProvider} systemPrompt={settings.systemPrompt} messages={messages} onClose={(transcript) => {
         setLiveOpen(false);
         if (transcript.length) {
           const next = [...messages, ...transcript];
@@ -1710,16 +1712,16 @@ export function ChatPanel({
       {/* Chat history selector */}
       <div className="border-b border-gray-200 dark:border-gray-800 px-2 py-1">
         <div className="flex items-center gap-1">
-          {!enterpriseSelection && settings.openai?.encryptedApiKey && <button type="button" onClick={() => setLiveOpen(true)} disabled={isStreaming || isCompacting} title="Live · OpenAI" className="rounded px-2 py-1 text-sm text-blue-600 hover:bg-blue-50 disabled:opacity-50 dark:text-blue-300 dark:hover:bg-gray-800">Live</button>}
+          {liveProvider && <button type="button" onClick={() => setLiveOpen(true)} disabled={isStreaming || isCompacting} title={`Live · ${liveProvider === "gemini" ? "Gemini" : "OpenAI"}`} className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-50 md:min-h-0 md:px-2 md:py-1 dark:text-blue-300 dark:hover:bg-gray-800"><AudioLines size={ICON.MD} />Live</button>}
           <button
             onClick={() => setChatListOpen(!chatListOpen)}
-            className="flex-1 flex items-center gap-1 rounded px-2 py-1 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 text-left truncate"
+            className="flex min-w-0 flex-1 items-center gap-1 rounded px-2 py-1 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 text-left"
           >
-            <ChevronDown size={ICON.SM} className={chatListOpen ? "rotate-180" : ""} />
-            {activeChatId
+            <ChevronDown size={ICON.SM} className={`shrink-0 ${chatListOpen ? "rotate-180" : ""}`} />
+            <span className="truncate">{activeChatId
               ? histories.find((h) => h.id === activeChatId)?.title ||
                 "Chat"
-              : t("chat.newChat")}
+              : t("chat.newChat")}</span>
           </button>
           <button
             onClick={handleSaveAsMarkdown}
