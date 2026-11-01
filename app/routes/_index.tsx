@@ -1725,6 +1725,7 @@ function IDEContent({
           workflowId={aiDialog.currentFileId}
           apiPlan={settings.apiPlan}
           compatibleProviders={!settings?.usePersonalVertex && !projectSelection ? settings?.compatibleProviders : undefined}
+          openAISettings={settings.openai}
           openAIEnabled={!!settings.openai?.encryptedApiKey && !settings.usePersonalVertex && !projectSelection}
           encryptedPrivateKey={settings.encryption?.encryptedPrivateKey}
           salt={settings.encryption?.salt}

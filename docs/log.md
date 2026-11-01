@@ -1,6 +1,9 @@
 # Update Log
 
 ## 2026-11-01
+* **Update**: API keys are now saved with public-key encryption without password entry. The common password is used to unlock the private key; existing password-encrypted credentials remain readable.
+* **New**: OpenAI model information can be fetched from the account catalogue; multiple enabled chat models are saved and used by chat, workflows and settings selectors. Model-only changes preserve encrypted credentials without another password entry.
+* **Fix**: OpenAI and other provider default-model choices now persist even when another provider is active. Switching configuration tabs preserves model drafts without changing the active provider.
 * **Update**: General now has one common encryption password for every API provider and file encryption. One verification unlocks all keys; one change re-encrypts all keys while preserving the RSA identity, with no per-provider password fields.
 * **Docs**: Updated both READMEs, the landing page, and manual settings/encryption/chat explanations for multiple AI providers, OpenAI Live, paid Firestore RAG, per-index Top K, optional Jev filtering, search tabs, and the current settings layout.
 * **New**: Jev registration with direct or OpenRouter credentials, per-RAG Top K/relevance preferences, and a repeat-until-match checkbox in content search. Query embedding runs once while Jev checks successive candidate batches; scanned PDFs use page images (`integrations/rag.md`).

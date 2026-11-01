@@ -32,7 +32,7 @@ export function ProviderPasswordSettings({ settings }: { settings: UserSettings 
       if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
       rememberPassword(action === "lock" ? "" : nextPassword);
       clearCachedApiKey(); invalidateIndexCache(); revalidator.revalidate();
-      setNotice(action === "lock" ? (ja ? "すべてのAPIキーをロックしました。" : "All API keys locked.") : action === "change" ? (ja ? "すべてのAPIキーとファイル暗号化のパスワードを変更しました。" : "Password changed for all API keys and file encryption.") : (ja ? "共通パスワードを確認しました。すべてのAPIキーを保存・利用できます。" : "Common password verified. All API keys are ready to save and use."));
+      setNotice(action === "lock" ? (ja ? "すべてのAPIキーをロックしました。" : "All API keys locked.") : action === "change" ? (ja ? "すべてのAPIキーとファイル暗号化のパスワードを変更しました。" : "Password changed for all API keys and file encryption.") : (ja ? "秘密鍵を解除し、すべてのAPIキーを利用できるようにしました。" : "Private key unlocked. All saved API keys are ready to use."));
       setPassword(""); setNewPassword(""); setConfirmation(""); setChanging(false);
     } catch (error) { setNotice(error instanceof Error ? error.message : String(error)); }
     finally { setBusy(false); }
@@ -41,7 +41,7 @@ export function ProviderPasswordSettings({ settings }: { settings: UserSettings 
     if (event.key === "Enter" && event.target instanceof HTMLInputElement) { event.preventDefault(); event.stopPropagation(); if (!busy) void submit(!stored ? "setup" : changing ? "change" : "unlock"); }
   }}>
     <h4 className="text-sm font-medium">{ja ? "共通の暗号化パスワード" : "Common encryption password"}</h4>
-    <p className="text-xs text-gray-500">{ja ? "Gemini・OpenAI・OpenRouter・OpenCode Go・JevのAPIキーとファイル暗号化に、同じパスワードを使います。ここで一度入力すると、各プロバイダーでの入力は不要です。" : "One password protects Gemini, OpenAI, OpenRouter, OpenCode Go, Jev and file encryption. Enter it here once for all providers."}</p>
+    <p className="text-xs text-gray-500">{ja ? "APIキーは公開鍵で暗号化するので、保存時のパスワード入力は不要です。共通パスワードは秘密鍵を解除し、APIキーやファイルを復号するときに使います。" : "API keys are encrypted with the public key, so saving needs no password. The common password unlocks the private key to decrypt API keys and files."}</p>
     {commonPassword && <p role="status" className="text-xs text-green-600">{ja ? "共通パスワードは確認済みです。" : "Common password verified."}</p>}
     <label className="block text-sm">{stored ? (ja ? "現在のパスワード" : "Current password") : (ja ? "暗号化パスワード" : "Encryption password")}<input id="commonEncryptionPassword" type="password" autoComplete={stored ? "current-password" : "new-password"} value={password} onChange={event => setPassword(event.target.value)} className={inputClass} /></label>
     {changing && <label className="block text-sm">{ja ? "新しいパスワード" : "New password"}<input type="password" autoComplete="new-password" value={newPassword} onChange={event => setNewPassword(event.target.value)} className={inputClass} /></label>}

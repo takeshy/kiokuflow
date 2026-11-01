@@ -34,6 +34,8 @@ function ChatEn() {
           Select a model from the dropdown. Gemini availability depends on your API plan (Free / Paid). Configured OpenAI accounts also offer GPT-6.1 Sol, GPT-6.1 Terra, GPT-6 Luna, and other models. Supported reasoning summaries appear in a collapsible section. OpenAI API usage is billed to your account; RAG uses Firestore and Gemini/OpenAI embeddings for paid GemiHub users. Audio/video attachments require Gemini. OpenRouter and OpenCode Go offer the models enabled in AI provider settings.
         </p>
 
+        <p>In Settings &gt; AI providers &gt; OpenAI, choose <strong>Fetch model information</strong>, select multiple chat models, and save. Chat and workflow selectors show only your enabled models. Each provider keeps its own default model, even when another provider is active. Saving model selections with an unlocked API key requires no extra encryption-password entry.</p>
+
         <h2>Live Voice Conversations</h2>
         <p>Click <strong>Live</strong> in the chat header, choose a Realtime model and voice, and start a conversation. Allow microphone access over HTTPS or localhost. You can speak naturally, interrupt the AI, mute your microphone, and control audio playback. The voice is AI generated. Ending or closing Live stops the microphone and adds the transcript to chat history. Live is for voice conversations; use text chat for Drive and MCP tools.</p>
 
@@ -134,7 +136,7 @@ function ChatJa() {
 
         <h2>モデル選択</h2>
         <p>
-          ドロップダウンからモデルを選択します。GeminiのモデルはAPIプラン（無料/有料）に応じて表示され、OpenAIを設定するとGPT-6.1 Sol、GPT-6.1 Terra、GPT-6 Lunaなども選択できます。対応モデルの推論要約は折りたたんで表示されます。OpenAIのAPI利用料がかかります。RAGはGemiHubの有料ユーザー向けにFirestoreとGemini／OpenAIのembeddingモデルを使用します。音声・動画の添付にはGeminiを使用してください。OpenRouterとOpenCode GoではAIプロバイダー設定で有効にしたモデルを選べます。
+          ドロップダウンからモデルを選択します。GeminiのモデルはAPIプラン（無料/有料）に応じて表示され、OpenAIを設定するとGPT-6.1 Sol、GPT-6.1 Terra、GPT-6 Lunaなども選択できます。対応モデルの推論要約は折りたたんで表示されます。OpenAIのAPI利用料がかかります。RAGはGemiHubの有料ユーザー向けにFirestoreとGemini／OpenAIのembeddingモデルを使用します。音声・動画の添付にはGeminiを使用してください。OpenRouterとOpenCode GoではAIプロバイダー設定で有効にしたモデルを選べます。OpenAIでも「モデル情報を取得」から使うモデルを複数選択して保存できます。チャットとワークフローには選択したモデルだけを表示します。各プロバイダーのデフォルトモデルは、別のプロバイダーを使用中でも保存されます。解除済みAPIキーでモデル選択だけを変更する場合、暗号化パスワードの再入力は不要です。
         </p>
 
         <h2>Live音声会話</h2>

@@ -50,7 +50,7 @@ export async function action({ request }: Route.ActionArgs) {
       const generate = (resolveProfile: (context: unknown) => KakerattaProfile): KakerattaGenerate => async (messages, systemPrompt, turnSignal, context) => {
         const profile = resolveProfile(context);
         const requestedModel = profile.model || settings.selectedModel || getDefaultModelForPlan(settings.apiPlan);
-        const model = getAvailableModels(settings.apiPlan, !!settings.openai?.encryptedApiKey && !settings.usePersonalVertex, settings.usePersonalVertex ? undefined : settings.compatibleProviders).find(m => m.name === requestedModel)?.name;
+        const model = getAvailableModels(settings.apiPlan, !!settings.openai?.encryptedApiKey && !settings.usePersonalVertex, settings.usePersonalVertex ? undefined : settings.compatibleProviders, settings.openai).find(m => m.name === requestedModel)?.name;
         if (!model || isImageGenerationModel(model)) throw new Error("Choose a supported answer model");
         if (profile.webSearch && !supportsWebSearch(model)) throw new Error("Choose a model supporting Web Search");
         const rag = profile.ragSetting ? settings.ragSettings[profile.ragSetting] : undefined;

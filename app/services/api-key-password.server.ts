@@ -1,19 +1,24 @@
 import type { UserSettings } from "~/types/settings";
 import type { SessionTokens } from "./session.server";
+import { decryptStoredApiKey, encryptApiKeyWithPublicKey } from "./api-key-crypto";
 import { decryptPrivateKey, encryptPrivateKey, generateKeyPair } from "./crypto-core";
 
 type UnlockedKeys = Pick<SessionTokens, "geminiApiKey" | "openaiApiKey" | "jevApiKey" | "compatibleApiKeys">;
 
 /** All decryption succeeds before any settings/session mutation is returned. */
 export async function unlockSettingsKeys(settings: UserSettings, password: string) {
+  let privateKey = "";
   const decrypt = async (cipher: string | undefined, salt: string | undefined, label: string) => {
     if (!cipher) return "";
     try {
       if (!salt || !password) throw new Error("Missing password or salt");
-      return await decryptPrivateKey(cipher, salt, password);
+      return await decryptStoredApiKey({ encryptedApiKey: cipher, salt }, password, settings.encryption, privateKey);
     } catch { throw new Error(`${label}: 共通パスワードで解除できません。現在の暗号化パスワードを確認してください。 / Cannot unlock with the common password. Check the current encryption password.`); }
   };
-  const privateKey = await decrypt(settings.encryption.encryptedPrivateKey, settings.encryption.salt, "ファイル暗号化 / File encryption");
+  if (settings.encryption.encryptedPrivateKey) {
+    try { privateKey = await decryptPrivateKey(settings.encryption.encryptedPrivateKey, settings.encryption.salt, password); }
+    catch { throw new Error("ファイル暗号化 / File encryption: 共通パスワードで解除できません。 / Cannot unlock with the common password."); }
+  }
   const keys: UnlockedKeys = {
     geminiApiKey: await decrypt(settings.encryptedApiKey, settings.apiKeySalt, "Gemini"),
     openaiApiKey: await decrypt(settings.openai?.encryptedApiKey, settings.openai?.salt, "OpenAI"),
@@ -42,8 +47,7 @@ export async function configureCommonPassword(settings: UserSettings, currentPas
   const updated: UserSettings = { ...settings, encryption };
   if (rotating) {
     const protect = async (key: string) => {
-      const encrypted = await encryptPrivateKey(key, password);
-      return { encryptedApiKey: encrypted.encryptedPrivateKey, salt: encrypted.salt };
+      return encryptApiKeyWithPublicKey(key, encryption.publicKey);
     };
     if (keys.geminiApiKey) { const encrypted = await protect(keys.geminiApiKey); updated.encryptedApiKey = encrypted.encryptedApiKey; updated.apiKeySalt = encrypted.salt; }
     if (keys.openaiApiKey) updated.openai = { ...settings.openai, ...await protect(keys.openaiApiKey) };

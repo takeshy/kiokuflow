@@ -27,19 +27,23 @@ export async function action({ request, params }: Route.ActionArgs) {
   const config = settings.compatibleProviders?.[provider];
   const keys = { ...validTokens.compatibleApiKeys };
   try {
-    if (body.action === "lock") delete keys[provider];
+    if (body.action === "remove") {
+      const providers = { ...settings.compatibleProviders }; delete providers[provider]; delete keys[provider];
+      await saveSettings(validTokens.accessToken, validTokens.rootFolderId, { ...settings, compatibleProviders: providers, selectedModel: parseCompatibleModel(settings.selectedModel || "")?.provider === provider ? getDefaultModelForPlan(settings.apiPlan) : settings.selectedModel });
+    } else if (body.action === "lock") delete keys[provider];
     else {
-      const previous = body.action !== "verify" || (!body.apiKey && !keys[provider]) ? await decryptSavedProviderKey(config, typeof body.password === "string" ? body.password : "", "provider") : "";
+      const previous = body.action === "unlock" || (!body.apiKey && !keys[provider] && body.password) ? await decryptSavedProviderKey(config, typeof body.password === "string" ? body.password : "", "provider", headers, settings.encryption) : "";
       const key = requestedProviderKey(body.apiKey, previous || keys[provider] || "");
       if (!key || key.length > 1024 || /[\r\n]/.test(key)) return Response.json({ error: "Enter an API key or unlock the saved key." }, { status: 400, headers });
       if (body.action === "verify" || body.action === "save") {
-        const commonSettings = body.action === "save" ? await prepareCommonKeySettings(settings, body) : settings;
+        const replacingKey = typeof body.apiKey === "string" && !!body.apiKey.trim();
+        const commonSettings = body.action === "save" && (replacingKey || !config?.encryptedApiKey) ? await prepareCommonKeySettings(settings, body) : settings;
         const models = await discoverCompatibleModels(provider, key, compatibleSessionId(tokens.rootFolderId, "verify"), request.signal);
         if (body.action === "verify") return Response.json({ models }, { headers });
         const available = new Set(models.map(model => model.id));
         const enabledModels: string[] = Array.isArray(body.enabledModels) ? [...new Set(body.enabledModels.filter((id: unknown): id is string => typeof id === "string" && available.has(id)))] as string[] : config?.enabledModels.filter(id => available.has(id)) || [];
         if (!enabledModels.length) return Response.json({ error: "Select at least one model." }, { status: 400, headers });
-        const encrypted = await encryptProviderKey(key, body);
+        const encrypted = !replacingKey && config?.encryptedApiKey ? { encryptedApiKey: config.encryptedApiKey, salt: config.salt } : await encryptProviderKey(key, commonSettings);
         const selected = parseCompatibleModel(settings.selectedModel || "");
         await saveSettings(validTokens.accessToken, validTokens.rootFolderId, {
           ...commonSettings,
@@ -50,9 +54,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       } else if (body.action === "unlock") {
         if (!previous) return Response.json({ error: "Configure the provider first." }, { status: 400, headers });
         keys[provider] = previous;
-      } else if (body.action === "remove") {
-        const providers = { ...settings.compatibleProviders }; delete providers[provider]; delete keys[provider];
-        await saveSettings(validTokens.accessToken, validTokens.rootFolderId, { ...settings, compatibleProviders: providers, selectedModel: parseCompatibleModel(settings.selectedModel || "")?.provider === provider ? getDefaultModelForPlan(settings.apiPlan) : settings.selectedModel });
+
       }
     }
     const session = await setTokens(request, { ...validTokens, compatibleApiKeys: keys });

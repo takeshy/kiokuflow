@@ -8,7 +8,7 @@ import { processDriveEvent } from "~/utils/drive-file-local";
 import { getCachedLoaderDataInMemory } from "~/services/loader-data-memory";
 import { getCachedApiKey, setCachedApiKey, ensureCachedApiKey } from "~/services/api-key-cache";
 import { getCachedLoaderData } from "~/services/indexeddb-cache";
-import { decryptPrivateKey } from "~/services/crypto-core";
+import { decryptStoredApiKey } from "~/services/api-key-crypto";
 
 export interface LogEntry {
   nodeId: string;
@@ -176,7 +176,7 @@ export function useLocalWorkflowExecution(workflowId: string) {
         const password = await promptCallbacks.promptForPassword("Enter password");
         if (!password) throw new Error("API key unlock cancelled");
         try {
-          geminiApiKey = await decryptPrivateKey(settings.encryptedApiKey, settings.apiKeySalt, password);
+          geminiApiKey = await decryptStoredApiKey({ encryptedApiKey: settings.encryptedApiKey, salt: settings.apiKeySalt }, password, settings.encryption);
           setCachedApiKey(geminiApiKey);
         } catch {
           throw new Error("Failed to decrypt API key (wrong password?)");

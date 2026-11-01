@@ -112,7 +112,7 @@ export async function* openAIChatWithToolsStream(
         model, input, instructions: systemPrompt,
         ...(requestTools.length ? { tools: requestTools } : {}),
         ...(finalRound ? { tool_choice: "none" } : {}),
-        ...(effort !== "default" ? { reasoning: { effort, summary: "auto" } } : {}),
+        ...(effort !== "default" && !/^(?:ft:)?(?:gpt-4|chatgpt-4)/i.test(model) ? { reasoning: { effort, summary: "auto" } } : {}),
       };
       const compatible = parseCompatibleModel(model);
       const response = compatible ? undefined : await fetch(options.serverApiKey ? "https://api.openai.com/v1/responses" : "/api/openai/responses", {

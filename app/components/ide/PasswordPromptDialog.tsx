@@ -1,10 +1,11 @@
+import type { UserSettings } from "~/types/settings";
 import { useState, useCallback } from "react";
 import { Lock, Loader2, AlertCircle } from "lucide-react";
 import { useI18n } from "~/i18n/context";
 import { getCachedLoaderDataInMemory } from "~/services/loader-data-memory";
 import { invalidateIndexCache } from "~/utils/index-cache";
 import { setCachedApiKey } from "~/services/api-key-cache";
-import { decryptPrivateKey } from "~/services/crypto-core";
+import { decryptStoredApiKey } from "~/services/api-key-crypto";
 import { getCachedLoaderData } from "~/services/indexeddb-cache";
 
 interface PasswordPromptDialogProps {
@@ -35,14 +36,14 @@ export function PasswordPromptDialog({ onSuccess, onClose }: PasswordPromptDialo
       invalidateIndexCache();
       // Decrypt and cache the API key client-side for local chat execution
       try {
-        let settings: { encryptedApiKey?: string; apiKeySalt?: string } | undefined =
+        let settings: Partial<Pick<UserSettings, "encryptedApiKey" | "apiKeySalt" | "encryption">> | undefined =
           getCachedLoaderDataInMemory()?.settings;
         if (!settings) {
           const cached = await getCachedLoaderData();
-          settings = cached?.settings as { encryptedApiKey?: string; apiKeySalt?: string } | undefined;
+          settings = cached?.settings as Partial<Pick<UserSettings, "encryptedApiKey" | "apiKeySalt" | "encryption">> | undefined;
         }
         if (settings?.encryptedApiKey && settings?.apiKeySalt) {
-          const apiKey = await decryptPrivateKey(settings.encryptedApiKey, settings.apiKeySalt, password);
+          const apiKey = await decryptStoredApiKey({ encryptedApiKey: settings.encryptedApiKey, salt: settings.apiKeySalt }, password, settings.encryption);
           setCachedApiKey(apiKey);
         }
       } catch { /* fallback: server will handle */ }

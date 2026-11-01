@@ -33,19 +33,20 @@ export async function action({ request }: Route.ActionArgs) {
       await jevDecide({ apiKey: key, useOpenRouter }, "接続確認", { check: { type: "choice", instructions: "接続確認です。keepを選択してください。", criteria: { keep: "接続確認", exclude: "その他" } } }, undefined, request.signal);
       return Response.json({ ok: true, unlocked: !!valid.jevApiKey }, { headers });
     }
+    if (body.action === "save" && body.newPassword) return Response.json({ error: "Change the private-key password in General." }, { status: 400, headers });
+    if (body.action === "save" && !(typeof body.apiKey === "string" && body.apiKey.trim()) && settings.jev?.encryptedApiKey) return Response.json({ ok: true, unlocked: !!valid.jevApiKey }, { headers });
     let key = "";
     if (body.action !== "lock") {
-      const previous = await decryptSavedProviderKey(settings.jev, typeof body.password === "string" ? body.password : "", "Jev", headers);
+      const previous = body.action === "unlock" ? await decryptSavedProviderKey(settings.jev, typeof body.password === "string" ? body.password : "", "Jev", headers, settings.encryption) : valid.jevApiKey || "";
       if (body.action === "unlock") {
         if (!previous) return Response.json({ error: "Configure a Jev key first." }, { status: 400, headers });
         key = previous;
       } else if (body.action === "save") {
         key = requestedProviderKey(body.apiKey, previous);
         const commonSettings = await prepareCommonKeySettings(settings, body, headers);
-        await saveSettings(valid.accessToken, valid.rootFolderId, { ...commonSettings, jev: { useOpenRouter: settings.jev?.useOpenRouter ?? false, ...await encryptProviderKey(key, body, headers) } });
+        await saveSettings(valid.accessToken, valid.rootFolderId, { ...commonSettings, jev: { useOpenRouter: settings.jev?.useOpenRouter ?? false, ...await encryptProviderKey(key, commonSettings, headers) } });
       } else if (body.action === "remove") {
-        const commonSettings = await prepareCommonKeySettings(settings, body, headers);
-        await saveSettings(valid.accessToken, valid.rootFolderId, { ...commonSettings, jev: { useOpenRouter: settings.jev?.useOpenRouter ?? false } });
+        await saveSettings(valid.accessToken, valid.rootFolderId, { ...settings, jev: { useOpenRouter: settings.jev?.useOpenRouter ?? false } });
       }
     }
     const session = await setTokens(request, { ...valid, jevApiKey: key });

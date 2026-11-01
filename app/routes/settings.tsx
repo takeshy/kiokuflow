@@ -1,3 +1,4 @@
+import { readProviderDefaultModels } from "~/utils/provider-default-models";
 import { useState, useEffect } from "react";
 import { normalizeSecretFolder } from "~/dashboard/secret-manager";
 import { data, redirect, useLoaderData, useNavigate, useSearchParams } from "react-router";
@@ -378,7 +379,8 @@ export async function action({ request }: Route.ActionArgs) {
         const updatedSettings: UserSettings = {
           ...currentSettings,
           apiPlan,
-          selectedModel: selectedModel && isModelAllowedForPlan(apiPlan, selectedModel, !!currentSettings.openai?.encryptedApiKey, currentSettings.compatibleProviders)
+          providerDefaultModels: readProviderDefaultModels(formData, { ...currentSettings, apiPlan }),
+          selectedModel: selectedModel && isModelAllowedForPlan(apiPlan, selectedModel, !!currentSettings.openai?.encryptedApiKey, currentSettings.compatibleProviders, currentSettings.openai)
             ? selectedModel
             : getDefaultModelForPlan(apiPlan),
           systemPrompt,

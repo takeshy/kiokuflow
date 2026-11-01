@@ -11,6 +11,7 @@ import { getAvailableModels } from "~/types/settings";
 interface WorkflowSpecContext {
   apiPlan?: ApiPlan;
   openAIEnabled?: boolean;
+  openAISettings?: import("~/types/settings").OpenAISettingsConfig;
   compatibleProviders?: import("~/types/settings").UserSettings["compatibleProviders"];
   mcpServers?: McpServerConfig[];
   ragSettingNames?: string[];
@@ -19,7 +20,7 @@ interface WorkflowSpecContext {
 }
 
 export function getWorkflowSpecification(context?: WorkflowSpecContext): string {
-  const models = getAvailableModels(context?.apiPlan ?? "paid", context?.openAIEnabled, context?.compatibleProviders);
+  const models = getAvailableModels(context?.apiPlan ?? "paid", context?.openAIEnabled, context?.compatibleProviders, context?.openAISettings);
   const modelList = buildModelList(models);
   const mcpSection = buildMcpSection(context?.mcpServers);
   const mcpServerList = buildMcpServerList(context?.mcpServers);

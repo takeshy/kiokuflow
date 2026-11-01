@@ -1,3 +1,4 @@
+import { decryptStoredApiKey } from "./api-key-crypto";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { action as chat } from "~/routes/api.ai-providers.$provider.chat";
@@ -5,7 +6,6 @@ import { action as configure } from "~/routes/api.ai-providers.$provider.setting
 import { getTokens, setTokens, commitSession, type SessionTokens } from "./session.server";
 import { clearSettingsCache } from "./user-settings.server";
 import { discoverCompatibleModels } from "./compatible-provider.server";
-import { decryptPrivateKey } from "./crypto-core";
 import { DEFAULT_USER_SETTINGS, type UserSettings } from "~/types/settings";
 import { SETTINGS_FILE_NAME } from "./sync-diff";
 
@@ -79,13 +79,20 @@ test("credentials are encrypted at rest, isolated per provider, and lock/unlock 
   assert.equal(settings.systemPrompt, "preserve-me");
   const config = settings.compatibleProviders!.openrouter!;
   assert.notEqual(config.encryptedApiKey, "new-router-key");
-  assert.equal(await decryptPrivateKey(config.encryptedApiKey, config.salt, "provider-password"), "new-router-key");
+  assert.equal(await decryptStoredApiKey(config, "provider-password", settings.encryption), "new-router-key");
   assert.deepEqual(config.enabledModels, ["vendor/model"]);
   const cookie = saved.headers.get("Set-Cookie")!.split(";")[0];
   const savedTokens = await getTokens(new Request("https://gemihub.example", { headers: { Cookie: cookie } }));
   assert.equal(savedTokens?.compatibleApiKeys?.openrouter, "new-router-key");
   assert.equal(savedTokens?.compatibleApiKeys?.opencodego, "synthetic-go");
   assert.equal(JSON.stringify(await saved.json()).includes("new-router-key"), false);
+  const passwordless = await configure(args(await request({ action: "save", apiKey: "replaced-with-public-key", enabledModels: ["vendor/model"] }, { compatibleApiKeys: {} })));
+  assert.equal(passwordless.status, 200);
+  assert.equal(await decryptStoredApiKey(settings.compatibleProviders!.openrouter, "provider-password", settings.encryption), "replaced-with-public-key");
+  const cipherBeforeModelSave = settings.compatibleProviders!.openrouter!.encryptedApiKey;
+  const modelOnly = await configure(args(await request({ action: "save", enabledModels: ["vendor/model"] })));
+  assert.equal(modelOnly.status, 200);
+  assert.equal(settings.compatibleProviders!.openrouter!.encryptedApiKey, cipherBeforeModelSave);
   const locked = await configure(args(await request({ action: "lock" }, { compatibleApiKeys: savedTokens!.compatibleApiKeys })));
   const lockedTokens = await getTokens(new Request("https://gemihub.example", { headers: { Cookie: locked.headers.get("Set-Cookie")!.split(";")[0] } }));
   assert.equal(lockedTokens?.compatibleApiKeys?.openrouter, undefined);

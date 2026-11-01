@@ -60,7 +60,7 @@ export function availableChatModels(projectSelection: ChatProjectSelection | nul
         ({ name, displayName: name, description: "" } satisfies ModelInfo),
     );
   }
-  return getAvailableModels(apiPlan, !!settings?.openai?.encryptedApiKey && !settings.usePersonalVertex, settings?.usePersonalVertex ? undefined : settings?.compatibleProviders);
+  return getAvailableModels(apiPlan, !!settings?.openai?.encryptedApiKey && !settings.usePersonalVertex, settings?.usePersonalVertex ? undefined : settings?.compatibleProviders, settings?.openai);
 }
 
 export function startChatStream(

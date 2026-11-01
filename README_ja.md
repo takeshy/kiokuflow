@@ -49,7 +49,7 @@ GemiHub はオフラインファーストです。ファイルは IndexedDB に�
 
 **ダッシュボード** — Undo/Redo・ワンクリック整列・複数ダッシュボード・ホーム固定に対応したドラッグ＆ドロップグリッド · File / Memo List / Base（`.base` クエリをテーブル・カード・リストで表示）/ Kanban（`.kanban` YAML、ドラッグでのステータス変更を Markdown に書き戻し）/ Secret Manager / Timeline / ワークフロー出力（自動更新可）/ Web ウィジェット
 
-**AI チャット** — Gemini・OpenAI・OpenRouter・OpenCode Goによるストリーミングチャット（ツール・添付の対応はモデルによる）· 音声選択・割り込み・ミュート・会話記録に対応したOpenAI Live会話モード · Gemini画像生成 · `{content}` / `{selection}` / `@file` テンプレートとコマンド別のモデル・ツール上書きを持つスラッシュコマンド · チャットからの `/run @workflow.yaml`
+**AI チャット** — Gemini・OpenAI・OpenRouter・OpenCode Goによるストリーミングチャット。OpenAI・OpenRouter・OpenCode Goはモデル情報を取得して複数選択可能（ツール・添付の対応はモデルによる）· 音声選択・割り込み・ミュート・会話記録に対応したOpenAI Live会話モード · Gemini画像生成 · `{content}` / `{selection}` / `@file` テンプレートとコマンド別のモデル・ツール上書きを持つスラッシュコマンド · チャットからの `/run @workflow.yaml`
 
 **ナレッジ** — 有料ユーザー向けFirestore RAG。RAGごとにGemini／OpenAIのembeddingモデルとTop Kを選択し、任意でJevによる一致判定と「一致するまで検索」を利用可能 · チャットごとに選べる OKF ナレッジバンドル · MCP サーバーのツール化（OAuth 対応、インタラクティブな MCP Apps）· Agent Skills（カタログからワンクリック導入できる外部スキルを含む）· GitHub からインストール、あるいはローカル開発できるプラグイン
 
@@ -106,7 +106,7 @@ GemiHub はオフラインファーストです。ファイルは IndexedDB に�
 
 ## はじめかた
 
-いちばん手軽なのはホスティング版です。**[gemihub.net](https://gemihub.net)** に Google でサインインし、**設定 → 一般**で全APIキー共通の暗号化パスワードを一度設定し、一番左の**AIプロバイダー**で利用するAPIキーを登録します。使用するプロバイダーは設定タブ上部で選択します。KakerattaとBlueskyは**外部連携**、コマンドとショートカットは同じ設定タブにまとまっています。
+いちばん手軽なのはホスティング版です。**[gemihub.net](https://gemihub.net)** に Google でサインインし、**設定 → 一般**で最初に暗号化用の鍵を作成し（パスワードは秘密鍵の解除用で、APIキーの保存には不要です）、一番左の**AIプロバイダー**で利用するAPIキーを登録します。使用するプロバイダーは設定タブ上部で選択します。KakerattaとBlueskyは**外部連携**、コマンドとショートカットは同じ設定タブにまとまっています。
 
 自分で動かす場合:
 

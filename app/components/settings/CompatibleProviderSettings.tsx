@@ -3,7 +3,6 @@ import { useRevalidator } from "react-router";
 import { useI18n } from "~/i18n/context";
 import { COMPATIBLE_PROVIDERS, type CompatibleProvider, type UserSettings } from "~/types/settings";
 import { invalidateIndexCache } from "~/utils/index-cache";
-import { useProviderPasswords } from "./ProviderPasswords";
 import { inputClass } from "./shared";
 
 export function CompatibleProviderSettings({ provider, settings, onOpenGeneral }: { provider: CompatibleProvider; settings: UserSettings; onOpenGeneral?: () => void }) {
@@ -14,7 +13,7 @@ export function CompatibleProviderSettings({ provider, settings, onOpenGeneral }
   const revalidator = useRevalidator();
   const [unlocked, setUnlocked] = useState(false);
   const [apiKey, setApiKey] = useState("");
-  const { password } = useProviderPasswords();
+  const encryptionReady = !!settings.encryption.publicKey;
   const [models, setModels] = useState(config?.availableModels || []);
   const [enabledModels, setEnabledModels] = useState(config?.enabledModels || []);
   const [filter, setFilter] = useState("");
@@ -27,10 +26,10 @@ export function CompatibleProviderSettings({ provider, settings, onOpenGeneral }
     return () => controller.abort();
   }, [endpoint]);
   const submit = async (action: "verify" | "save" | "remove") => {
-    if (action !== "verify" && !password) { setNotice(ja ? "一般設定でパスワードを設定・確認してください。" : "Set or verify the password in General settings."); return; }
+
     setBusy(true); setNotice("");
     try {
-      const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, apiKey, password, enabledModels }) });
+      const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, apiKey, enabledModels }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
       if (action === "verify") {
@@ -52,10 +51,10 @@ export function CompatibleProviderSettings({ provider, settings, onOpenGeneral }
       <p className="text-sm text-gray-500">{ja ? `${definition.name}のAPIキーを保存し、チャット・ワークフローで使用するモデルを選択します。利用料・上限は各サービスの契約に従います。` : `Save your ${definition.name} API key and choose models for chat and workflows. Your provider's billing and limits apply.`}</p>
       {provider === "opencodego" && <p className="text-xs text-gray-500">{ja ? "OpenCode Goはコーディングエージェント向けです。使用可能モデルやプライバシー設定はOpenCode側で管理します。" : "OpenCode Go is intended for coding agents. Available models and privacy settings are managed in OpenCode."}</p>}
       <p className="text-sm" role="status">{stored ? unlocked ? (ja ? "APIキー：ロック解除済み" : "API key: unlocked") : (ja ? "APIキー：保存済み・ロック中" : "API key: saved, locked") : (ja ? "APIキーは未設定です。" : "No API key saved.")}</p>
-      <label className="block text-sm">{definition.name} API key<input type="password" autoComplete="off" value={apiKey} disabled={!password} onChange={event => setApiKey(event.target.value)} placeholder={stored ? (ja ? "空欄で現在のキーを保持" : "Leave blank to keep current key") : "sk-…"} className={inputClass} /></label>
+      <label className="block text-sm">{definition.name} API key<input type="password" autoComplete="off" value={apiKey} disabled={!encryptionReady} onChange={event => setApiKey(event.target.value)} placeholder={stored ? (ja ? "空欄で現在のキーを保持" : "Leave blank to keep current key") : "sk-…"} className={inputClass} /></label>
     </>
-    {!password && <p className="text-xs text-gray-500">{ja ? "APIキーの保存・変更には、一般設定でパスワードを設定・確認してください。" : "Set or verify the password in General before saving or changing the API key."}</p>}
-    {onOpenGeneral && <button type="button" onClick={onOpenGeneral} className="text-sm text-blue-600 hover:underline">{ja ? "一般設定でパスワードを管理" : "Manage password in General"}</button>}
+    {!encryptionReady && <p className="text-xs text-gray-500">{ja ? "一般設定で暗号化用の鍵を作成してください。作成後はパスワードなしでAPIキーを保存できます。" : "Create encryption keys in General first. Saving an API key then needs no password."}</p>}
+    {onOpenGeneral && <button type="button" onClick={onOpenGeneral} className="text-sm text-blue-600 hover:underline">{ja ? "一般設定で暗号化・ロック解除を管理" : "Manage encryption and unlocking in General"}</button>}
     <>
       <div className="flex flex-wrap gap-3 text-sm">
         <button type="button" disabled={busy} onClick={() => void submit("verify")} className="rounded border px-3 py-2 disabled:opacity-50">{ja ? "接続確認・モデル一覧を取得" : "Verify and fetch models"}</button>
@@ -71,8 +70,8 @@ export function CompatibleProviderSettings({ provider, settings, onOpenGeneral }
       </fieldset>}
     </>
     <div className="flex flex-wrap gap-3 text-sm">
-      <button type="button" disabled={busy || !password} onClick={() => void submit("save")} className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50">{ja ? "APIキーとモデルを保存" : "Save API key and models"}</button>
-      {stored && <button type="button" disabled={busy || !password} onClick={() => void submit("remove")} className="rounded border px-4 py-2 text-red-600 disabled:opacity-50">{ja ? "キーを削除" : "Remove key"}</button>}
+      <button type="button" disabled={busy || !encryptionReady} onClick={() => void submit("save")} className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50">{ja ? "APIキーとモデルを保存" : "Save API key and models"}</button>
+      {stored && <button type="button" disabled={busy} onClick={() => void submit("remove")} className="rounded border px-4 py-2 text-red-600 disabled:opacity-50">{ja ? "キーを削除" : "Remove key"}</button>}
     </div>
     {notice && <p role="status" className="text-sm">{notice}</p>}
   </div>;

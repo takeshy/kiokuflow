@@ -1,10 +1,10 @@
+import { decryptStoredApiKey } from "./api-key-crypto";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { action as configure } from "~/routes/api.jev.settings";
 import { action as configurePassword } from "~/routes/api.settings.api-key-password";
 import { getTokens, setTokens, commitSession, type SessionTokens } from "./session.server";
 import { clearSettingsCache } from "./user-settings.server";
-import { decryptPrivateKey } from "./crypto-core";
 import { DEFAULT_USER_SETTINGS, type UserSettings } from "~/types/settings";
 import { SETTINGS_FILE_NAME } from "./sync-diff";
 
@@ -29,7 +29,7 @@ test("Jev key is encrypted, rotates passwords, locks independently, and is isola
   const saved = await configure(args(await request({ action: "save", apiKey: "synthetic-jev", password: "jev-password" })));
   assert.equal(saved.status, 200); assert.equal(settings.systemPrompt, "preserve");
   assert.notEqual(settings.jev!.encryptedApiKey, "synthetic-jev");
-  assert.equal(await decryptPrivateKey(settings.jev!.encryptedApiKey!, settings.jev!.salt!, "jev-password"), "synthetic-jev");
+  assert.equal(await decryptStoredApiKey(settings.jev, "jev-password", settings.encryption), "synthetic-jev");
   assert.equal(JSON.stringify(await saved.json()).includes("synthetic-jev"), false);
   const savedTokens = (await responseTokens(saved))!;
   assert.equal(savedTokens.jevApiKey, "synthetic-jev"); assert.equal(savedTokens.compatibleApiKeys?.openrouter, "synthetic-router");
@@ -39,9 +39,12 @@ test("Jev key is encrypted, rotates passwords, locks independently, and is isola
   assert.equal((await configure(args(await request({ action: "unlock", password: "wrong" })))).status, 401);
   const rejected = await configure(args(await request({ action: "save", password: "jev-password", newPassword: "new-password" })));
   assert.equal(rejected.status, 400);
+  const passwordless = await configure(args(await request({ action: "save", apiKey: "synthetic-jev" }, { jevApiKey: "" })));
+  assert.equal(passwordless.status, 200);
+  assert.equal(await decryptStoredApiKey(settings.jev, "jev-password", settings.encryption), "synthetic-jev");
   const rotated = await configurePassword(args(await request({ action: "change", password: "jev-password", newPassword: "new-password", confirmPassword: "new-password" })));
   assert.equal(rotated.status, 200);
-  assert.equal(await decryptPrivateKey(settings.jev!.encryptedApiKey!, settings.jev!.salt!, "new-password"), "synthetic-jev");
+  assert.equal(await decryptStoredApiKey(settings.jev, "new-password", settings.encryption), "synthetic-jev");
   assert.equal((await configure(args(await request({ action: "unlock", password: "jev-password" })))).status, 401);
   const changed = await setTokens(new Request("https://gemihub.example", { headers: { Cookie: saved.headers.get("Set-Cookie")!.split(";")[0] } }), { ...savedTokens, rootFolderId: "other-root" });
   const changedTokens = await getTokens(new Request("https://gemihub.example", { headers: { Cookie: (await commitSession(changed)).split(";")[0] } }));

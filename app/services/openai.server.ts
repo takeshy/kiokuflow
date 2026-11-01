@@ -25,3 +25,21 @@ export async function openAIError(response: Response): Promise<Response> {
     headers: { "Cache-Control": "no-store" },
   });
 }
+
+
+/** Fetch only the account's model catalogue; never start a billed generation. */
+export async function discoverOpenAIModels(key: string, signal?: AbortSignal): Promise<import("~/types/settings").OpenAIModelEntry[]> {
+  const { isOpenAIChatModel } = await import("~/types/settings");
+  const response = await fetch(`${OPENAI_API_URL}/models`, { headers: { Authorization: `Bearer ${key}` }, signal });
+  if (!response.ok) throw await openAIError(response);
+  const payload = await response.json() as { data?: unknown };
+  if (!Array.isArray(payload.data)) throw new Error("OpenAI returned an invalid model catalogue.");
+  const entries = payload.data.flatMap((value: unknown) => {
+    if (!value || typeof value !== "object") return [];
+    const model = value as Record<string, unknown>;
+    if (typeof model.id !== "string" || model.id.length > 128 || !isOpenAIChatModel(model.id)) return [];
+    if (typeof model.shutdown_date === "string" && Date.parse(model.shutdown_date) <= Date.now()) return [];
+    return [{ id: model.id, name: model.id, ...(typeof model.created === "number" && Number.isFinite(model.created) && Math.abs(model.created) < 8.64e12 ? { created: model.created } : {}), ...(typeof model.owned_by === "string" ? { ownedBy: model.owned_by } : {}) }];
+  });
+  return [...new Map(entries.reverse().map(model => [model.id, model])).values()].sort((a, b) => a.id.localeCompare(b.id));
+}

@@ -1,3 +1,4 @@
+import { decryptStoredApiKey } from "./api-key-crypto";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { DEFAULT_USER_SETTINGS, type UserSettings } from "~/types/settings";
@@ -34,7 +35,7 @@ test("common rotation re-encrypts all API keys while retaining the RSA identity,
   assert.equal(result.settings.jev?.useOpenRouter, true);
   assert.deepEqual(result.settings.compatibleProviders?.openrouter?.enabledModels, ["vendor/model"]);
   for (const cipher of [result.settings.openai, result.settings.jev, result.settings.compatibleProviders?.openrouter, result.settings.compatibleProviders?.opencodego]) {
-    assert.ok(cipher); await assert.rejects(decryptPrivateKey(cipher!.encryptedApiKey!, cipher!.salt!, password));
+    assert.ok(cipher); await assert.rejects(decryptStoredApiKey(cipher, password, result.settings.encryption));
   }
   assert.equal(await decryptPrivateKey(settings.openai!.encryptedApiKey!, settings.openai!.salt!, password), "synthetic-openai");
 });
@@ -53,9 +54,10 @@ test("mismatched legacy passwords fail before changing any stored ciphertext", a
   assert.equal(JSON.stringify(settings), before);
 });
 
-test("provider tabs cannot save keys under a second password or rotate just one provider", async () => {
+test("provider key saving uses the public key without a password; password rotation stays in General", async () => {
   const settings = await allProviders();
-  await assert.rejects(prepareCommonKeySettings(settings, { password: "other-password" }), e => e instanceof Response && e.status === 401);
+  assert.equal((await prepareCommonKeySettings(settings, {})).encryption.publicKey, settings.encryption.publicKey);
+  assert.equal((await prepareCommonKeySettings(settings, { password: "unused-for-encryption" })).encryption.publicKey, settings.encryption.publicKey);
   await assert.rejects(prepareCommonKeySettings(settings, { password, newPassword: "other-password" }), e => e instanceof Response && e.status === 400);
   assert.equal((await prepareCommonKeySettings(settings, { password })).encryption.publicKey, settings.encryption.publicKey);
 });

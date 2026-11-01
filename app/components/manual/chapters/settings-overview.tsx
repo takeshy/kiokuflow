@@ -20,7 +20,7 @@ function SettingsEn() {
         </p>
 
         <h2>AI providers</h2>
-        <p>The leftmost tab lets you choose the AI provider to use. Its Gemini, OpenAI, OpenRouter, OpenCode Go, and Vertex AI tabs configure API keys, connections, and default models. The Jev tab configures RAG relevance filtering using a direct key or OpenRouter. Browsing a provider tab does not change your chat provider; save to apply your choice.</p>
+        <p>The leftmost tab lets you choose the AI provider to use. Its Gemini, OpenAI, OpenRouter, OpenCode Go, and Vertex AI tabs configure API keys, connections, and default models. OpenAI, OpenRouter and OpenCode Go can fetch model information and enable multiple models. Each provider keeps its own default model. The Jev tab configures RAG relevance filtering using a direct key or OpenRouter. Browsing a provider tab does not change your chat provider; save to apply your choice.</p>
         <h2>General</h2>
         <ul>
           <li><strong>System Prompt</strong> — Custom instructions for the AI across all conversations.</li>
@@ -32,7 +32,7 @@ function SettingsEn() {
           <li><strong>Optional advanced features</strong> — Enable Dashboard, Workflow, and RAG. Disabled features remain hidden from navigation and settings.</li>
         </ul>
         <p>
-          Kakeratta and Bluesky share the Integrations tab. Commands and Shortcuts share a tab with separate internal tabs. One common encryption password is set, verified, and changed in General for all API providers and file encryption; provider tabs contain API keys and model settings. Recommended order: complete General first, enable only the optional features you need, configure Sync, and then set up integrations such as MCP and RAG. Organization and plan tabs appear only for eligible accounts.
+          Kakeratta and Bluesky share the Integrations tab. Commands and Shortcuts share a tab with separate internal tabs. General creates encryption keys and manages the common private-key password. Saving API keys uses only the public key and requires no password; provider tabs contain API keys and model settings. Recommended order: complete General first, enable only the optional features you need, configure Sync, and then set up integrations such as MCP and RAG. Organization and plan tabs appear only for eligible accounts.
         </p>
 
         <h2>MCP Servers</h2>
@@ -141,7 +141,7 @@ function SettingsJa() {
         </p>
 
         <h2>AIプロバイダー</h2>
-        <p>一番左のタブで使用するAIプロバイダーを選びます。その下のGemini・OpenAI・OpenRouter・OpenCode Go・Vertex AIタブでAPIキー、接続、デフォルトモデルを設定できます。Jevタブでは直接キーまたはOpenRouterでRAGの一致判定を設定します。設定タブを閲覧しても使用するチャットプロバイダーは変わりません。保存すると選択を適用します。</p>
+        <p>一番左のタブで使用するAIプロバイダーを選びます。その下のGemini・OpenAI・OpenRouter・OpenCode Go・Vertex AIタブでAPIキー、接続、デフォルトモデルを設定できます。OpenAI・OpenRouter・OpenCode Goはモデル情報を取得して使うモデルを複数選択でき、デフォルトモデルもプロバイダーごとに保存します。Jevタブでは直接キーまたはOpenRouterでRAGの一致判定を設定します。設定タブを閲覧しても使用するチャットプロバイダーは変わりません。保存すると選択を適用します。</p>
         <h2>一般</h2>
         <ul>
           <li><strong>システムプロンプト</strong> — すべての会話に適用されるAIへのカスタム指示。</li>
@@ -153,7 +153,7 @@ function SettingsJa() {
           <li><strong>任意の上級機能</strong> — ダッシュボード、ワークフロー、RAGを有効化。無効な機能はナビゲーションと設定から隠れます。</li>
         </ul>
         <p>
-          KakerattaとBlueskyは「外部連携」、コマンドとショートカットは「コマンド・ショートカット」の内部タブから設定します。APIキーとファイル暗号化のパスワードは共通の1つで、一般設定で一度入力すれば全プロバイダーをまとめて解除・変更・ロックできます。推奨順序は、まず一般設定を完了し、必要な上級機能だけを有効にしてから同期を設定し、その後にMCPやRAGなどの連携を設定します。組織・プラン関連タブは対象アカウントにのみ表示されます。
+          KakerattaとBlueskyは「外部連携」、コマンドとショートカットは「コマンド・ショートカット」の内部タブから設定します。APIキーは公開鍵で暗号化するため保存時のパスワードは不要です。一般設定の共通パスワードは秘密鍵の解除・変更に使い、全プロバイダーをまとめて解除・ロックできます。推奨順序は、まず一般設定を完了し、必要な上級機能だけを有効にしてから同期を設定し、その後にMCPやRAGなどの連携を設定します。組織・プラン関連タブは対象アカウントにのみ表示されます。
         </p>
 
         <h2>MCPサーバー</h2>

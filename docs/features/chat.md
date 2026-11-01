@@ -11,12 +11,14 @@ AI chat with Gemini, OpenAI, OpenRouter, and OpenCode Go streaming, function cal
 
 ## OpenAI and Live voice conversations
 
-On **My Drive**, set or verify the common encryption password in
+On **My Drive**, create encryption keys once in
 **Settings > General**, then save the API key in **Settings > AI providers > OpenAI**.
-The password has at least eight characters and is shared with Gemini, OpenRouter, OpenCode Go, direct Jev keys and file encryption. The key is encrypted in
+API keys are encrypted with the public key, so saving or replacing them needs no password. A common password of at least eight characters protects the RSA private key and is used when unlocking saved keys. Existing PBKDF2-encrypted API keys remain readable. The key is encrypted in
 Drive settings; unlocking stores an encrypted copy in the authenticated session.
 The raw OpenAI key is never returned to the browser. Replace or remove the key in the provider tab. Password setup, verification,
 unlocking, locking, and changes are managed in **Settings > General**.
+
+Use **Fetch model information** in the OpenAI tab, select multiple chat models, and choose **Save API key and models**. Only those models appear in chat, workflow, command and default-model selectors. Model information includes the model ID, owner and creation date from the [OpenAI Models API](https://developers.openai.com/api/reference/resources/models/methods/list); that API does not provide capability or price metadata. Embedding, image-only, Live/audio and retired models are excluded from this chat selector. Existing settings retain their curated choices until a selection is explicitly saved. Updating only the enabled-model selection uses the unlocked session key and preserves the saved ciphertext without requiring the encryption password again.
 
 Configured accounts can choose OpenAI models, including **GPT-6.1 Sol**,
 **GPT-6.1 Terra**, **GPT-6 Luna** and **GPT-6 Astra**, from the chat model menu,
@@ -49,13 +51,12 @@ interfaces.
 
 ## OpenRouter and OpenCode Go
 
-On **My Drive**, first set or verify the common encryption password
-in **Settings > General**. Then open **Settings > AI providers > OpenRouter / OpenCode Go**,
+On **My Drive**, first create encryption keys in **Settings > General**. Saving new keys uses the public key and needs no password. Then open **Settings > AI providers > OpenRouter / OpenCode Go**,
 enter the API key, and choose
 **Verify and fetch models**, check the models to enable, then save.
 Choose the provider above the tabs and save to make its selected model the
-default. Browsing settings tabs does not change the active provider.
-Enter the common password once in **Settings > General** to unlock all saved provider keys. Changes re-encrypt all keys and the existing RSA private key together; locking clears all provider keys from the session. The entered password stays only in settings-screen memory and is not written to localStorage or IndexedDB. Existing encryption formats and RSA identity are preserved. A legacy key that cannot be decrypted with the entered password causes an error before any keys are changed.
+default. Each provider's default model is saved independently, even when another provider is active. Browsing settings tabs does not change the active provider.
+Enter the common password once in **Settings > General** to unlock all saved provider keys. Password changes preserve the RSA key pair and rewrap its private key; legacy keys are migrated to public-key encryption; locking clears all provider keys from the session. The entered password stays only in settings-screen memory and is not written to localStorage or IndexedDB. Existing encryption formats and RSA identity are preserved. A legacy key that cannot be decrypted with the entered password causes an error before any keys are changed.
 
 Enabled models are available in chat, slash commands, Timeline AI, Kakeratta,
 and workflow execution/generation. Requests use a same-origin server proxy,

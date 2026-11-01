@@ -294,6 +294,10 @@ export const FONT_SIZE_OPTIONS: { value: FontSize; label: string }[] = [
 
 // Model types
 export type ModelType =
+  | `gpt-${string}`
+  | `chatgpt-${string}`
+  | `o${number}${string}`
+  | `ft:${string}`
   | `openrouter:${string}`
   | `opencodego:${string}`
   | "gpt-6-astra"
@@ -329,7 +333,33 @@ export const OPENAI_MODELS: ModelInfo[] = [
 ].map((name) => ({ name: name as ModelType, displayName: `OpenAI · ${name}`, description: "OpenAI Responses API" }));
 
 export function isOpenAIModel(model: string): boolean {
-  return /^(gpt-|o\d)/i.test(model);
+  return /^(?:gpt-|chatgpt-|o\d|ft:(?:gpt-|o\d))/i.test(model);
+}
+
+/** The catalogue API provides no capabilities; omit specialized non-chat families. */
+export function isOpenAIChatModel(model: string): boolean {
+  if (!/^[A-Za-z0-9][A-Za-z0-9._:/-]*$/.test(model)) return false;
+  const base = model.startsWith("ft:") ? model.slice(3).split(":")[0] : model;
+  return /^(?:gpt-(?:[5-9]|4\.1|4o)|o[1-9]|chatgpt-)/i.test(base)
+    && !/(?:audio|realtime|live|transcribe|tts|image|embedding|search-preview|deep-research)/i.test(base);
+}
+
+export interface OpenAIModelEntry { id: string; name: string; created?: number; ownedBy?: string }
+export interface OpenAISettingsConfig {
+  encryptedApiKey: string;
+  salt: string;
+  availableModels?: OpenAIModelEntry[];
+  enabledModels?: string[];
+}
+
+export function getConfiguredOpenAIModels(config?: OpenAISettingsConfig): ModelInfo[] {
+  // Keep older settings usable until the user explicitly saves a model selection.
+  if (!config?.enabledModels) return OPENAI_MODELS;
+  return [...new Set(config.enabledModels)].filter(isOpenAIChatModel).map(id => ({
+    name: id as ModelType,
+    displayName: config.availableModels?.find(model => model.id === id)?.name || `OpenAI · ${id}`,
+    description: "OpenAI Responses API",
+  }));
 }
 
 export type CompatibleProvider = "openrouter" | "opencodego";
@@ -456,7 +486,7 @@ function mergeModelLists(lists: ModelInfo[][]): ModelInfo[] {
 
 export const AVAILABLE_MODELS: ModelInfo[] = mergeModelLists([PAID_MODELS, FREE_MODELS, OPENAI_MODELS]);
 
-export function getAvailableModels(plan: ApiPlan, includeOpenAI = false, providers?: UserSettings["compatibleProviders"]): ModelInfo[] {
+export function getAvailableModels(plan: ApiPlan, includeOpenAI = false, providers?: UserSettings["compatibleProviders"], openai?: OpenAISettingsConfig): ModelInfo[] {
   const models = plan === "free" ? FREE_MODELS : PAID_MODELS;
   const compatible: ModelInfo[] = [];
   for (const provider of ["openrouter", "opencodego"] as const) {
@@ -468,11 +498,11 @@ export function getAvailableModels(plan: ApiPlan, includeOpenAI = false, provide
       compatible.push({ name: name as ModelType, displayName: `${COMPATIBLE_PROVIDERS[provider].name} · ${config.availableModels.find(model => model.id === id)?.name || id}`, description: id });
     }
   }
-  return [...models, ...(includeOpenAI ? OPENAI_MODELS : []), ...compatible];
+  return [...models, ...(includeOpenAI ? getConfiguredOpenAIModels(openai) : []), ...compatible];
 }
 
-export function isModelAllowedForPlan(plan: ApiPlan, modelName: ModelType, includeOpenAI = false, providers?: UserSettings["compatibleProviders"]): boolean {
-  return getAvailableModels(plan, includeOpenAI, providers).some((model) => model.name === modelName);
+export function isModelAllowedForPlan(plan: ApiPlan, modelName: ModelType, includeOpenAI = false, providers?: UserSettings["compatibleProviders"], openai?: OpenAISettingsConfig): boolean {
+  return getAvailableModels(plan, includeOpenAI, providers, openai).some((model) => model.name === modelName);
 }
 
 export function isImageGenerationModel(modelName: ModelType): boolean {
@@ -708,6 +738,8 @@ export interface UserSettings {
   kakeratta?: import("./kakeratta").KakerattaSettings;
   apiPlan: ApiPlan;
   selectedModel: ModelType | null;
+  /** Default model preferences survive switching the active chat provider. */
+  providerDefaultModels?: Partial<Record<"apikey" | "openai" | "vertex" | "openrouter" | "opencodego", ModelType | "">>;
   mcpServers: McpServerConfig[];
   encryption: EncryptionSettings;
   secretManagerFolder: string;
@@ -728,8 +760,8 @@ export interface UserSettings {
   syncConflictFolder: string;
   encryptedApiKey: string;
   apiKeySalt: string;
-  /** OpenAI credentials use their own encryption password, independent of Gemini/file encryption. */
-  openai?: { encryptedApiKey: string; salt: string };
+  /** API credentials are encrypted with the common password configured in General. */
+  openai?: OpenAISettingsConfig;
   /** Jev is a decision/filter service, not a chat model. */
   jev?: { encryptedApiKey?: string; salt?: string; useOpenRouter: boolean };
   compatibleProviders?: Partial<Record<CompatibleProvider, CompatibleProviderSettings>>;

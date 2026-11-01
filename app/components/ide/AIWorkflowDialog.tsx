@@ -115,6 +115,7 @@ interface AIWorkflowDialogProps {
   workflowId?: string;
   apiPlan: ApiPlan;
   openAIEnabled?: boolean;
+  openAISettings?: import("~/types/settings").OpenAISettingsConfig;
   compatibleProviders?: import("~/types/settings").UserSettings["compatibleProviders"];
   encryptedPrivateKey?: string;
   salt?: string;
@@ -162,6 +163,7 @@ export function AIWorkflowDialog({
   workflowId,
   apiPlan,
   openAIEnabled = false,
+  openAISettings,
   compatibleProviders,
   encryptedPrivateKey,
   salt,
@@ -221,7 +223,7 @@ export function AIWorkflowDialog({
   const pasteSectionRef = useRef<HTMLDivElement>(null);
   const pasteTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const models = getAvailableModels(apiPlan, openAIEnabled, compatibleProviders).filter((m) => !m.isImageModel);
+  const models = getAvailableModels(apiPlan, openAIEnabled, compatibleProviders, openAISettings).filter((m) => !m.isImageModel);
 
   // Skill mode: locked (skill flows) or determined by checkbox (legacy) — we removed
   // the checkbox in favor of dedicated "Create skill with AI" entry points.

@@ -1,8 +1,9 @@
+import { decryptStoredApiKey } from "./api-key-crypto";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { action } from "~/routes/api.settings.api-key-password";
 import { configureCommonPassword } from "./api-key-password.server";
-import { encryptPrivateKey, decryptPrivateKey } from "./crypto-core";
+import { encryptPrivateKey } from "./crypto-core";
 import { getTokens, setTokens, commitSession, type SessionTokens } from "./session.server";
 import { clearSettingsCache } from "./user-settings.server";
 import { DEFAULT_USER_SETTINGS, type UserSettings } from "~/types/settings";
@@ -40,7 +41,7 @@ test("one General unlock/rotation/lock handles every provider without exposing k
   assert.equal(wrong.status, 400); assert.equal(JSON.stringify(settings), before); assert.equal(writes, 0);
   const changed = await action(args(await request({ action: "change", password: "common-password", newPassword: "next-password", confirmPassword: "next-password" }, tokens)));
   assert.equal(changed.status, 200); assert.equal(writes, 1); assert.equal(settings.encryption.publicKey, first.settings.encryption.publicKey);
-  assert.equal(await decryptPrivateKey(settings.openai!.encryptedApiKey!, settings.openai!.salt!, "next-password"), "synthetic-openai");
+  assert.equal(await decryptStoredApiKey(settings.openai, "next-password", settings.encryption), "synthetic-openai");
   assert.deepEqual(settings.compatibleProviders?.openrouter?.enabledModels, ["vendor/model"]);
   const locked = await action(args(await request({ action: "lock" }, tokens)));
   const lockedTokens = (await tokenResponse(locked))!;

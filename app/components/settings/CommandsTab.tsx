@@ -95,7 +95,7 @@ export function CommandsTab({ settings }: CommandsTabProps) {
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState<CommandFormData>({ ...emptyForm });
 
-  const availableModels = getAvailableModels(settings.apiPlan, !!settings.openai?.encryptedApiKey && !settings.usePersonalVertex, settings.usePersonalVertex ? undefined : settings.compatibleProviders);
+  const availableModels = getAvailableModels(settings.apiPlan, !!settings.openai?.encryptedApiKey && !settings.usePersonalVertex, settings.usePersonalVertex ? undefined : settings.compatibleProviders, settings.openai);
   const enabledMcpServers = getEnabledMcpServers(settings);
 
   const data = fetcher.data as { success?: boolean; message?: string } | undefined;

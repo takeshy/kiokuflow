@@ -59,7 +59,7 @@ export function KakerattaTab({ settings }: { settings: UserSettings }) {
       <label className="block">{ja ? "回答モデル" : "Answer model"}
         <select className={field} value={profile.model} onChange={e => change({ ...profile, model: e.target.value })}>
           <option value="">{ja ? "GemiHub の既定モデル" : "GemiHub default model"}</option>
-          {getAvailableModels(settings.apiPlan, !!settings.openai?.encryptedApiKey && !settings.usePersonalVertex, settings.usePersonalVertex ? undefined : settings.compatibleProviders).filter(m => !m.isImageModel).map(m => <option key={m.name} value={m.name}>{m.displayName}</option>)}
+          {getAvailableModels(settings.apiPlan, !!settings.openai?.encryptedApiKey && !settings.usePersonalVertex, settings.usePersonalVertex ? undefined : settings.compatibleProviders, settings.openai).filter(m => !m.isImageModel).map(m => <option key={m.name} value={m.name}>{m.displayName}</option>)}
         </select>
       </label>
       <label className="flex items-center gap-2"><input type="checkbox" checked={profile.readFiles} onChange={e => change({ ...profile, readFiles: e.target.checked })} />{ja ? "GemiHub のファイル・タイムラインを読み取り専用で参照" : "Read GemiHub files and timeline (read-only)"}</label>
