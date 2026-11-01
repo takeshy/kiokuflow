@@ -29,7 +29,7 @@ test("OpenAI model discovery uses the fixed authenticated list endpoint, filters
 });
 
 test("enabled OpenAI selections control chat and workflow catalogues, including fetched model IDs and legacy settings", () => {
-  const settings: UserSettings = { ...DEFAULT_USER_SETTINGS, openai: { encryptedApiKey: "cipher", salt: "salt", enabledModels: ["gpt-6.1-terra", "gpt-6-future-chat"], availableModels: [] } };
+  const settings: UserSettings = { ...DEFAULT_USER_SETTINGS, selectedModel: "gpt-6.1-terra", openai: { encryptedApiKey: "cipher", salt: "salt", enabledModels: ["gpt-6.1-terra", "gpt-6-future-chat"], availableModels: [] } };
   assert.deepEqual(getConfiguredOpenAIModels(settings.openai).map(model => model.name), ["gpt-6.1-terra", "gpt-6-future-chat"]);
   const choices = availableChatModels(null, settings.apiPlan, settings).map(model => model.name);
   assert.ok(choices.includes("gpt-6.1-terra")); assert.ok(choices.includes("gpt-6-future-chat")); assert.ok(!choices.includes("gpt-6.1-sol"));
@@ -79,6 +79,9 @@ test("new OpenAI keys can be saved with only the public key, without unlocking t
     if (url.startsWith("https://www.googleapis.com/upload/drive/v3/files/settings")) { settings = JSON.parse(String(init?.body)); return Response.json({ id: "settings" }); }
     assert.equal(url, "https://api.openai.com/v1/models"); assert.equal(new Headers(init?.headers).get("Authorization"), "Bearer newly-entered-key"); return Response.json(catalogue);
   });
+  const keyOnly = await configure(args(await request({ action: "save", apiKey: "newly-entered-key" }, { openaiApiKey: "" })));
+  assert.equal(keyOnly.status, 400);
+  assert.equal(settings.openai?.encryptedApiKey, "locked-previous-cipher");
   const saved = await configure(args(await request({ action: "save", apiKey: "newly-entered-key", enabledModels: ["gpt-6.1-sol", "gpt-6.1-terra"] }, { openaiApiKey: "" })));
   assert.equal(saved.status, 200);
   assert.equal(await decryptStoredApiKey(settings.openai, "unlock-password", settings.encryption), "newly-entered-key");

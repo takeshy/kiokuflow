@@ -54,6 +54,7 @@ export async function action({ request }: Route.ActionArgs) {
       return Response.json({ ok: true, unlocked: true }, { headers: noStore });
     } catch (error) { if (error instanceof Response) return error; return Response.json({ error: error instanceof Error ? error.message : "Could not save models" }, { status: 502, headers: noStore }); }
   }
+  if (body.action === "save" && (!Array.isArray(body.enabledModels) || !body.enabledModels.length)) return Response.json({ error: "Fetch model information and select at least one model before saving." }, { status: 400, headers: noStore });
   let openaiApiKey = "";
   if (body.action !== "lock") {
     const previousKey = body.action === "unlock" ? await decryptSavedProviderKey(settings.openai, typeof body.password === "string" ? body.password : "", "OpenAI", noStore, settings.encryption) : validTokens.openaiApiKey || "";
@@ -65,7 +66,7 @@ export async function action({ request }: Route.ActionArgs) {
       const replacingKey = typeof body.apiKey === "string" && !!body.apiKey.trim();
       const commonSettings = replacingKey || !settings.openai ? await prepareCommonKeySettings(settings, body) : settings;
       const openai = !replacingKey && settings.openai ? settings.openai : { ...settings.openai, ...await encryptProviderKey(openaiApiKey, commonSettings) };
-      const updated = body.enabledModels === undefined ? { ...commonSettings, openai } : selectedModelSettings(commonSettings, openai, await discoverOpenAIModels(openaiApiKey, request.signal), body.enabledModels);
+      const updated = selectedModelSettings(commonSettings, openai, await discoverOpenAIModels(openaiApiKey, request.signal), body.enabledModels);
       await saveSettings(validTokens.accessToken, validTokens.rootFolderId, updated);
     } else if (body.action === "remove") {
       await saveSettings(validTokens.accessToken, validTokens.rootFolderId, {

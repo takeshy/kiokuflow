@@ -14,7 +14,6 @@ import type {
 import type { UserSettings, ModelType, DriveToolMode, SlashCommand, GeminiReasoningEffort } from "~/types/settings";
 
 import {
-  getAvailableModels,
   getDefaultModelForPlan,
   getDriveToolModeConstraint,
   getEnabledMcpServers,
@@ -404,9 +403,9 @@ export function ChatPanel({
   // switching into a project whose allowedModels exclude the current model).
   useEffect(() => {
     if (availableModels.length > 0 && !availableModels.some((m) => m.name === selectedModel)) {
-      setSelectedModel(availableModels[0].name);
+      setSelectedModel(availableModels.find((m) => m.name === defaultModel)?.name ?? availableModels[0].name);
     }
-  }, [availableModels, selectedModel]);
+  }, [availableModels, selectedModel, defaultModel]);
 
   // RAG is an advanced, opt-in feature. Web Search is an independent control.
   const ragFeatureEnabled = settings.ragAvailable === true && settings.ragFeatureEnabled;
@@ -933,6 +932,13 @@ export function ChatPanel({
   // ---- Send message ----
   const handleSend = useCallback(
     async (content: string, attachments?: Attachment[], overrides?: ChatOverrides) => {
+      if (!availableModels.some((model) => model.name === (overrides?.model || selectedModel))) {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: t("chat.modelUnavailable"), timestamp: Date.now() },
+        ]);
+        return;
+      }
       // Paid plan uses server-side API key; free plan needs local key
       const isPaidPlan = settings.apiPlan === "paid";
       // After a reload the in-memory copy is gone but the session still holds
@@ -966,7 +972,7 @@ export function ChatPanel({
       let effectiveModel = overrides?.model || selectedModel;
       // Auto-switch to image model when image keywords detected
       if (!isExternalChatModel(effectiveModel) && !isImageGenerationModel(effectiveModel) && shouldUseImageModel(content)) {
-        const available = getAvailableModels(settings.apiPlan);
+        const available = availableModels;
         const preferredImage = available.find((m) => m.name === "gemini-3.1-flash-image-preview")
           || available.find((m) => m.name === "gemini-3-pro-image-preview");
         const fallbackImage = available.find((m) => m.isImageModel);
@@ -1421,6 +1427,7 @@ export function ChatPanel({
       driveToolMode,
       enabledMcpServerIds,
       availableMcpServers,
+      availableModels,
       settings,
       createStreamSession,
       reasoningEffort,
@@ -1807,7 +1814,7 @@ export function ChatPanel({
         // A Gemini API key is only needed on the Drive mount with the free
         // plan: an org project runs on the tenant's Vertex AI and the paid
         // plan goes through the server-side Interactions proxy.
-        disabled={!enterpriseSelection && settings.apiPlan !== "paid" && !hasApiKey && !getCachedApiKey() && !isExternalChatModel(selectedModel)}
+        disabled={!availableModels.some((model) => model.name === selectedModel) || (!enterpriseSelection && settings.apiPlan !== "paid" && !hasApiKey && !getCachedApiKey() && !isExternalChatModel(selectedModel))}
         models={availableModels}
         selectedModel={selectedModel}
         onModelChange={handleModelChange}

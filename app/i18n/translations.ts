@@ -470,6 +470,7 @@ export interface TranslationStrings {
 
   // ChatPanel
   "chat.apiKeyMissing": string;
+  "chat.modelUnavailable": string;
   "chat.newChat": string;
   "chat.noHistory": string;
   "chat.confirmDelete": string;
@@ -2009,6 +2010,7 @@ const en: TranslationStrings = {
   // ChatPanel
   "chat.apiKeyMissing": "No Gemini API key is set, so chat cannot run. Add one in Settings > General, or switch to an organization project (which uses the organization's Vertex AI).",
   "chat.newChat": "New Chat",
+  "chat.modelUnavailable": "This model is unavailable for the selected AI provider. Choose an enabled model in Settings > AI providers.",
   "chat.noHistory": "No chat history",
   "chat.confirmDelete": "Delete this chat?",
   "chat.mcpToolsLabel": "MCP Tools",
@@ -3548,6 +3550,7 @@ const ja: TranslationStrings = {
   // ChatPanel
   "chat.apiKeyMissing": "Gemini APIキーが未設定のためチャットを実行できません。設定 > 一般 で登録するか、組織プロジェクト（組織のVertex AIを使用）に切り替えてください。",
   "chat.newChat": "新しいチャット",
+  "chat.modelUnavailable": "このモデルは選択中のAIプロバイダーでは使用できません。設定 > AIプロバイダーで有効なモデルを選んでください。",
   "chat.noHistory": "チャット履歴はありません",
   "chat.confirmDelete": "このチャットを削除しますか？",
   "chat.mcpToolsLabel": "MCPツール",

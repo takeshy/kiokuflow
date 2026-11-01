@@ -18,9 +18,9 @@ Drive settings; unlocking stores an encrypted copy in the authenticated session.
 The raw OpenAI key is never returned to the browser. Replace or remove the key in the provider tab. Password setup, verification,
 unlocking, locking, and changes are managed in **Settings > General**.
 
-Use **Fetch model information** in the OpenAI tab, select multiple chat models, and choose **Save API key and models**. Only those models appear in chat, workflow, command and default-model selectors. Model information includes the model ID, owner and creation date from the [OpenAI Models API](https://developers.openai.com/api/reference/resources/models/methods/list); that API does not provide capability or price metadata. Embedding, image-only, Live/audio and retired models are excluded from this chat selector. Existing settings retain their curated choices until a selection is explicitly saved. Updating only the enabled-model selection uses the unlocked session key and preserves the saved ciphertext without requiring the encryption password again.
+Use **Fetch model information** in the OpenAI tab, select multiple chat models, and choose **Save API key and models**. The model-selection list starts empty until verification succeeds. Editing the key or a failed check clears the list and selection; saving requires at least one verified model. There is no key-only save path. Only saved enabled models appear in chat, workflow, command and default-model selectors. Model information includes the model ID, owner and creation date from the [OpenAI Models API](https://developers.openai.com/api/reference/resources/models/methods/list); that API does not provide capability or price metadata. Embedding, image-only, Live/audio and retired models are excluded from this chat selector. Existing settings retain their curated choices until a selection is explicitly saved. Updating only the enabled-model selection uses the unlocked session key and preserves the saved ciphertext without requiring the encryption password again.
 
-Configured accounts can choose OpenAI models, including **GPT-6.1 Sol**,
+With OpenAI selected as the active provider, configured accounts can choose models including **GPT-6.1 Sol**,
 **GPT-6.1 Terra**, **GPT-6 Luna** and **GPT-6 Astra**, from the chat model menu,
 regardless of the Gemini Free/Paid setting. OpenAI uses the Responses API with
 streaming, reasoning summaries, Drive/MCP/skill tools, native Web Search, and
@@ -53,9 +53,9 @@ interfaces.
 
 On **My Drive**, first create encryption keys in **Settings > General**. Saving new keys uses the public key and needs no password. Then open **Settings > AI providers > OpenRouter / OpenCode Go**,
 enter the API key, and choose
-**Verify and fetch models**, check the models to enable, then save.
+**Verify and fetch models**, check at least one model to enable, then save. The selection list starts empty, and key edits or failed checks clear it. Saving is disabled until verification succeeds and a model is selected. The server rechecks the key and selected model IDs before saving.
 Choose the provider above the tabs and save to make its selected model the
-default. Each provider's default model is saved independently, even when another provider is active. Browsing settings tabs does not change the active provider.
+default. Chat offers only enabled models from this active provider; saving a provider change selects its default model when the previous model is no longer available. Slash-command model overrides must also be in this list. Each provider's default model is saved independently, even when another provider is active. Browsing settings tabs does not change the active provider.
 Enter the common password once in **Settings > General** to unlock all saved provider keys. Password changes preserve the RSA key pair and rewrap its private key; legacy keys are migrated to public-key encryption; locking clears all provider keys from the session. The entered password stays only in settings-screen memory and is not written to localStorage or IndexedDB. Existing encryption formats and RSA identity are preserved. A legacy key that cannot be decrypted with the entered password causes an error before any keys are changed.
 
 Enabled models are available in chat, slash commands, Timeline AI, Kakeratta,

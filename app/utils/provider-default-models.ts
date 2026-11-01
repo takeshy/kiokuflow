@@ -3,7 +3,7 @@ import { getConfiguredOpenAIModels, isExternalChatModel, isModelAllowedForPlan, 
 export type ChatSettingsProvider = "apikey" | "openai" | "vertex" | "openrouter" | "opencodego";
 export type ProviderDefaultModels = Partial<Record<ChatSettingsProvider, ModelType | "">>;
 
-export function activeSettingsProvider(settings: UserSettings): ChatSettingsProvider {
+export function activeSettingsProvider(settings: Partial<Pick<UserSettings, "usePersonalVertex" | "selectedModel">>): ChatSettingsProvider {
   return settings.usePersonalVertex ? "vertex" : parseCompatibleModel(settings.selectedModel || "")?.provider || (isOpenAIModel(settings.selectedModel || "") ? "openai" : "apikey");
 }
 

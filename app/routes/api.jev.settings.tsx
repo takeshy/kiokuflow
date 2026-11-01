@@ -6,6 +6,11 @@ import { decryptSavedProviderKey, prepareCommonKeySettings, encryptProviderKey, 
 import { jevDecide } from "~/services/jev-rag.server";
 import { validateOrigin } from "~/utils/security";
 
+async function verifyConnection(apiKey: string, useOpenRouter: boolean, signal: AbortSignal) {
+  const answers = await jevDecide({ apiKey, useOpenRouter }, "接続確認", { check: { type: "choice", instructions: "接続確認です。keepを選択してください。", criteria: { keep: "接続確認", exclude: "その他" } } }, undefined, signal);
+  if (answers.check.choice !== "keep") throw new Error("Jev connection verification failed: unexpected decision.");
+}
+
 export async function loader({ request }: Route.LoaderArgs) {
   const tokens = await requireAuth(request);
   return Response.json({ unlocked: !!tokens.jevApiKey }, { headers: defaultHeaders });
@@ -21,30 +26,33 @@ export async function action({ request }: Route.ActionArgs) {
   const body = await request.json().catch(() => null);
   if (!body || !["save", "verify", "unlock", "lock", "remove", "setMode"].includes(body.action)) return Response.json({ error: "Invalid action" }, { status: 400, headers });
   try {
-    if (body.action === "setMode") {
-      if (typeof body.useOpenRouter !== "boolean" || (body.useOpenRouter && !settings.compatibleProviders?.openrouter?.encryptedApiKey)) return Response.json({ error: "Configure OpenRouter first." }, { status: 400, headers });
-      await saveSettings(valid.accessToken, valid.rootFolderId, { ...settings, jev: { ...settings.jev, useOpenRouter: body.useOpenRouter } });
-      return Response.json({ ok: true, unlocked: !!valid.jevApiKey }, { headers });
-    }
-    if (body.action === "verify") {
-      const useOpenRouter = settings.jev?.useOpenRouter === true;
-      const key = useOpenRouter ? valid.compatibleApiKeys?.openrouter : typeof body.apiKey === "string" && body.apiKey.trim() ? body.apiKey.trim() : valid.jevApiKey;
+    if (body.action === "save" || body.action === "setMode" || body.action === "verify") {
+      if (body.newPassword) return Response.json({ error: "Change the private-key password in General." }, { status: 400, headers });
+      if (body.useOpenRouter !== undefined && typeof body.useOpenRouter !== "boolean") return Response.json({ error: "Invalid Jev mode." }, { status: 400, headers });
+      const useOpenRouter = body.useOpenRouter ?? settings.jev?.useOpenRouter ?? false;
+      if (useOpenRouter && !settings.compatibleProviders?.openrouter?.encryptedApiKey) return Response.json({ error: "Configure OpenRouter first." }, { status: 400, headers });
+      const enteredKey = typeof body.apiKey === "string" ? body.apiKey.trim() : "";
+      const key = useOpenRouter ? valid.compatibleApiKeys?.openrouter : requestedProviderKey(enteredKey, valid.jevApiKey || "");
       if (!key) return Response.json({ error: "Enter the key or unlock it in General settings." }, { status: 401, headers });
-      await jevDecide({ apiKey: key, useOpenRouter }, "接続確認", { check: { type: "choice", instructions: "接続確認です。keepを選択してください。", criteria: { keep: "接続確認", exclude: "その他" } } }, undefined, request.signal);
-      return Response.json({ ok: true, unlocked: !!valid.jevApiKey }, { headers });
+      if (key.length > 1024 || /[\r\n]/.test(key)) return Response.json({ error: "Invalid API key." }, { status: 400, headers });
+      // Confirm the exact candidate connection before changing settings or session keys.
+      await verifyConnection(key, useOpenRouter, request.signal);
+      if (body.action === "verify") return Response.json({ ok: true, unlocked: !!valid.jevApiKey }, { headers });
+      let updated = settings;
+      if (!useOpenRouter && (enteredKey || !settings.jev?.encryptedApiKey)) {
+        const common = await prepareCommonKeySettings(settings, body, headers);
+        updated = { ...common, jev: { useOpenRouter: false, ...await encryptProviderKey(key, common, headers) } };
+      } else updated = { ...settings, jev: { ...settings.jev, useOpenRouter } };
+      await saveSettings(valid.accessToken, valid.rootFolderId, updated);
+      const session = await setTokens(request, { ...valid, ...(!useOpenRouter ? { jevApiKey: key } : {}) });
+      return Response.json({ ok: true, unlocked: !useOpenRouter ? true : !!valid.jevApiKey }, { headers: { ...headers, "Set-Cookie": await commitSession(session) } });
     }
-    if (body.action === "save" && body.newPassword) return Response.json({ error: "Change the private-key password in General." }, { status: 400, headers });
-    if (body.action === "save" && !(typeof body.apiKey === "string" && body.apiKey.trim()) && settings.jev?.encryptedApiKey) return Response.json({ ok: true, unlocked: !!valid.jevApiKey }, { headers });
     let key = "";
     if (body.action !== "lock") {
       const previous = body.action === "unlock" ? await decryptSavedProviderKey(settings.jev, typeof body.password === "string" ? body.password : "", "Jev", headers, settings.encryption) : valid.jevApiKey || "";
       if (body.action === "unlock") {
         if (!previous) return Response.json({ error: "Configure a Jev key first." }, { status: 400, headers });
         key = previous;
-      } else if (body.action === "save") {
-        key = requestedProviderKey(body.apiKey, previous);
-        const commonSettings = await prepareCommonKeySettings(settings, body, headers);
-        await saveSettings(valid.accessToken, valid.rootFolderId, { ...commonSettings, jev: { useOpenRouter: settings.jev?.useOpenRouter ?? false, ...await encryptProviderKey(key, commonSettings, headers) } });
       } else if (body.action === "remove") {
         await saveSettings(valid.accessToken, valid.rootFolderId, { ...settings, jev: { useOpenRouter: settings.jev?.useOpenRouter ?? false } });
       }

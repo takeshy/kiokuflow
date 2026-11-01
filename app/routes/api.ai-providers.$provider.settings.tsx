@@ -41,7 +41,9 @@ export async function action({ request, params }: Route.ActionArgs) {
         const models = await discoverCompatibleModels(provider, key, compatibleSessionId(tokens.rootFolderId, "verify"), request.signal);
         if (body.action === "verify") return Response.json({ models }, { headers });
         const available = new Set(models.map(model => model.id));
-        const enabledModels: string[] = Array.isArray(body.enabledModels) ? [...new Set(body.enabledModels.filter((id: unknown): id is string => typeof id === "string" && available.has(id)))] as string[] : config?.enabledModels.filter(id => available.has(id)) || [];
+        if (!Array.isArray(body.enabledModels) || body.enabledModels.some((id: unknown) => typeof id !== "string")) return Response.json({ error: "Select at least one available model after fetching the catalogue." }, { status: 400, headers });
+        const enabledModels = [...new Set(body.enabledModels as string[])];
+        if (enabledModels.some(id => !available.has(id))) return Response.json({ error: "The selected model is unavailable. Fetch the catalogue again." }, { status: 400, headers });
         if (!enabledModels.length) return Response.json({ error: "Select at least one model." }, { status: 400, headers });
         const encrypted = !replacingKey && config?.encryptedApiKey ? { encryptedApiKey: config.encryptedApiKey, salt: config.salt } : await encryptProviderKey(key, commonSettings);
         const selected = parseCompatibleModel(settings.selectedModel || "");

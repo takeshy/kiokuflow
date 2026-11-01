@@ -1,6 +1,8 @@
 # Update Log
 
 ## 2026-11-01
+* **Update**: Chat's model menu now only offers the active provider selected in settings. Switching providers selects its saved default; unavailable models and cross-provider slash-command overrides cannot be sent. Organization projects retain their Vertex model restrictions (`features/chat.md`).
+* **Update**: Jev combines verification and saving; failed checks preserve the saved key and mode. OpenAI/OpenRouter/OpenCode Go require a successful model fetch and nonempty selection before saving, with no key-only save. The landing page now names all supported providers in its common AI descriptions.
 * **Update**: API keys are now saved with public-key encryption without password entry. The common password is used to unlock the private key; existing password-encrypted credentials remain readable.
 * **New**: OpenAI model information can be fetched from the account catalogue; multiple enabled chat models are saved and used by chat, workflows and settings selectors. Model-only changes preserve encrypted credentials without another password entry.
 * **Fix**: OpenAI and other provider default-model choices now persist even when another provider is active. Switching configuration tabs preserves model drafts without changing the active provider.

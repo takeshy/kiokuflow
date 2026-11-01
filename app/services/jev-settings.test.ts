@@ -24,6 +24,7 @@ test("Jev key is encrypted, rotates passwords, locks independently, and is isola
     if (url.startsWith("https://www.googleapis.com/drive/v3/files?")) return Response.json({ files: [{ id: "credentials", name: SETTINGS_FILE_NAME }] });
     if (url.startsWith("https://www.googleapis.com/drive/v3/files/credentials")) return Response.json(settings);
     if (url.startsWith("https://www.googleapis.com/upload/drive/v3/files/credentials")) { settings = JSON.parse(String(init?.body)); return Response.json({ id: "credentials", name: SETTINGS_FILE_NAME }); }
+    if (url === "https://api.typesafe.ai/v1/systemone") return Response.json({ answers: { check: { choice: "keep" } } });
     assert.fail(`Unexpected request ${url}`);
   });
   const saved = await configure(args(await request({ action: "save", apiKey: "synthetic-jev", password: "jev-password" })));
@@ -89,4 +90,38 @@ test("Jev OpenRouter mode reuses only the unlocked Router key and validates orig
   assert.equal((await configure(args(await request({ action: "verify" }, { compatibleApiKeys: {} })))).status, 401);
   await assert.rejects(configure(args(await request({ action: "save" }, {}, "https://attacker.invalid"))), e => e instanceof Response && e.status === 403);
   assert.equal((await configure(args(await request({ action: "save" }, { currentProjectId: "project" })))).status, 403);
+});
+
+test("verify-and-save preserves the saved key and mode on failed checks and writes only after success", async t => {
+  clearSettingsCache();
+  const { configureCommonPassword } = await import("./api-key-password.server");
+  const { encryptApiKeyWithPublicKey } = await import("./api-key-crypto");
+  const initial = await configureCommonPassword(DEFAULT_USER_SETTINGS, "private-key-password");
+  let settings: UserSettings = { ...initial.settings, jev: { ...await encryptApiKeyWithPublicKey("previous-key", initial.settings.encryption.publicKey), useOpenRouter: false }, compatibleProviders: { openrouter: { encryptedApiKey: "router-cipher", salt: "salt", enabledModels: [], availableModels: [] } } };
+  const initialSettings = JSON.stringify(settings); const events: string[] = [];
+  let outcome: "http" | "invalid" | "exclude" | "success" = "http";
+  t.mock.method(globalThis, "fetch", async (input: unknown, init?: RequestInit) => {
+    const url = String(input);
+    if (url.startsWith("https://www.googleapis.com/drive/v3/files?")) return Response.json({ files: [{ id: "credentials", name: SETTINGS_FILE_NAME }] });
+    if (url.startsWith("https://www.googleapis.com/drive/v3/files/credentials")) return Response.json(settings);
+    if (url.startsWith("https://www.googleapis.com/upload/drive/v3/files/credentials")) { events.push("save"); settings = JSON.parse(String(init?.body)); return Response.json({ id: "credentials" }); }
+    assert.ok(url === "https://api.typesafe.ai/v1/systemone" || url === "https://openrouter.ai/api/alpha/decisions");
+    events.push("verify");
+    if (outcome === "http") return Response.json({ error: "Invalid key" }, { status: 401 });
+    if (outcome === "invalid") return Response.json({ answers: {} });
+    return Response.json({ answers: { check: { choice: outcome === "exclude" ? "exclude" : "keep" } } });
+  });
+  for (const failure of ["http", "invalid", "exclude"] as const) {
+    outcome = failure;
+    const failed = await configure(args(await request({ action: "save", apiKey: "candidate-key", useOpenRouter: false })));
+    assert.equal(failed.status, 502); assert.equal(JSON.stringify(settings), initialSettings);
+    assert.equal(failed.headers.get("Set-Cookie"), null); assert.ok(!events.includes("save"));
+  }
+  const failedMode = await configure(args(await request({ action: "setMode", useOpenRouter: true })));
+  assert.equal(failedMode.status, 502); assert.equal(JSON.stringify(settings), initialSettings);
+  events.length = 0; outcome = "success";
+  const saved = await configure(args(await request({ action: "save", apiKey: "candidate-key", useOpenRouter: false })));
+  assert.equal(saved.status, 200); assert.deepEqual(events, ["verify", "save"]);
+  assert.equal(await decryptStoredApiKey(settings.jev, "private-key-password", settings.encryption), "candidate-key");
+  assert.equal((await responseTokens(saved))?.jevApiKey, "candidate-key");
 });

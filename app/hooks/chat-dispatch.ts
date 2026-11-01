@@ -6,11 +6,14 @@ import { executeLocalChat, type LocalChatCallbacks, type LocalChatOptions } from
 import { executeChatStream } from "~/hooks/chat-stream-client";
 import { executeInteractionsChat } from "~/hooks/useInteractionsChat";
 import { VERTEX_MODELS } from "~/services/ai/models";
+import { activeSettingsProvider } from "~/utils/provider-default-models";
 import {
   AVAILABLE_MODELS,
   getAvailableModels,
   isImageGenerationModel,
   isExternalChatModel,
+  isOpenAIModel,
+  parseCompatibleModel,
   type ApiPlan,
   type ModelInfo,
   type ModelType,
@@ -48,7 +51,7 @@ export function chatNeedsNoApiKey(settings: Pick<UserSettings, "apiPlan" | "useP
  * Models offered for the active mount. Project mount: the Vertex catalogue,
  * narrowed by the project's allowedModels; the user's apiPlan does not apply.
  */
-export function availableChatModels(projectSelection: ChatProjectSelection | null, apiPlan: ApiPlan, settings?: Pick<UserSettings, "openai" | "usePersonalVertex" | "compatibleProviders">): ModelInfo[] {
+export function availableChatModels(projectSelection: ChatProjectSelection | null, apiPlan: ApiPlan, settings?: Pick<UserSettings, "openai" | "usePersonalVertex" | "compatibleProviders"> & Partial<Pick<UserSettings, "selectedModel">>): ModelInfo[] {
   if (projectSelection) {
     const vertexNames = Object.values(VERTEX_MODELS) as ModelType[];
     const allowedNames = projectSelection.allowedModels.length > 0
@@ -60,7 +63,13 @@ export function availableChatModels(projectSelection: ChatProjectSelection | nul
         ({ name, displayName: name, description: "" } satisfies ModelInfo),
     );
   }
-  return getAvailableModels(apiPlan, !!settings?.openai?.encryptedApiKey && !settings.usePersonalVertex, settings?.usePersonalVertex ? undefined : settings?.compatibleProviders, settings?.openai);
+  const provider = activeSettingsProvider(settings ?? {});
+  return getAvailableModels(apiPlan, !!settings?.openai?.encryptedApiKey, settings?.compatibleProviders, settings?.openai)
+    .filter((model) => {
+      if (provider === "openai") return isOpenAIModel(model.name);
+      if (provider === "openrouter" || provider === "opencodego") return parseCompatibleModel(model.name)?.provider === provider;
+      return !isExternalChatModel(model.name);
+    });
 }
 
 export function startChatStream(
