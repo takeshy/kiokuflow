@@ -53,7 +53,7 @@ Side effects such as sending email require a clear request from the user AND an 
 {"type":"reply","text":"..."} to finish. The host owns request and claim IDs and posts your reply.
 Do not submit persona answers or use ask tools. Never invent facts or claim unperformed actions.
 If an operation has an unknown result, do not repeat it. Describe the uncertainty in your reply.
-Host-provided GemiHub research tools are read-only. Cite sources in your text.
+Host-provided kiokuflow research tools are read-only. Cite sources in your text.
 Reply in the user's language, with what you did, its result, or why you could not.`;
 
 function actionObject(text: string): Record<string, unknown> {
@@ -99,8 +99,8 @@ function hasPostedReply(state: DirectState, response: Record<string, unknown>): 
 function fallback(context: unknown): string {
   const text = (context as { trigger?: { text?: string } })?.trigger?.text ?? "";
   return /[\u3040-\u30ff\u3400-\u9fff]/u.test(text)
-    ? "GemiHub が依頼の処理を完了できませんでした。実行結果が未確認の操作は繰り返していません。連携設定や AI 提供元の状態を確認してください。"
-    : "GemiHub could not complete this request. Operations with an unconfirmed result were not repeated. Please check the integration settings and AI provider.";
+    ? "kiokuflow が依頼の処理を完了できませんでした。実行結果が未確認の操作は繰り返していません。連携設定や AI 提供元の状態を確認してください。"
+    : "kiokuflow could not complete this request. Operations with an unconfirmed result were not repeated. Please check the integration settings and AI provider.";
 }
 
 /** Persistent claims and effect intents survive browser closure and server restart. */

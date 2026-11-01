@@ -29,7 +29,7 @@ workflow command nodes, workflow generation, and Base AI editing also support
 OpenAI. API usage is billed to the user's OpenAI account. Organization projects
 and personal Vertex keep their Vertex execution paths.
 
-OpenAI chat accepts images, PDFs and text. RAG uses Gemini or OpenAI embeddings and Firestore and requires a paid GemiHub
+OpenAI chat accepts images, PDFs and text. RAG uses Gemini or OpenAI embeddings and Firestore and requires a paid kiokuflow
 plan. Gemini image generation remains a Gemini feature. Audio/video attachments require Gemini;
 use **Live** for a Gemini or OpenAI voice conversation. Scheduled/background workflows
 do not store OpenAI, OpenRouter, or OpenCode Go keys outside the user's session.
@@ -42,7 +42,7 @@ The conversation opens above the swipe panels, with scrollable content and
 always-visible call controls, including in landscape. Live uses the saved
 provider, independently of its text-chat model. Unlock that provider's saved
 API key in **Settings > General** before connecting. Gemini Live requires your
-own Gemini key, even on a paid GemiHub plan; it never uses a shared server key
+own Gemini key, even on a paid kiokuflow plan; it never uses a shared server key
 or Vertex balance. Vertex and OpenRouter/OpenCode Go have no Live option.
 
 Choose a Live model and voice, optionally include the last 20 text-chat
@@ -106,12 +106,12 @@ Enter the common password once in **Settings > General** to unlock all saved pro
 
 Enabled models are available in chat, slash commands, Timeline AI, Kakeratta,
 and workflow execution/generation. Requests use a same-origin server proxy,
-with each provider's own key and fixed endpoint. OpenCode Go sends GemiHub's
+with each provider's own key and fixed endpoint. OpenCode Go sends kiokuflow's
 user agent and a stable conversation routing ID. Native web search uses
 OpenRouter's web plugin; OpenCode Go can use a web search MCP tool.
 Live voice conversations are available when Gemini API or OpenAI is the active provider.
 RAG keeps its separately configured Gemini/OpenAI embedding provider and
-requires a paid GemiHub account. Organization projects use Vertex AI.
+requires a paid kiokuflow account. Organization projects use Vertex AI.
 
 ## Features
 
@@ -119,14 +119,14 @@ requires a paid GemiHub account. Organization projects use Vertex AI.
 - **Function Calling**: Models call Drive/MCP tools and use retrieved Firestore RAG context or native Web Search
 - **Drive Tool Integration**: Read, search, list, create, update, and rename Drive files from chat
 - **MCP Tools**: Dynamically-discovered tools from MCP servers (prefixed `mcp_{serverId}_{tool}`)
-- **RAG / Web Search**: Retrieval-Augmented Generation via Firestore vectors (paid GemiHub accounts), or native Web Search
+- **RAG / Web Search**: Retrieval-Augmented Generation via Firestore vectors (paid kiokuflow accounts), or native Web Search
 - **Extended Thinking**: Collapsible thinking/reasoning display for supported models
 - **Image Generation**: Generate images with Imagen-capable models
 - **Chat History**: Auto-saved to Google Drive with optional encryption
 - **Slash Commands**: `/command` with template variables and per-command overrides
 - **File References**: `@filename` to reference Drive files in messages
 - **Attachments**: Image, PDF, and text file attachments via drag-and-drop or file picker
-- **Empty State**: Before the first message, the chat panel (`MessageList.tsx`) shows an "Ask about GemiHub" section (enables the installed GemiHub OKF help bundle, if any, and drafts a starter question into the composer via `ChatInput`'s `setDraft` handle without sending it) and a "Dashboards" section ("Open Dashboard" navigates to the home dashboard; "New Dashboard" prompts for a name, creates it, and opens it via `requestOpenDashboard`) — shown on both the free-plan hint screen and the paid-plan "Build a Web App" screen. When a Markdown (`.md`), Canvas (`.canvas`), Base (`.base`), or Dashboard (`.dashboard`, while dashboards are enabled) file is open in the editor, it also offers the matching built-in skill ("Editing {file}" card with a "Use the {skill} skill" button; it shows "is on" when already active)
+- **Empty State**: Before the first message, the chat panel (`MessageList.tsx`) shows an "Ask about kiokuflow" section (enables the installed kiokuflow OKF help bundle, if any, and drafts a starter question into the composer via `ChatInput`'s `setDraft` handle without sending it) and a "Dashboards" section ("Open Dashboard" navigates to the home dashboard; "New Dashboard" prompts for a name, creates it, and opens it via `requestOpenDashboard`) — shown on both the free-plan hint screen and the paid-plan "Build a Web App" screen. When a Markdown (`.md`), Canvas (`.canvas`), Base (`.base`), or Dashboard (`.dashboard`, while dashboards are enabled) file is open in the editor, it also offers the matching built-in skill ("Editing {file}" card with a "Use the {skill} skill" button; it shows "is on" when already active)
 
 ---
 
@@ -222,7 +222,7 @@ Mode is auto-constrained by model and RAG settings:
 - **Web Search mode**: forced to `none` (incompatible with other tools — free plan only)
 - **RAG enabled**: function calling tools disabled (free plan only — the Chat API does not support fileSearch + functionDeclarations simultaneously)
 
-> **GemiHub Premium/Business advantage**: The Interactions API allows function tools + RAG + Web Search simultaneously. RAG is pre-retrieved via the `generateContent` API (with the `file_search` tool) and injected into the system prompt, since the Interactions API does not support the `file_search` tool directly (returns 501 `not_implemented`). The above RAG/Web Search tool restrictions do not apply to GemiHub Premium/Business users (except Gemma 4 + Web Search, which is a model-level limitation).
+> **kiokuflow Premium/Business advantage**: The Interactions API allows function tools + RAG + Web Search simultaneously. RAG is pre-retrieved via the `generateContent` API (with the `file_search` tool) and injected into the system prompt, since the Interactions API does not support the `file_search` tool directly (returns 501 `not_implemented`). The above RAG/Web Search tool restrictions do not apply to kiokuflow Premium/Business users (except Gemma 4 + Web Search, which is a model-level limitation).
 
 ### MCP Tools
 
@@ -241,7 +241,7 @@ When the limit is reached, Gemini receives a system message requesting a summary
 
 ## Models
 
-Available models are determined by the selected AI execution provider and that provider's entitlement or billing tier, not by the GemiHub subscription alone. GemiHub Free/Premium/Business controls product features such as Interactions API access; a user-supplied Gemini API key remains subject to its own Google API tier, while Personal Vertex uses prepaid GemiHub credit. Each model has different capabilities:
+Available models are determined by the selected AI execution provider and that provider's entitlement or billing tier, not by the kiokuflow subscription alone. kiokuflow Free/Premium/Business controls product features such as Interactions API access; a user-supplied Gemini API key remains subject to its own Google API tier, while Personal Vertex uses prepaid kiokuflow credit. Each model has different capabilities:
 
 - **Standard models**: Streaming text + function calling + thinking
 - **Image models**: Image generation (no function calling)
@@ -257,7 +257,7 @@ Model selection is per-chat via the dropdown. Slash commands can override the mo
 
 ### RAG (Firestore vector search)
 
-Select a RAG setting from the dropdown. Paid GemiHub accounts retrieve Firestore chunks using the configured Gemini/OpenAI embedding model before chat generation. Results include source paths displayed as badges.
+Select a RAG setting from the dropdown. Paid kiokuflow accounts retrieve Firestore chunks using the configured Gemini/OpenAI embedding model before chat generation. Results include source paths displayed as badges.
 
 ### Web Search
 
@@ -398,10 +398,10 @@ The Interactions API endpoint does not support CORS, so browser-side calls are n
 | File | Role |
 |------|------|
 | `app/routes/api.chat.tsx` | Chat SSE API (server-side, legacy fallback) — streaming, tool dispatch |
-| `app/routes/api.chat.interactions.tsx` | Interactions API SSE proxy (GemiHub Premium/Business) — multi-round tool call protocol |
+| `app/routes/api.chat.interactions.tsx` | Interactions API SSE proxy (kiokuflow Premium/Business) — multi-round tool call protocol |
 | `app/routes/api.chat.history.tsx` | Chat history CRUD (list, save, delete) |
-| `app/hooks/useLocalChat.ts` | Browser-side chat execution (GemiHub Free path) — calls Gemini Chat API directly using the user's provider credentials |
-| `app/hooks/useInteractionsChat.ts` | Interactions API client (GemiHub Premium/Business) — multi-round SSE with local tool execution |
+| `app/hooks/useLocalChat.ts` | Browser-side chat execution (kiokuflow Free path) — calls Gemini Chat API directly using the user's provider credentials |
+| `app/hooks/useInteractionsChat.ts` | Interactions API client (kiokuflow Premium/Business) — multi-round SSE with local tool execution |
 | `app/services/gemini-chat-core.ts` | Browser-compatible Gemini Chat API client (streaming, function calling, RAG, thinking, image generation) |
 | `app/services/gemini-interactions.server.ts` | Server-only Interactions API wrapper (tool conversion, input building, stream translation) |
 | `app/services/gemini-chat.server.ts` | Server-only re-export of gemini-chat-core.ts |
@@ -422,7 +422,7 @@ The Interactions API endpoint does not support CORS, so browser-side calls are n
 | Route | Method | Description |
 |-------|--------|-------------|
 | `/api/chat` | POST | Chat SSE stream with function calling (legacy fallback) |
-| `/api/chat/interactions` | POST | Interactions API SSE proxy (GemiHub Premium/Business, multi-round) |
+| `/api/chat/interactions` | POST | Interactions API SSE proxy (kiokuflow Premium/Business, multi-round) |
 | `/api/chat/history` | GET | List chat histories |
 | `/api/chat/history` | POST | Save chat history |
 | `/api/chat/history` | DELETE | Delete chat history |

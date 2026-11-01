@@ -1,6 +1,6 @@
 resource "google_bigquery_dataset" "app_logs" {
   dataset_id                  = "gemihub_logs"
-  friendly_name               = "GemiHub Application Logs"
+  friendly_name               = "kiokuflow Application Logs"
   location                    = var.region
   default_table_expiration_ms = 7776000000 # 90 days
 

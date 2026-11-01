@@ -49,6 +49,12 @@ globalThis.fetch = async (input, init) => {
       storage: { usedBytes: 12884901888, quotaGb: 100, includedGb: 100, addonUnits: 0 },
     });
   }
+  if (url.pathname === "/api/drive/files" && url.searchParams.get("action") === "metadata") {
+    return json({ name: "project-notes.md", mimeType: "text/markdown", md5Checksum: "notes", modifiedTime: "2026-08-21T03:00:00Z" });
+  }
+  if (url.pathname === "/api/drive/files" && url.searchParams.get("action") === "read") {
+    return json({ content: "# Project notes / プロジェクトノート\n\nQuarterly planning, product quality and customer feedback.\n\n## Next actions / 次のアクション\n\n- Publish the design system / デザインシステムを公開\n- Review the roadmap / ロードマップをレビュー" });
+  }
   if (url.pathname === "/api/drive/files") {
     return json({ files: [{ id: "weekly", name: "Workflows/weekly-report.yaml" }] });
   }

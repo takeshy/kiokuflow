@@ -1,6 +1,6 @@
-# GemiHub Markdown Preview Reference
+# kiokuflow Markdown Preview Reference
 
-GemiHub Markdown preview supports:
+kiokuflow Markdown preview supports:
 
 - GitHub Flavored Markdown via `remark-gfm`
 - syntax highlighting for fenced code blocks

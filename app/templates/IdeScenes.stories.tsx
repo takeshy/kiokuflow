@@ -25,7 +25,7 @@ import { settingsFixture } from "./settings.fixtures";
 import { WorkflowTemplate } from "./WorkflowTemplate";
 import { workflowFixture } from "./workflow-dashboard.fixtures";
 
-type Mode = "dashboard" | "workflow" | "chat" | "search" | "pull" | "push" | "conflict" | "diff" | "execution";
+type Mode = "overview" | "dashboard" | "workflow" | "chat" | "search" | "pull" | "push" | "conflict" | "diff" | "execution";
 const ChatPanel = lazy(() => import("~/components/ide/ChatPanel").then((module) => ({ default: module.ChatPanel })));
 
 function ExpandedSyncDiffDialog({ files, type }: { files: FileListItem[]; type: "push" | "pull" }) {
@@ -147,10 +147,8 @@ function SeedGate({ children, language = "ja" }: { children: React.ReactNode; la
         weekly: { name: "Workflows/weekly-content-report.yaml", mimeType: "text/yaml", md5Checksum: "weekly", modifiedTime: now },
         notes: { name: "project-notes.md", mimeType: "text/markdown", md5Checksum: "notes", modifiedTime: now },
       } });
+      setReady(true);
     })();
-    // The real IDE handles cache hydration after mount. Do the same here so a
-    // blocked IndexedDB upgrade cannot leave a capture on "Loading fixture".
-    setReady(true);
   }, [language]);
   return ready ? children : <div className="p-8 text-sm text-gray-500">Loading fixture…</div>;
 }
@@ -159,6 +157,8 @@ const meta = { title: "Templates/IDE Scenes", component: RoutedScene, parameters
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+export const Overview: Story = { args: { mode: "overview" } };
+export const OverviewEnglish: Story = { args: { mode: "overview", language: "en" } };
 export const Dashboard: Story = {};
 export const Workflow: Story = { args: { mode: "workflow" } };
 export const Chat: Story = { args: { mode: "chat" } };

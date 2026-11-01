@@ -180,7 +180,7 @@ The `drive-read` node can set `saveMetadataTo` while reading a file. For an encr
 
 ## Python Decryption Script
 
-Encrypted files are self-contained and can be decrypted without Gemini Hub using the following Python script.
+Encrypted files are self-contained and can be decrypted without kiokuflow using the following Python script.
 
 ### Requirements
 
@@ -192,7 +192,7 @@ pip install cryptography
 
 ```python
 #!/usr/bin/env python3
-"""Decrypt Gemini Hub encrypted files without the application."""
+"""Decrypt kiokuflow encrypted files without the application."""
 import base64, sys, re, getpass
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
@@ -260,9 +260,9 @@ python decrypt.py path/to/file.md.encrypted
 The encryption code and its on-disk format are shared with obsidian-gemihub and gemihub-gdrive through [gemihub-sync-core](https://github.com/takeshy/gemihub-sync-core), so every client reads and writes the same encrypted files:
 
 - **`gemihub-sync-core/crypto`** — key generation, PBKDF2-protected private key, hybrid RSA-OAEP + AES-GCM encryption, and the encrypted file envelope (frontmatter with `description` / `publicMetadata`). Web Crypto only, so it runs in browsers, Node and Deno. `app/services/crypto-core.ts` re-exports it.
-- **`gemihub-sync-core/auth`** — external sync credentials: the Migration Tool token (`encodeMigrationToken` / `decodeMigrationToken`, hex of `{ a: accessToken, r: rootFolderId }` XOR 0x5a), `_encrypted-auth.json` (`buildEncryptedAuthFile` / `parseEncryptedAuthFile` / `decryptEncryptedAuth`, which rejects non-https `apiOrigin`), and the `/api/obsidian/token` refresh request/response. GemiHub issues the token and file in Settings (`settings.tsx`); the plugins consume them. Refresh requests carry `rootFolderId` so the endpoint can resolve the account that owns the synced folder.
+- **`gemihub-sync-core/auth`** — external sync credentials: the Migration Tool token (`encodeMigrationToken` / `decodeMigrationToken`, hex of `{ a: accessToken, r: rootFolderId }` XOR 0x5a), `_encrypted-auth.json` (`buildEncryptedAuthFile` / `parseEncryptedAuthFile` / `decryptEncryptedAuth`, which rejects non-https `apiOrigin`), and the `/api/obsidian/token` refresh request/response. kiokuflow issues the token and file in Settings (`settings.tsx`); the plugins consume them. Refresh requests carry `rootFolderId` so the endpoint can resolve the account that owns the synced folder.
 
-The library's tests decrypt a fixture written by GemiHub's pre-library `crypto-core.ts` (dummy password), which pins the byte layout below: a library change that would make existing encrypted files or `_encrypted-auth.json` unreadable fails there.
+The library's tests decrypt a fixture written by kiokuflow's pre-library `crypto-core.ts` (dummy password), which pins the byte layout below: a library change that would make existing encrypted files or `_encrypted-auth.json` unreadable fails there.
 
 ## Key Files
 

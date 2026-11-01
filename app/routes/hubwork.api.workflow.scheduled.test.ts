@@ -57,12 +57,12 @@ test("resolveScheduledWorkflowPath resolves canonical GCS paths without traversa
 
 test("getScheduledRequestAudiences includes configured audiences and request origin", () => {
   const original = process.env.HUBWORK_SCHEDULER_AUDIENCE;
-  process.env.HUBWORK_SCHEDULER_AUDIENCE = "https://gemihub.net, https://gemini-hub.example.run.app";
+  process.env.HUBWORK_SCHEDULER_AUDIENCE = "https://kiokuflow.net, https://gemini-hub.example.run.app";
   try {
     const request = new Request("https://gemini-hub.example.run.app/hubwork/api/workflow/scheduled");
 
     assert.deepEqual(getScheduledRequestAudiences(request), [
-      "https://gemihub.net",
+      "https://kiokuflow.net",
       "https://gemini-hub.example.run.app",
     ]);
   } finally {

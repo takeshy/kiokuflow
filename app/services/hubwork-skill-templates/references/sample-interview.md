@@ -50,7 +50,7 @@ Auth guard, data loading, form submission, and logout — the structural pattern
 <script>
   (async () => {
     // 1. Auth guard — redirects to login if not authenticated
-    const user = await gemihub.auth.require("partner", "/login/partner");
+    const user = await kiokuflow.auth.require("partner", "/login/partner");
     if (!user) return;
 
     // 2. Use user data (from auth.me profile fields)
@@ -61,7 +61,7 @@ Auth guard, data loading, form submission, and logout — the structural pattern
 
     // 3. Logout handler
     document.getElementById("logout-btn").addEventListener("click", async () => {
-      await gemihub.auth.logout("partner");
+      await kiokuflow.auth.logout("partner");
       window.location.href = "/login/partner";
     });
 
@@ -71,7 +71,7 @@ Auth guard, data loading, form submission, and logout — the structural pattern
 
     // 5. Fetch data from GET API
     // calendar-list returns flat start/end strings — use evt.start directly, NOT evt.start.dateTime
-    const events = await gemihub.get("interview/events", {
+    const events = await kiokuflow.get("interview/events", {
       start: "2025-04-01T00:00:00Z",
       end: "2025-04-01T23:59:59Z"
     });
@@ -86,7 +86,7 @@ Auth guard, data loading, form submission, and logout — the structural pattern
     document.getElementById("booking-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       try {
-        await gemihub.post("interview/book", {
+        await kiokuflow.post("interview/book", {
           name: "Jane Doe",
           start: "2025-04-01T10:00:00Z",
           end: "2025-04-01T10:30:00Z",
@@ -126,7 +126,7 @@ nodes:
 
 ## GET API Endpoint (`web/api/interview/slots.yaml`) — Available Slots from Calendar
 
-Common "pick an open 30-minute slot" pattern: read calendar, subtract busy windows, return the free slots formatted for display. The critical interpolation rule is `{{events}}` **without `:json` and without surrounding quotes** — GemiHub stores every variable as a JSON-serialized string, and JSON is a valid JS literal, so the array drops straight into the script as a bare `[{...}]` literal. Using `{{events:json}}` unquoted escapes the quotes into `\"` and crashes the script at parse time.
+Common "pick an open 30-minute slot" pattern: read calendar, subtract busy windows, return the free slots formatted for display. The critical interpolation rule is `{{events}}` **without `:json` and without surrounding quotes** — kiokuflow stores every variable as a JSON-serialized string, and JSON is a valid JS literal, so the array drops straight into the script as a bare `[{...}]` literal. Using `{{events:json}}` unquoted escapes the quotes into `\"` and crashes the script at parse time.
 
 Locale parameters (`"en-US"`, `"UTC"`) in the example are placeholders — pick the locale and timeZone that match the user's request when building a real workflow.
 

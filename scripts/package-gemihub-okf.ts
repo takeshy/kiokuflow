@@ -52,7 +52,7 @@ await mkdir(releaseDirectory, { recursive: true });
 await writeFile(path.join(releaseDirectory, "gemihub-okf.zip"), bundle);
 
 const manifest = {
-  name: "GemiHub",
+  name: "kiokuflow",
   version,
   publishedAt: new Date().toISOString(),
   bundleUrl: `releases/${version}/gemihub-okf.zip`,
@@ -62,4 +62,4 @@ const manifest = {
 await mkdir(OUTPUT_DIR, { recursive: true });
 await writeFile(path.join(OUTPUT_DIR, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 
-process.stdout.write(`Packaged GemiHub OKF ${version}: ${files.length} files\n`);
+process.stdout.write(`Packaged kiokuflow OKF ${version}: ${files.length} files\n`);

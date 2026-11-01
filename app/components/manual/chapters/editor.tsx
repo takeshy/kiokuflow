@@ -15,7 +15,7 @@ function EditorEn() {
       </figure>
       <div className={prose}>
         <p>
-          GemiHub includes a built-in editor that adapts to the file type. Markdown files get a full editing experience, workflow files show visual diagrams, and binary files are displayed with appropriate viewers.
+          kiokuflow includes a built-in editor that adapts to the file type. Markdown files get a full editing experience, workflow files show visual diagrams, and binary files are displayed with appropriate viewers.
         </p>
 
         <h2>Editing Modes (Markdown)</h2>
@@ -45,9 +45,7 @@ function EditorEn() {
         </p>
 
         <h2>Edit History</h2>
-        <figure className="my-4 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-          <img src="/images/editor_history.png" alt="Edit history" className="w-full" loading="lazy" />
-        </figure>
+
         <p>
           Right-click a file and select <strong>History</strong> to view its edit history. You can:
         </p>
@@ -60,9 +58,7 @@ function EditorEn() {
         </ul>
 
         <h2>Publishing</h2>
-        <figure className="my-4 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-          <img src="/images/publish_web.png" alt="Publish to web" className="w-full" loading="lazy" />
-        </figure>
+
         <p>
           Right-click a file and select <strong>Publish to Web</strong> to make it publicly accessible via URL. HTML and Markdown files are rendered; other types are served with their original MIME type.
         </p>
@@ -104,9 +100,7 @@ function EditorEn() {
         </p>
 
         <h2>New File Creation</h2>
-        <figure className="my-4 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-          <img src="/images/editor_new.png" alt="New file dialog" className="w-full" loading="lazy" />
-        </figure>
+
         <p>
           Click the <strong>New File</strong> button in the file tree toolbar to open the creation dialog. In addition to specifying a file name and extension, you can optionally include metadata in the initial content:
         </p>
@@ -119,9 +113,7 @@ function EditorEn() {
         </p>
 
         <h3>Using Location Data with AI Chat</h3>
-        <figure className="my-4 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-          <img src="/images/editor_memo.png" alt="Memo with location and AI chat" className="w-full" loading="lazy" />
-        </figure>
+
         <p>
           When a memo contains latitude and longitude, you can ask the AI in the chat panel to identify the place name. The AI reads the file content via the <code>read_drive_file</code> function call and resolves the coordinates to a human-readable location.
         </p>
@@ -151,7 +143,7 @@ function EditorJa() {
       </figure>
       <div className={prose}>
         <p>
-          GemiHubには、ファイルタイプに応じて適応する内蔵エディタがあります。Markdownファイルはフル編集体験、ワークフローファイルはビジュアルダイアグラム、バイナリファイルは適切なビューアで表示されます。
+          kiokuflowには、ファイルタイプに応じて適応する内蔵エディタがあります。Markdownファイルはフル編集体験、ワークフローファイルはビジュアルダイアグラム、バイナリファイルは適切なビューアで表示されます。
         </p>
 
         <h2>編集モード（Markdown）</h2>
@@ -181,9 +173,7 @@ function EditorJa() {
         </p>
 
         <h2>編集履歴</h2>
-        <figure className="my-4 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-          <img src="/images/editor_history.png" alt="編集履歴" className="w-full" loading="lazy" />
-        </figure>
+
         <p>
           ファイルを右クリックして<strong>履歴</strong>を選択すると、編集履歴が表示されます：
         </p>
@@ -196,9 +186,7 @@ function EditorJa() {
         </ul>
 
         <h2>Web公開</h2>
-        <figure className="my-4 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-          <img src="/images/publish_web.png" alt="Web公開" className="w-full" loading="lazy" />
-        </figure>
+
         <p>
           ファイルを右クリックして<strong>ウェブに公開</strong>を選択すると、URL経由で公開できます。HTMLとMarkdownファイルはレンダリングされ、他のタイプは元のMIMEタイプで配信されます。
         </p>
@@ -240,9 +228,7 @@ function EditorJa() {
         </p>
 
         <h2>新規ファイル作成</h2>
-        <figure className="my-4 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-          <img src="/images/editor_new.png" alt="新規ファイルダイアログ" className="w-full" loading="lazy" />
-        </figure>
+
         <p>
           ファイルツリーのツールバーにある<strong>新規ファイル</strong>ボタンから、ファイル作成ダイアログを開くことができます。ファイル名と拡張子の指定に加えて、以下のオプションで初期内容にメタデータを含めることができます：
         </p>
@@ -255,9 +241,7 @@ function EditorJa() {
         </p>
 
         <h3>位置情報を使ったAIチャット</h3>
-        <figure className="my-4 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-          <img src="/images/editor_memo.png" alt="メモの位置情報とAIチャット" className="w-full" loading="lazy" />
-        </figure>
+
         <p>
           メモに緯度・経度が含まれている場合、チャットパネルでAIに地名を質問できます。AIは<code>read_drive_file</code>ファンクションコールでファイル内容を読み取り、座標から地名を特定して回答します。
         </p>

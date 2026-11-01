@@ -4,7 +4,7 @@ import { LeftSidebar } from "~/components/ide/LeftSidebar";
 import { RightSidebar } from "~/components/ide/RightSidebar";
 import type { Language } from "~/types/settings";
 
-type IdeCaptureMode = "dashboard" | "workflow" | "chat" | "search" | "pull" | "push" | "conflict" | "diff" | "execution";
+type IdeCaptureMode = "overview" | "dashboard" | "workflow" | "chat" | "search" | "pull" | "push" | "conflict" | "diff" | "execution";
 
 export function IdeCaptureTemplate({ children, mode, language: _language, leftPanel, rightPanel: rightPanelContent }: { children: React.ReactNode; mode: IdeCaptureMode; language: Language; leftPanel: React.ReactNode; rightPanel: React.ReactNode }) {
   const workflowMode = mode === "workflow" || mode === "execution";

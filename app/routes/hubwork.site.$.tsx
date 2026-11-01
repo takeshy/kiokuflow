@@ -35,7 +35,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     mountCtx = null;
   }
   if (!mountCtx) {
-    throw new Response("Account not configured. Owner must log in to GemiHub first.", { status: 503 });
+    throw new Response("Account not configured. Owner must log in to kiokuflow first.", { status: 503 });
   }
 
   let rawPath = (params["*"] || "").replace(/^\/+|\/+$/g, "");
@@ -58,7 +58,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     ...SECURITY_HEADERS,
   };
 
-  // When a custom domain is active, exclude the gemihub.net URL from Google
+  // When a custom domain is active, exclude the kiokuflow.net URL from Google
   // to avoid duplicate-content dilution. Relies on Cloud CDN keying by host.
   const requestHost = request.headers.get("host")?.split(":")[0] || "";
   if (

@@ -6,6 +6,8 @@ import { getAccountByDomain, getAccountByOrganization } from "~/services/hubwork
 import { emailToUid, getOrgMember } from "~/services/organizations.server";
 import { isSuperAdmin } from "~/services/super-admin.server";
 import { validateOrigin } from "~/utils/security";
+import { isReservedPlatformDomain } from "~/config/branding";
+import { HUBWORK_DOMAIN } from "~/services/hubwork-accounts.server";
 
 async function requireManagedOrganizationAccount(request: Request) {
   const tokens = await requireAuth(request);
@@ -50,19 +52,8 @@ export async function action({ request }: Route.ActionArgs) {
         return data({ error: "Invalid domain" }, { status: 400 });
       }
 
-      // Block platform domains to prevent hijacking. Both `.net` (current) and
-      // `.online` (legacy 301-redirect window) suffixes are reserved.
-      const BLOCKED_DOMAINS = [
-        "gemihub.net",
-        "www.gemihub.net",
-        "gemihub.online",
-        "www.gemihub.online",
-      ];
-      if (
-        BLOCKED_DOMAINS.includes(domain) ||
-        domain.endsWith(".gemihub.net") ||
-        domain.endsWith(".gemihub.online")
-      ) {
+      // Reserve both current and legacy platform domains during migration.
+      if (isReservedPlatformDomain(domain, HUBWORK_DOMAIN)) {
         return data({ error: "This domain is reserved and cannot be used" }, { status: 400 });
       }
 

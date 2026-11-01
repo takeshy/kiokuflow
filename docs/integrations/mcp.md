@@ -23,7 +23,7 @@ Integration with external MCP servers for extending Gemini's tool capabilities.
 
 ## Protocol
 
-GemiHub uses the **Streamable HTTP transport** variant of MCP.
+kiokuflow uses the **Streamable HTTP transport** variant of MCP.
 
 | Parameter | Value |
 |-----------|-------|
@@ -46,13 +46,13 @@ GemiHub uses the **Streamable HTTP transport** variant of MCP.
 ```
 
 The 2026 revision removes the `initialize` / `notifications/initialized`
-handshake and session-affinity headers. GemiHub also does not advertise or call
+handshake and session-affinity headers. kiokuflow also does not advertise or call
 the deprecated Roots, Sampling, or MCP Logging capabilities. Operational logs
 remain in the application's normal logging infrastructure.
 
 Every 2026 request carries the protocol version and client declaration in
 `params._meta`, along with the required Streamable HTTP routing headers. If
-`server/discover` is unavailable or reports only an older revision, GemiHub
+`server/discover` is unavailable or reports only an older revision, kiokuflow
 falls back to the legacy `initialize` / `notifications/initialized` lifecycle
 and retains its session ID until the client is closed.
 

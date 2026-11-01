@@ -1,4 +1,4 @@
-// Service Worker for GemiHub — offline asset & navigation caching.
+// Service Worker for kiokuflow — offline asset & navigation caching.
 // Intentionally does NOT register a full PWA manifest (no display:standalone)
 // so browsers will not show an install prompt.
 

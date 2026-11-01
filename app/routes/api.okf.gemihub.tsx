@@ -23,7 +23,7 @@ export async function loader({ request }: { request: Request }) {
     }
     const requestedVersion = url.searchParams.get("version");
     if (requestedVersion !== manifest.version) {
-      return Response.json({ error: "GemiHub OKF version changed; refresh the manifest" }, { status: 409 });
+      return Response.json({ error: "kiokuflow OKF version changed; refresh the manifest" }, { status: 409 });
     }
     const bytes = await fetchGemihubOkfBundle(manifest);
     return new Response(bytes, {
@@ -34,7 +34,7 @@ export async function loader({ request }: { request: Request }) {
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to fetch GemiHub OKF";
+    const message = error instanceof Error ? error.message : "Failed to fetch kiokuflow OKF";
     return Response.json({ error: message }, { status: 502 });
   }
 }

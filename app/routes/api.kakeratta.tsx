@@ -34,7 +34,7 @@ export async function action({ request }: Route.ActionArgs) {
     if (!controller) return Response.json({ busy: true }, { headers });
     try {
       const signal = AbortSignal.any([request.signal, controller.signal, AbortSignal.timeout(240_000)]);
-      if (Array.isArray(body.timelineFiles) && body.timelineFiles.length && body.timelineRootFolderId !== valid.rootFolderId) return Response.json({ error: "Timeline cache belongs to another account. Reload GemiHub before synchronizing." }, { status: 400, headers });
+      if (Array.isArray(body.timelineFiles) && body.timelineFiles.length && body.timelineRootFolderId !== valid.rootFolderId) return Response.json({ error: "Timeline cache belongs to another account. Reload kiokuflow before synchronizing." }, { status: 400, headers });
       let timeline: Awaited<ReturnType<typeof syncTimelineFromDrive>> | { error: string } | undefined;
       if (config.timelineSync.enabled) {
         try {
@@ -59,7 +59,7 @@ export async function action({ request }: Route.ActionArgs) {
         const { action: chat } = await import("./api.chat");
         const chatRequest = new Request(new URL("/api/chat", request.url), {
           method: "POST",
-          headers: { "Content-Type": "application/json", Cookie: setCookieHeader?.split(";")[0] ?? request.headers.get("Cookie") ?? "", "X-GemiHub-Kakeratta": "true" },
+          headers: { "Content-Type": "application/json", Cookie: setCookieHeader?.split(";")[0] ?? request.headers.get("Cookie") ?? "", "X-kiokuflow-Kakeratta": "true" },
           signal: turnSignal,
           body: JSON.stringify({ messages, model, systemPrompt, driveToolMode: profile.readFiles ? "readOnly" : "none", enableMcp: false, ragStoreIds: rag?.storeIds?.length ? rag.storeIds : rag?.storeId ? [rag.storeId] : [], webSearchEnabled: profile.webSearch }),
         });

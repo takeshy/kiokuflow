@@ -9,7 +9,7 @@
  *   "prepaid" — our own GCP project, drawn against the user's personal balance
  *               (`users/{uid}/aiBalance`); every call carries a billing scope.
  *   "own"     — the user's own GCP project through the OAuth connection they
- *               made with their uploaded client JSON; no GemiHub billing.
+ *               made with their uploaded client JSON; no kiokuflow billing.
  *
  * Both the interactive routes and the scheduler resolve the run through
  * `personalVertexRunForUser` so the precedence rule lives in one place.

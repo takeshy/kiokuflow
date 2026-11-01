@@ -12,10 +12,10 @@ Include in every HTML page that needs data or auth:
 
 ```javascript
 // GET request — returns parsed JSON
-const data = await gemihub.get("path/to/endpoint", { key: "value" });
+const data = await kiokuflow.get("path/to/endpoint", { key: "value" });
 
 // POST request — sends JSON body, returns parsed JSON
-const result = await gemihub.post("path/to/endpoint", { key: "value" });
+const result = await kiokuflow.post("path/to/endpoint", { key: "value" });
 ```
 
 Both throw on non-2xx responses. The error object has `.status` and `.response` properties.
@@ -24,20 +24,20 @@ Both throw on non-2xx responses. The error object has `.status` and `.response` 
 
 ```javascript
 // Get current user data. Returns null if not authenticated (never throws on 401).
-const user = await gemihub.auth.me("accountType");
+const user = await kiokuflow.auth.me("accountType");
 // Returns: { type, email, ...dataFields } or null
 
 // Send magic link email (redirect defaults to current page path)
-await gemihub.auth.login("accountType", "user@example.com");
-await gemihub.auth.login("accountType", "user@example.com", "/dashboard"); // custom redirect
+await kiokuflow.auth.login("accountType", "user@example.com");
+await kiokuflow.auth.login("accountType", "user@example.com", "/dashboard"); // custom redirect
 // Returns: { ok: true }
 
 // Destroy session cookie
-await gemihub.auth.logout("accountType");
+await kiokuflow.auth.logout("accountType");
 
 // Guard: check auth and redirect to login page if not authenticated.
 // Returns user object or redirects (never resolves if redirecting).
-const user = await gemihub.auth.require("accountType", "/login/path");
+const user = await kiokuflow.auth.require("accountType", "/login/path");
 ```
 
 ## File Routing
@@ -122,7 +122,7 @@ trigger:
 
 ## IDE Preview Mock Data
 
-When previewing Hubwork pages in the IDE (localhost or gemihub.net), real Hubwork auth and API calls are not available. Place mock data JSON files in `web/__gemihub/` to enable preview.
+When previewing Hubwork pages in the IDE (localhost or kiokuflow.net), real Hubwork auth and API calls are not available. Place mock data JSON files in `web/__gemihub/` to enable preview.
 
 ### Auth Mock (`web/__gemihub/auth/me.json`)
 
@@ -140,15 +140,15 @@ Flat structure containing the user data normally returned by `auth.me()`. The op
 }
 ```
 
-`gemihub.auth.me("partner")` returns `{ type: "partner", email: "test@example.com", profile: { ... } }` in IDE mode (the `accountType` field is stripped from the response).
+`kiokuflow.auth.me("partner")` returns `{ type: "partner", email: "test@example.com", profile: { ... } }` in IDE mode (the `accountType` field is stripped from the response).
 
 ### API Mock (`web/__gemihub/api/{path}.json`)
 
-**GET endpoints only.** Each mock file corresponds to a GET API endpoint and the JSON content is returned directly as the response when the page calls `gemihub.get(...)`. POST endpoints (`gemihub.post(...)`, HTML form submissions) do not consume a mock — they no-op in preview, so creating a `*.json` for them is unnecessary and is intentionally NOT flagged as missing by the automated review.
+**GET endpoints only.** Each mock file corresponds to a GET API endpoint and the JSON content is returned directly as the response when the page calls `kiokuflow.get(...)`. POST endpoints (`kiokuflow.post(...)`, HTML form submissions) do not consume a mock — they no-op in preview, so creating a `*.json` for them is unnecessary and is intentionally NOT flagged as missing by the automated review.
 
 ```
-web/__gemihub/api/users/list.json    -> mock for gemihub.get("users/list")
-web/__gemihub/api/users/[id].json    -> mock for gemihub.get("users/123")
+web/__gemihub/api/users/list.json    -> mock for kiokuflow.get("users/list")
+web/__gemihub/api/users/[id].json    -> mock for kiokuflow.get("users/123")
 ```
 
 Supports exact path matching and `[param]` pattern matching (same rules as workflow API routing).
@@ -165,11 +165,6 @@ For API workflows, commonly used nodes:
 | `sheet-write` | Append rows |
 | `sheet-update` | Update rows matching filter |
 | `sheet-delete` | Delete rows matching filter |
-| `calendar-list` | List calendar events (calendarId, timeMin, timeMax, maxResults, query, saveTo) |
-| `calendar-create` | Create calendar event (calendarId, summary, start, end, description?, location?) |
-| `calendar-update` | Update calendar event (calendarId, eventId, summary?, start?, end?, description?, location?) |
-| `calendar-delete` | Delete calendar event (calendarId, eventId) |
-| `gmail-send` | Send email (to, subject, body) |
 | `set` | Set a variable value |
 | `if` | Conditional branch |
 | `json` | Parse/build JSON |
@@ -236,7 +231,7 @@ The template engine has no date-format / UUID / locale helpers. Use a `script` n
 Rules for `script`:
 - Always use `saveTo` and return an object; downstream nodes access fields via dot notation (`{{prepared.id}}`).
 - **Single-value strings → `"{{var:json}}"` (quoted + `:json`).** The `:json` modifier escapes special characters (`"`, `\`, newlines) so the value is safe inside a JS string literal; it does NOT add its own quotes, so the surrounding `"..."` ARE required (drop them and you get `const name = John;` → ReferenceError). Using `"{{var}}"` without `:json` silently breaks the script the moment the value contains a quote or newline.
-- **JSON arrays / objects (e.g., `calendar-list` events, `sheet-read` rows, a prior `script`'s return) → `{{var}}` (bare, NO `:json`, NO surrounding quotes).** GemiHub stores every variable as a JSON-serialized string, so raw interpolation drops `[{"id":"abc",...}]` straight into the JS as a valid array literal. Using `{{events:json}}` without surrounding quotes escapes the `"` into `\"` and the script fails at parse time with `Unexpected token`. If you prefer the explicit form, use `JSON.parse("{{events:json}}")` (note the required `"..."`).
+- **JSON arrays / objects (e.g., `calendar-list` events, `sheet-read` rows, a prior `script`'s return) → `{{var}}` (bare, NO `:json`, NO surrounding quotes).** kiokuflow stores every variable as a JSON-serialized string, so raw interpolation drops `[{"id":"abc",...}]` straight into the JS as a valid array literal. Using `{{events:json}}` without surrounding quotes escapes the `"` into `\"` and the script fails at parse time with `Unexpected token`. If you prefer the explicit form, use `JSON.parse("{{events:json}}")` (note the required `"..."`).
   ```yaml
   code: |
     const events = {{events}} || [];               # ✅ bare → valid JS array literal
@@ -314,7 +309,7 @@ The only exception is `__response` `value: "{{var}}"`, which must NOT use `:json
 **In HTML pages**, parse the response like this:
 
 ```javascript
-const events = await gemihub.get("interview/events", { start: "...", end: "..." });
+const events = await kiokuflow.get("interview/events", { start: "...", end: "..." });
 events.forEach(evt => {
   const startTime = new Date(evt.start);  // Direct string — NOT evt.start.dateTime
   const endTime = new Date(evt.end);      // Direct string — NOT evt.end.dateTime

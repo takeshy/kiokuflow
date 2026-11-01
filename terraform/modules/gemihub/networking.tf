@@ -85,7 +85,7 @@ resource "google_certificate_manager_certificate_map" "default" {
 
 resource "google_certificate_manager_dns_authorization" "primary" {
   name   = "gemihub-net-dns-auth"
-  domain = var.domain
+  domain = local.original_app_domain
 
   depends_on = [google_project_service.apis]
 }
@@ -94,7 +94,7 @@ resource "google_certificate_manager_certificate" "primary_main" {
   name = "gemihub-net-main-cert"
 
   managed {
-    domains            = [var.domain]
+    domains            = [local.original_app_domain]
     dns_authorizations = [google_certificate_manager_dns_authorization.primary.id]
   }
 
@@ -104,7 +104,7 @@ resource "google_certificate_manager_certificate" "primary_main" {
 resource "google_certificate_manager_certificate_map_entry" "primary_main" {
   name         = "gemihub-net-main-entry"
   map          = google_certificate_manager_certificate_map.default.name
-  hostname     = var.domain
+  hostname     = local.original_app_domain
   certificates = [google_certificate_manager_certificate.primary_main.id]
 }
 
@@ -115,7 +115,7 @@ resource "google_certificate_manager_certificate" "primary_wildcard" {
   name = "gemihub-net-wildcard-cert"
 
   managed {
-    domains            = ["*.${var.domain}"]
+    domains            = ["*.${local.original_app_domain}"]
     dns_authorizations = [google_certificate_manager_dns_authorization.primary.id]
   }
 
@@ -125,7 +125,7 @@ resource "google_certificate_manager_certificate" "primary_wildcard" {
 resource "google_certificate_manager_certificate_map_entry" "primary_wildcard" {
   name         = "gemihub-net-wildcard-entry"
   map          = google_certificate_manager_certificate_map.default.name
-  hostname     = "*.${var.domain}"
+  hostname     = "*.${local.original_app_domain}"
   certificates = [google_certificate_manager_certificate.primary_wildcard.id]
 }
 

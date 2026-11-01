@@ -73,7 +73,7 @@ resource "google_cloud_run_v2_service" "app" {
       }
 
       dynamic "env" {
-        for_each = var.root_folder_name != "gemihub" ? [var.root_folder_name] : []
+        for_each = var.root_folder_name != "kiokuflow" ? [var.root_folder_name] : []
         content {
           name  = "ROOT_FOLDER_NAME"
           value = env.value
@@ -126,12 +126,12 @@ resource "google_cloud_run_v2_service" "app" {
       }
 
       env {
-        name  = "GEMIHUB_OKF_BUCKET"
+        name  = "KIOKUFLOW_OKF_BUCKET"
         value = google_storage_bucket.gemihub_okf.name
       }
 
       env {
-        name  = "GEMIHUB_OKF_PREFIX"
+        name  = "KIOKUFLOW_OKF_PREFIX"
         value = "gemihub-okf"
       }
 
@@ -141,7 +141,7 @@ resource "google_cloud_run_v2_service" "app" {
       }
 
       env {
-        name  = "GEMIHUB_MAIN_DOMAIN"
+        name  = "KIOKUFLOW_MAIN_DOMAIN"
         value = var.domain
       }
 

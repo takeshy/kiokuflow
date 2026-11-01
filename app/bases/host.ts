@@ -1,4 +1,4 @@
-// Host adapter implementations — test host (in-memory fixtures) and GemiHub host (IndexedDB).
+// Host adapter implementations — test host (in-memory fixtures) and kiokuflow host (IndexedDB).
 
 import type {
   BasesHostAdapter, HostFile, HostLink, HostPropertyType,
@@ -208,7 +208,7 @@ function findCaseInsensitive(map: Map<string, unknown>, path: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// GemiHub host — reads from IndexedDB (async pre-load, sync query)
+// kiokuflow host — reads from IndexedDB (async pre-load, sync query)
 // ---------------------------------------------------------------------------
 
 export interface GemiHubHostData {

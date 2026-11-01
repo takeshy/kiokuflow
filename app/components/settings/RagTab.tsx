@@ -1,3 +1,4 @@
+import { ragSettingDisplayName } from "~/config/branding";
 import { hasJevConfiguration, normalizeRagSettings, resolveRagTopK } from "~/services/rag-search-options";
 import { EMBEDDING_MODELS, embeddingConfig } from "~/services/rag-config";
 import { useState, useCallback, useEffect } from "react";
@@ -295,7 +296,7 @@ export function RagTab({
           <Database size={18} className="mt-0.5 flex-shrink-0" />
           <div>
             <p className="font-semibold">{language === "ja" ? "RAGは有料プラン限定です" : "RAG requires a paid plan"}</p>
-            <p className="mt-1">{language === "ja" ? "有効なGemiHubの有料プランとFirestoreが必要です。" : "An active paid GemiHub plan and Firestore are required."}</p>
+            <p className="mt-1">{language === "ja" ? "有効なkiokuflowの有料プランとFirestoreが必要です。" : "An active paid kiokuflow plan and Firestore are required."}</p>
           </div>
         </div>
       </SectionCard>
@@ -508,7 +509,7 @@ export function RagTab({
                             setRenameValue(name);
                           }}
                         >
-                          {name}
+                          {ragSettingDisplayName(name)}
                         </span>
                       )}
                       {s.storeId && (
@@ -619,7 +620,7 @@ export function RagTab({
                   </div>
 
                   {/* Expanded editor */}
-                  <div className="space-y-3 border-t border-gray-100 px-4 py-3 dark:border-gray-800" aria-label={`${name} search options`}>
+                  <div className="space-y-3 border-t border-gray-100 px-4 py-3 dark:border-gray-800" aria-label={`${ragSettingDisplayName(name)} search options`}>
                     <label className="flex items-center gap-3 text-sm" htmlFor={`rag-top-k-${name}`}>Top K<input id={`rag-top-k-${name}`} type="number" min={1} max={20} value={resolveRagTopK(s, settings.ragTopK)} onChange={event => updateCurrentSettingByKey(name, { topK: Math.min(20, Math.max(1, Number(event.target.value) || 1)) })} className={inputClass + " max-w-[90px]"} /></label>
                     <label className="flex items-center gap-2 text-sm"><input type="checkbox" disabled={!jevConfigured} checked={jevConfigured && s.jevRagFilterEnabled !== false} onChange={event => updateCurrentSettingByKey(name, { jevRagFilterEnabled: event.target.checked })} />{language === "ja" ? "Jevで一致を判定する" : "Check relevance with Jev"}</label>
                     {jevConfigured && s.jevRagFilterEnabled !== false ? <p className="text-xs text-gray-500">{language === "ja" ? "Top Kは1回にJevが判定する候補数です。判定後の件数は少なくなることがあります。" : "Top K is the number of candidates judged per batch. Fewer may remain after filtering."}</p> : !jevConfigured ? <p className="text-xs text-gray-500">{language === "ja" ? "Jevの登録は「AIプロバイダー → Jev」で行えます。" : "Configure Jev in AI providers > Jev."}</p> : null}

@@ -1,5 +1,5 @@
 /**
- * Pure helpers for translating GemiHub chat / tool definitions into the
+ * Pure helpers for translating kiokuflow chat / tool definitions into the
  * `@google/genai` SDK request shape.
  *
  * Lives outside `.server.ts` so Vertex chat, compacting, and workflow
@@ -65,7 +65,7 @@ export function sanitizeToolResult(val: unknown): unknown {
   return val;
 }
 
-/** Convert GemiHub Message[] to the SDK's Content[]. */
+/** Convert kiokuflow Message[] to the SDK's Content[]. */
 export function messagesToContents(messages: Message[]): Content[] {
   const contents: Content[] = [];
 
@@ -138,7 +138,7 @@ export function messagesToContents(messages: Message[]): Content[] {
   return contents;
 }
 
-/** Convert GemiHub tool definitions to the SDK's Tool[]. */
+/** Convert kiokuflow tool definitions to the SDK's Tool[]. */
 export function toolsToGeminiFormat(tools: ToolDefinition[]): Tool[] {
   const convertProperty = (value: ToolPropertyDefinition): Schema => {
     const schema: Schema = {

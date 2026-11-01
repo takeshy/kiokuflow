@@ -10,9 +10,7 @@ function MemoEn() {
   return (
     <>
       <h1 className="mb-6 text-3xl font-bold text-gray-900 dark:text-gray-50">Document Memos</h1>
-      <figure className="mb-8 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-        <img src="/images/memo.png" alt="Document memo panel with quote-anchored highlight" className="w-full" loading="lazy" />
-      </figure>
+
       <div className={prose}>
         <p>
           Every document gets its own memo timeline. Read a PDF, EPUB, Markdown, text, or image file — in the main viewer or in a dashboard <strong>File widget</strong> — and attach notes right where you read them.
@@ -58,9 +56,7 @@ function MemoJa() {
   return (
     <>
       <h1 className="mb-6 text-3xl font-bold text-gray-900 dark:text-gray-50">ドキュメントメモ</h1>
-      <figure className="mb-8 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-        <img src="/images/memo.png" alt="引用アンカー付きハイライトとドキュメントメモパネル" className="w-full" loading="lazy" />
-      </figure>
+
       <div className={prose}>
         <p>
           すべてのドキュメントに専用のメモタイムラインが付きます。PDF・EPUB・Markdown・テキスト・画像を、メインビューアでもダッシュボードの<strong>Fileウィジェット</strong>でも開いて、読みながらその場にノートを残せます。

@@ -1,3 +1,4 @@
+import { getTokens } from "~/services/session.server";
 /**
  * POST /api/members/add
  *
@@ -23,17 +24,12 @@ import {
   getOrgMember,
 } from "~/services/organizations.server";
 import { addProjectMember } from "~/services/projects.server";
-import { getOrganization } from "~/services/organizations.server";
-import { sendMemberAddedEmail, signInUrlFor } from "~/services/notify.server";
-import { getValidTokens, hasRequiredHubworkScopes } from "~/services/google-auth.server";
-import { google } from "googleapis";
 import type { OrgRole, ProjectRole } from "~/types/enterprise";
 import {
   ProjectAccessError,
   requireOrgAccess,
   requireProjectAccess,
 } from "~/services/project-acl.server";
-import { getTokens } from "~/services/session.server";
 import { auditFromRoute } from "~/services/audit-log.server";
 import { shareHubworkSpreadsheetsWithMember } from "~/services/hubwork-spreadsheet-sharing.server";
 
@@ -139,53 +135,11 @@ export async function action({ request }: Route.ActionArgs) {
       statusCode: 200,
     });
 
-    // The membership already exists — the mail is a notification, so a
-    // delivery failure must never turn this into an error the admin retries.
-    const notify = await notifyAddedMember({ request, orgId, email, addedByEmail: access.email });
-    return Response.json({ ok: true, ...notify });
+    return Response.json({ ok: true });
   } catch (err) {
     if (err instanceof ProjectAccessError) {
       return Response.json({ error: err.message }, { status: err.status });
     }
     throw err;
-  }
-}
-
-/**
- * Best-effort "you were added" mail, sent through the acting administrator's
- * own Gmail. Members sign in with Google, so the mail links into that flow.
- */
-async function notifyAddedMember(input: {
-  request: Request;
-  orgId: string;
-  email: string;
-  addedByEmail: string;
-}): Promise<{ emailSent: boolean; warning?: string; reason?: string }> {
-  try {
-    const sessionTokens = await getTokens(input.request);
-    if (!sessionTokens?.accessToken) throw new Error("no_google_session");
-    const { tokens: validTokens } = await getValidTokens(input.request, sessionTokens);
-    if (!hasRequiredHubworkScopes(validTokens.grantedScopes)) {
-      throw new Error("gmail_scope_missing");
-    }
-    const oauth2Client = new google.auth.OAuth2();
-    oauth2Client.setCredentials({ access_token: validTokens.accessToken });
-    const org = await getOrganization(input.orgId);
-    await sendMemberAddedEmail({
-      email: input.email,
-      orgDisplayName: org?.name ?? input.orgId,
-      addedByEmail: input.addedByEmail,
-      signInUrl: signInUrlFor(input.request),
-      gmailClient: google.gmail({ version: "v1", auth: oauth2Client }),
-    });
-    return { emailSent: true };
-  } catch (err) {
-    const reason = err instanceof Error ? err.message : String(err);
-    console.warn("[api.members.add] member-added notification failed:", reason);
-    return {
-      emailSent: false,
-      warning: reason === "gmail_scope_missing" ? "gmail_scope_missing" : "member_email_failed",
-      reason,
-    };
   }
 }

@@ -13,7 +13,7 @@ function PremiumEn() {
       <h1 className="mb-6 text-3xl font-bold text-gray-900 dark:text-gray-50">Premium Plan</h1>
       <div className={prose}>
         <p>
-          GemiHub&apos;s Premium plan adds server-side capability on top of the free Drive experience, including paid workflow nodes and Interactions API chat.
+          kiokuflow&apos;s Premium plan adds server-side capability on top of the free Drive experience, including paid workflow nodes and Interactions API chat.
         </p>
 
         <h2>Plans</h2>
@@ -31,8 +31,8 @@ function PremiumEn() {
             <tbody>
               <tr><td>Max File Size</td><td className="text-center">20 MB</td><td className="text-center">5 GB</td>{SHOW_ADVANCED_PLANS && <><td className="text-center">5 GB</td><td className="text-center">5 GB</td></>}</tr>
               <tr><td>Interactions API Chat</td><td className="text-center">—</td><td className="text-center">✓</td>{SHOW_ADVANCED_PLANS && <><td className="text-center">✓</td><td className="text-center">✓</td></>}</tr>
-              <tr><td>Gmail Send</td><td className="text-center">—</td><td className="text-center">✓</td>{SHOW_ADVANCED_PLANS && <><td className="text-center">✓</td><td className="text-center">✓</td></>}</tr>
-              <tr><td>Google Calendar Nodes</td><td className="text-center">—</td><td className="text-center">✓</td>{SHOW_ADVANCED_PLANS && <><td className="text-center">✓</td><td className="text-center">✓</td></>}</tr>
+
+
               <tr><td>PDF Generation</td><td className="text-center">—</td><td className="text-center">✓</td>{SHOW_ADVANCED_PLANS && <><td className="text-center">✓</td><td className="text-center">✓</td></>}</tr>
               <tr><td>Obsidian Sync Token</td><td className="text-center">—</td><td className="text-center">✓</td>{SHOW_ADVANCED_PLANS && <><td className="text-center">✓</td><td className="text-center">✓</td></>}</tr>
               <tr><td>Temp Upload URL</td><td className="text-center">—</td><td className="text-center">✓</td>{SHOW_ADVANCED_PLANS && <><td className="text-center">✓</td><td className="text-center">✓</td></>}</tr>
@@ -70,10 +70,6 @@ function PremiumEn() {
           Multi-round AI chat via a server-side proxy. Unlike the free plan&apos;s direct Gemini API calls, the Interactions API supports function calling, RAG, and web search simultaneously in a single conversation.
         </p>
 
-        <h3>Gmail Send</h3>
-        <p>
-          Send emails from workflows using the <code>gmail-send</code> node. Specify recipient, subject, and HTML body. Useful for notifications, reports, and automated emails.
-        </p>
 
         <h3>PDF Generation</h3>
         <p>
@@ -82,12 +78,12 @@ function PremiumEn() {
 
         <h3>Obsidian Sync Token</h3>
         <p>
-          An external sync token that allows syncing GemiHub files with Obsidian or other external editors.
+          An external sync token that allows syncing kiokuflow files with Obsidian or other external editors.
         </p>
         <ol>
-          <li>Install the <a href="https://github.com/takeshy/obsidian-gemihub" target="_blank" rel="noopener noreferrer">GemiHub Obsidian plugin</a> in Obsidian via BRAT.</li>
-          <li>Open <strong>Settings &gt; Sync &gt; External Sync</strong> in GemiHub and click <strong>Generate Sync Token</strong>.</li>
-          <li>Copy the generated token and paste it into the GemiHub plugin settings in Obsidian.</li>
+          <li>Install the <a href="https://github.com/takeshy/obsidian-gemihub" target="_blank" rel="noopener noreferrer">GemiHub - Drive Sync plugin</a> in Obsidian via BRAT.</li>
+          <li>Open <strong>Settings &gt; Sync &gt; External Sync</strong> in kiokuflow and click <strong>Generate Sync Token</strong>.</li>
+          <li>Copy the generated token and paste it into the kiokuflow plugin settings in Obsidian.</li>
         </ol>
 
         <h3>Temp Upload URL</h3>
@@ -101,7 +97,7 @@ function PremiumEn() {
 
         <h3>Static Page Hosting</h3>
         <p>
-          Files in the <code>web/</code> folder on Drive are served as static pages, read directly from Drive on every request (no CDN caching layer on Pro — see Business below for CDN-hosted pages). Every account gets a built-in subdomain (<code>{"{accountSlug}"}.gemihub.net</code>) immediately.
+          Files in the <code>web/</code> folder on Drive are served as static pages, read directly from Drive on every request (no CDN caching layer on Pro — see Business below for CDN-hosted pages). Every account gets a built-in subdomain (<code>{"{accountSlug}"}.kiokuflow.net</code>) immediately.
         </p>
         <p>File-based routing:</p>
         <ul>
@@ -171,7 +167,7 @@ function PremiumEn() {
         <pre><code>{`<script src="/__gemihub/api.js"></script>
 <script>
   (async () => {
-    const user = await gemihub.auth.require("talent");
+    const user = await kiokuflow.auth.require("talent");
     document.getElementById("app").innerHTML = \`Welcome, \${user.email}\`;
   })();
 </script>`}</code></pre>
@@ -199,7 +195,7 @@ function PremiumJa() {
       <h1 className="mb-6 text-3xl font-bold text-gray-900 dark:text-gray-50">プレミアムプラン</h1>
       <div className={prose}>
         <p>
-          GemiHubのプレミアムプランは、無料のDrive環境にサーバーサイドの機能を追加します。有料のワークフローノードとInteractions APIチャットが利用できます。
+          kiokuflowのプレミアムプランは、無料のDrive環境にサーバーサイドの機能を追加します。有料のワークフローノードとInteractions APIチャットが利用できます。
         </p>
 
         <h2>プラン一覧</h2>
@@ -217,8 +213,8 @@ function PremiumJa() {
             <tbody>
               <tr><td>1ファイル最大サイズ</td><td className="text-center">20 MB</td><td className="text-center">5 GB</td>{SHOW_ADVANCED_PLANS && <><td className="text-center">5 GB</td><td className="text-center">5 GB</td></>}</tr>
               <tr><td>Interactions API チャット</td><td className="text-center">—</td><td className="text-center">✓</td>{SHOW_ADVANCED_PLANS && <><td className="text-center">✓</td><td className="text-center">✓</td></>}</tr>
-              <tr><td>Gmail 送信</td><td className="text-center">—</td><td className="text-center">✓</td>{SHOW_ADVANCED_PLANS && <><td className="text-center">✓</td><td className="text-center">✓</td></>}</tr>
-              <tr><td>Google カレンダー ノード</td><td className="text-center">—</td><td className="text-center">✓</td>{SHOW_ADVANCED_PLANS && <><td className="text-center">✓</td><td className="text-center">✓</td></>}</tr>
+
+
               <tr><td>PDF 生成</td><td className="text-center">—</td><td className="text-center">✓</td>{SHOW_ADVANCED_PLANS && <><td className="text-center">✓</td><td className="text-center">✓</td></>}</tr>
               <tr><td>Obsidian 同期トークン</td><td className="text-center">—</td><td className="text-center">✓</td>{SHOW_ADVANCED_PLANS && <><td className="text-center">✓</td><td className="text-center">✓</td></>}</tr>
               <tr><td>一時アップロードURL</td><td className="text-center">—</td><td className="text-center">✓</td>{SHOW_ADVANCED_PLANS && <><td className="text-center">✓</td><td className="text-center">✓</td></>}</tr>
@@ -256,10 +252,6 @@ function PremiumJa() {
           サーバー経由のマルチラウンドAIチャット。無料プランのブラウザ直接API呼び出しと異なり、ファンクションコール・RAG・Web検索を1つの会話で同時に利用できます。
         </p>
 
-        <h3>Gmail 送信</h3>
-        <p>
-          ワークフローの<code>gmail-send</code>ノードでメールを送信します。宛先、件名、HTML本文を指定可能。通知、レポート、自動メールに活用できます。
-        </p>
 
         <h3>PDF 生成</h3>
         <p>
@@ -268,12 +260,12 @@ function PremiumJa() {
 
         <h3>Obsidian 同期トークン</h3>
         <p>
-          GemiHubのファイルをObsidianなどの外部エディタと同期するためのトークンです。
+          kiokuflowのファイルをObsidianなどの外部エディタと同期するためのトークンです。
         </p>
         <ol>
-          <li>Obsidian に BRAT 経由で <a href="https://github.com/takeshy/obsidian-gemihub" target="_blank" rel="noopener noreferrer">GemiHub Obsidian プラグイン</a>をインストールします。</li>
-          <li>GemiHub の<strong>設定 &gt; 同期 &gt; 外部同期</strong>を開き、<strong>同期トークンを生成</strong>ボタンでトークンを生成します。</li>
-          <li>生成されたトークンをコピーし、Obsidian 側の GemiHub プラグイン設定に貼り付けます。</li>
+          <li>Obsidian に BRAT 経由で <a href="https://github.com/takeshy/obsidian-gemihub" target="_blank" rel="noopener noreferrer">GemiHub - Drive Sync プラグイン</a>をインストールします。</li>
+          <li>kiokuflow の<strong>設定 &gt; 同期 &gt; 外部同期</strong>を開き、<strong>同期トークンを生成</strong>ボタンでトークンを生成します。</li>
+          <li>生成されたトークンをコピーし、Obsidian 側の kiokuflow プラグイン設定に貼り付けます。</li>
         </ol>
 
         <h3>一時アップロードURL</h3>
@@ -287,7 +279,7 @@ function PremiumJa() {
 
         <h3>静的ページホスティング</h3>
         <p>
-          Driveの<code>web/</code>フォルダ内のファイルが静的ページとして配信されます。Proではリクエストのたびに直接Driveから読み込みます（CDNキャッシュ層はありません — CDN配信はBusinessを参照）。アカウント作成時にサブドメイン（<code>{"{accountSlug}"}.gemihub.net</code>）が即時発行されます。
+          Driveの<code>web/</code>フォルダ内のファイルが静的ページとして配信されます。Proではリクエストのたびに直接Driveから読み込みます（CDNキャッシュ層はありません — CDN配信はBusinessを参照）。アカウント作成時にサブドメイン（<code>{"{accountSlug}"}.kiokuflow.net</code>）が即時発行されます。
         </p>
         <p>ファイルベースルーティング：</p>
         <ul>
@@ -357,7 +349,7 @@ function PremiumJa() {
         <pre><code>{`<script src="/__gemihub/api.js"></script>
 <script>
   (async () => {
-    const user = await gemihub.auth.require("talent");
+    const user = await kiokuflow.auth.require("talent");
     document.getElementById("app").innerHTML = \`Welcome, \${user.email}\`;
   })();
 </script>`}</code></pre>

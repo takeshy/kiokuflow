@@ -56,7 +56,7 @@ export function createMcpAppBridge(options: BridgeOptions) {
           delivered = false;
           reply({
             protocolVersion: "2026-01-26",
-            hostInfo: { name: "GemiHub", version: "1.0.0" },
+            hostInfo: { name: "kiokuflow", version: "1.0.0" },
             hostCapabilities: { serverTools: {}, serverResources: {} },
             hostContext: options.hostContext(),
           });

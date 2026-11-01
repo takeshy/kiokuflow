@@ -54,7 +54,7 @@ export async function checkGemihubOkfUpdate(
     cache: "no-store",
   });
   if (response.status === 404) return null;
-  if (!response.ok) throw new Error("Failed to check the GemiHub OKF version");
+  if (!response.ok) throw new Error("Failed to check the kiokuflow OKF version");
   const payload = await response.json() as { available?: boolean; manifest?: unknown };
   if (!payload.available || !payload.manifest) return null;
   const manifest = parseGemihubOkfManifest(payload.manifest);
@@ -74,11 +74,11 @@ export async function installGemihubOkfUpdate(info: GemihubOkfUpdateInfo): Promi
     `/api/okf/gemihub?resource=bundle&version=${encodeURIComponent(info.manifest.version)}`,
     { headers: { Accept: "application/zip" }, cache: "no-store" },
   );
-  if (!response.ok) throw new Error("Failed to download the GemiHub OKF bundle");
+  if (!response.ok) throw new Error("Failed to download the kiokuflow OKF bundle");
   const bundleBytes = await response.arrayBuffer();
   const bundleHash = await sha256Hex(bundleBytes);
   if (bundleHash !== info.manifest.sha256) {
-    throw new Error("GemiHub OKF bundle checksum mismatch");
+    throw new Error("kiokuflow OKF bundle checksum mismatch");
   }
 
   const JSZip = (await import("jszip")).default;
@@ -87,12 +87,12 @@ export async function installGemihubOkfUpdate(info: GemihubOkfUpdateInfo): Promi
   let totalBytes = 0;
   for (const [path, expectedHash] of Object.entries(info.manifest.files)) {
     const entry = zip.file(path);
-    if (!entry || entry.dir) throw new Error(`GemiHub OKF bundle is missing ${path}`);
+    if (!entry || entry.dir) throw new Error(`kiokuflow OKF bundle is missing ${path}`);
     const bytes = await entry.async("uint8array");
     totalBytes += bytes.byteLength;
-    if (totalBytes > MAX_UNCOMPRESSED_BYTES) throw new Error("GemiHub OKF bundle is too large");
+    if (totalBytes > MAX_UNCOMPRESSED_BYTES) throw new Error("kiokuflow OKF bundle is too large");
     if (await sha256Hex(bytes) !== expectedHash) {
-      throw new Error(`GemiHub OKF file checksum mismatch: ${path}`);
+      throw new Error(`kiokuflow OKF file checksum mismatch: ${path}`);
     }
     decodedFiles.set(path, new TextDecoder("utf-8", { fatal: true }).decode(bytes));
   }

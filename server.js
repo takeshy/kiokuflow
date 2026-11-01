@@ -8,11 +8,13 @@ import path from "node:path";
 const build = await import("./build/server/index.js");
 const app = express();
 
-const MAIN_APP_DOMAIN = process.env.GEMIHUB_MAIN_DOMAIN || "gemihub.net";
+const MAIN_APP_DOMAIN = process.env.KIOKUFLOW_MAIN_DOMAIN || process.env.GEMIHUB_MAIN_DOMAIN || "kiokuflow.net";
+const LEGACY_APP_DOMAINS = ["gemihub.net", "gemihub.online"];
 
 function isHubworkHost(domain) {
   // Dev: bare localhost is the main app; *.localhost is a hubwork slug.
   if (domain === "localhost" || domain.startsWith("localhost:")) return false;
+  if (LEGACY_APP_DOMAINS.some(host => domain === host || domain === `www.${host}`)) return false;
   if (domain === MAIN_APP_DOMAIN) return false;
   if (domain === `www.${MAIN_APP_DOMAIN}`) return false;
   // Internal probes and direct Cloud Run URLs never carry a hubwork hostname.
@@ -29,7 +31,13 @@ app.use((req, res, next) => {
   const host = req.headers.host;
   if (!host) return next();
   const domain = host.split(":")[0].toLowerCase();
-  if (domain === `www.${MAIN_APP_DOMAIN}`) {
+  // Keep legacy APIs/callbacks callable for existing external sync clients.
+  // Browser sessions are host-only; the new domain requires signing in again.
+  const legacyUi = process.env.KIOKUFLOW_REDIRECT_LEGACY_UI === "true" && req.query.legacy !== "1"
+    && LEGACY_APP_DOMAINS.some(host => domain === host || domain === `www.${host}`)
+    && (req.method === "GET" || req.method === "HEAD")
+    && !/^\/(?:api|auth|__gemihub|hubwork\/api)(?:\/|$)/.test(req.path);
+  if (domain === `www.${MAIN_APP_DOMAIN}` || (legacyUi && domain !== MAIN_APP_DOMAIN)) {
     res.redirect(301, `https://${MAIN_APP_DOMAIN}${req.originalUrl}`);
     return;
   }

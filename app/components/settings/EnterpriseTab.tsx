@@ -390,19 +390,8 @@ function MembersSection({ orgId, members, ai, busy, run, isSuperOwner }: { orgId
       <h3 className="font-semibold">{t("enterprise.addMember")}</h3>
       <p className="mt-1 text-xs leading-5 text-gray-500 dark:text-gray-400">{t("enterprise.addMemberDesc")}</p>
       <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_160px_auto]"><input className={inputClass} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="user@example.com" /><select className={inputClass} value={inviteRole} onChange={(e) => setInviteRole(e.target.value as OrgRole)}><option value="member">{t("enterprise.roleMember")}</option><option value="admin">{t("enterprise.roleAdmin")}</option></select><button className={primaryButton} disabled={busy || !email} onClick={() => void run(async () => {
-        // Direct add: the membership takes effect immediately and the member
-        // signs in with Google. The mail is only a notification, so a delivery
-        // failure is reported without undoing (or retrying) the add.
-        const result = await api<{ emailSent?: boolean; warning?: string }>("/api/members/add", { method: "POST", body: { orgId, email, role: inviteRole } });
+        await api("/api/members/add", { method: "POST", body: { orgId, email, role: inviteRole } });
         setEmail("");
-        if (result.emailSent !== false) return undefined;
-        return {
-          warning: t(
-            result.warning === "gmail_scope_missing"
-              ? "enterprise.memberAddedGmailScopeMissing"
-              : "enterprise.memberAddedEmailFailed",
-          ).replace("{email}", email),
-        };
       }, t("enterprise.memberAdded"))}>{t("enterprise.add")}</button></div>
     </section>
     {isSuperOwner && <details className={cardClass}><summary className="cursor-pointer text-sm font-medium text-gray-600 dark:text-gray-300">{t("enterprise.superOwnerAddOwner")}</summary><p className="mt-3 text-xs leading-5 text-gray-500">{t("enterprise.superOwnerAddOwnerDesc")}</p><div className="mt-3 flex flex-col gap-3 sm:flex-row"><input className={inputClass} type="email" value={ownerEmail} onChange={(e) => setOwnerEmail(e.target.value)} placeholder="owner@example.com" /><button className={primaryButton} disabled={busy || !ownerEmail} onClick={() => void run(async () => { await api("/api/members/add", { method: "POST", body: { orgId, email: ownerEmail, role: "owner" } }); setOwnerEmail(""); }, t("enterprise.ownerAdded"))}>{t("enterprise.addAsOwner")}</button></div></details>}

@@ -4,7 +4,7 @@
 
 ## Why `admin/` (not `web/admin/`)
 
-Hubwork の公開ルーティングは `web/` プレフィックスのファイルしかサーブしない (`app/services/hubwork-page.server.ts` / `app/services/hubwork-api-resolver.server.ts`)。`admin/` 配下は **カスタムドメインから 404**。つまり管理画面は GemiHub IDE 内でのみ閲覧・操作される。
+Hubwork の公開ルーティングは `web/` プレフィックスのファイルしかサーブしない (`app/services/hubwork-page.server.ts` / `app/services/hubwork-api-resolver.server.ts`)。`admin/` 配下は **カスタムドメインから 404**。つまり管理画面は kiokuflow IDE 内でのみ閲覧・操作される。
 
 このおかげで:
 - 専用の `admin` account type / マジックリンク / `requireAuth: admin` を用意する必要がない (公開されていないので盗聴されない)
@@ -29,7 +29,7 @@ admin/
 
 **単一ページ + インライン展開の慣習 (重要):** IDE プレビューは iframe の srcDoc で HTML を描画しているため、`location.search` / `location.pathname` の URL 状態や `[id]` パス引数は取れない。したがって admin 画面では「詳細ページを別ファイルにしない」ことを原則とし、一覧ページ内で行クリック時にモーダル or 行内展開で詳細 + 操作フォームを表示する。ID は JS の `selectedId` 変数で保持する。Hubwork 本番ドメインでは `[id].html` パターンが使えるが、admin 画面は IDE でしか動かないので使わない。
 
-各 HTML は通常通り `<script src="/__gemihub/api.js"></script>` を読み、`gemihub.get("bookings/list")` のように呼ぶ (公開側が `gemihub.get("tickets/list")` で `web/api/tickets/list.yaml` を呼ぶのと同じ慣習 — `admin/` プレフィックスは HTML の配置で決まるので、呼び出し側には書かない)。IDE の admin プレビューがこれを `admin/api/bookings/list.yaml` のローカル実行に振り替える。
+各 HTML は通常通り `<script src="/__gemihub/api.js"></script>` を読み、`kiokuflow.get("bookings/list")` のように呼ぶ (公開側が `kiokuflow.get("tickets/list")` で `web/api/tickets/list.yaml` を呼ぶのと同じ慣習 — `admin/` プレフィックスは HTML の配置で決まるので、呼び出し側には書かない)。IDE の admin プレビューがこれを `admin/api/bookings/list.yaml` のローカル実行に振り替える。
 
 ## IDE-only execution model
 
@@ -139,13 +139,13 @@ Admin ワークフローは Hubwork ランタイムではなく **IDE の admin 
   <script>
     (async () => {
       // admin プレビューが session.email を注入しているので auth.require は不要
-      const me = await gemihub.auth.me();
+      const me = await kiokuflow.auth.me();
       document.getElementById("signed-in").textContent =
         me ? `ログイン中: ${me.email}` : "";
 
       const [bookings, inquiries] = await Promise.all([
-        gemihub.get("bookings/list"),
-        gemihub.get("inquiries/list"),
+        kiokuflow.get("bookings/list"),
+        kiokuflow.get("inquiries/list"),
       ]);
       const count = (arr, fn) => arr.filter(fn).length;
       document.getElementById("n-active").textContent =
@@ -199,7 +199,7 @@ Admin ワークフローは Hubwork ランタイムではなく **IDE の admin 
   <script src="/__gemihub/api.js"></script>
   <script>
     (async () => {
-      const bookings = await gemihub.get("bookings/list");
+      const bookings = await kiokuflow.get("bookings/list");
 
       const render = (st) => {
         const tbody = document.getElementById("rows");
@@ -241,9 +241,9 @@ Admin ワークフローは Hubwork ランタイムではなく **IDE の admin 
         else return;
 
         if (!confirm(`この予約を ${status} にしますか?`)) return;
-        await gemihub.post("bookings/status", { id, status, reason });
+        await kiokuflow.post("bookings/status", { id, status, reason });
         // 再取得
-        const fresh = await gemihub.get("bookings/list");
+        const fresh = await kiokuflow.get("bookings/list");
         bookings.length = 0;
         bookings.push(...fresh);
         render(document.querySelector("#tabs .active")?.dataset.tab || "active");
@@ -321,7 +321,7 @@ Admin ワークフローは Hubwork ランタイムではなく **IDE の admin 
   <script src="/__gemihub/api.js"></script>
   <script>
     (async () => {
-      let inquiries = await gemihub.get("inquiries/list");
+      let inquiries = await kiokuflow.get("inquiries/list");
       let selectedId = null;
       let activeTab = "new";
       const escape = (s) =>
@@ -391,10 +391,10 @@ Admin ワークフローは Hubwork ランタイムではなく **IDE の admin 
         const box = document.getElementById("message-box");
         box.className = "text-sm"; box.textContent = "送信中...";
         try {
-          await gemihub.post("inquiries/reply", { id: selectedId, reply_text });
+          await kiokuflow.post("inquiries/reply", { id: selectedId, reply_text });
           box.className = "text-sm text-green-600";
           box.textContent = "返信を送信しました。";
-          inquiries = await gemihub.get("inquiries/list");
+          inquiries = await kiokuflow.get("inquiries/list");
           renderList(); renderDetail();
         } catch (err) {
           box.className = "text-sm text-red-600";
@@ -573,7 +573,7 @@ nodes:
 
 ### Admin HTML pages
 - [ ] ファイルが `admin/` 配下にある (`web/admin/` ではない)
-- [ ] `gemihub.auth.require("admin", ...)` を呼ばない (admin account type は存在しない)
+- [ ] `kiokuflow.auth.require("admin", ...)` を呼ばない (admin account type は存在しない)
 - [ ] `data:` config (`auth.meetings` 等) を使わない
 - [ ] 表示文字列は `escape()` で HTML エスケープする (admin は自分だけが見るが、顧客由来の値 `name`/`subject`/`message` などに `<script>` が混入していても無害にするため)
 

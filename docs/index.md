@@ -1,14 +1,14 @@
 ---
-title: GemiHub
-description: "GemiHub Open Knowledge Format bundle index: chat, dashboard, editor, search, sync, workflows, integrations, and architecture."
+title: kiokuflow
+description: "kiokuflow Open Knowledge Format bundle index: chat, dashboard, editor, search, sync, workflows, integrations, and architecture."
 tags:
   - index
   - okf
 ---
 
-# GemiHub Knowledge Bundle
+# kiokuflow Knowledge Bundle
 
-Welcome to the GemiHub Open Knowledge Format bundle.
+Welcome to the kiokuflow Open Knowledge Format bundle.
 
 ## Features
 
@@ -21,7 +21,7 @@ Welcome to the GemiHub Open Knowledge Format bundle.
 
 ## Integrations
 
-* [Kakeratta external agent](integrations/kakeratta.md) - Persona answers with GemiHub models and read-only research; Premium also runs while the browser is closed.
+* [Kakeratta external agent](integrations/kakeratta.md) - Persona answers with kiokuflow models and read-only research; Premium also runs while the browser is closed.
 * [MCP (Model Context Protocol)](integrations/mcp.md) - MCP server integration; server tools are discovered dynamically and exposed to chat as mcp_{server}_{tool}.
 * [Plugins](integrations/plugins.md) - Plugin developer guide: GitHub Release installation, PluginAPI surface, views, slash commands, and storage.
 * [RAG (Retrieval-Augmented Generation)](integrations/rag.md) - Paid RAG using Gemini or OpenAI embedding models and Firestore vector search.
@@ -33,6 +33,8 @@ Welcome to the GemiHub Open Knowledge Format bundle.
 * [Workflow Node Reference](workflows/workflow_nodes.md) - Reference for all 25 workflow node types with their properties and outputs.
 
 ## Architecture
+
+* [kiokuflow Migration](architecture/rebranding.md) - Brand/domain migration, compatibility and deployment steps.
 
 * [Storage Mounts & AI Providers](architecture/mounts.md) - Coexistence model: the default Drive mount (own Drive + own Gemini API key) and the org project mount (GCS + Vertex AI), selected per user and per mount.
 * [Self-Hosting](architecture/self-hosting.md) - Self-hosting setup: Google Cloud project and OAuth client, the drive.file scope, Gemini API key, environment variables, dev server, and Docker/production builds.

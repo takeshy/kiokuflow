@@ -1359,8 +1359,8 @@ function TimelinePostViewComponent({
       {post.metadata["conflict-of"] && (
         <div className="mb-2 rounded bg-amber-50 px-2 py-1 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-200">
           {language === "ja"
-            ? post.metadata["conflict-operation"] === "delete" ? "競合した削除 — Kakeratta の投稿を維持しました" : "競合した編集 — GemiHub の変更を保存しています"
-            : post.metadata["conflict-operation"] === "delete" ? "Conflicting deletion — the Kakeratta post was kept" : "Conflicting edit — your GemiHub changes were preserved"}
+            ? post.metadata["conflict-operation"] === "delete" ? "競合した削除 — Kakeratta の投稿を維持しました" : "競合した編集 — kiokuflow の変更を保存しています"
+            : post.metadata["conflict-operation"] === "delete" ? "Conflicting deletion — the Kakeratta post was kept" : "Conflicting edit — your kiokuflow changes were preserved"}
         </div>
       )}
       {isEditing ? (

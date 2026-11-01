@@ -7,7 +7,7 @@ import {
 } from "./gemihub-okf-manifest";
 
 const validManifest = {
-  name: "GemiHub",
+  name: "kiokuflow",
   version: "1.2.0",
   publishedAt: "2026-07-11T12:00:00+09:00",
   bundleUrl: "releases/1.2.0/gemihub-okf.zip",
@@ -33,10 +33,10 @@ test("parseGemihubOkfManifest rejects paths outside the bundle", () => {
 });
 
 test("isGemihubOkfBundleName matches the exact name and legacy folder-name fallbacks", () => {
-  assert.equal(isGemihubOkfBundleName("GemiHub"), true);
+  assert.equal(isGemihubOkfBundleName("kiokuflow"), true);
   assert.equal(isGemihubOkfBundleName(" gemihub "), true);
   assert.equal(isGemihubOkfBundleName("gemihub-okf"), true);
-  assert.equal(isGemihubOkfBundleName("My GemiHub Notes"), true);
+  assert.equal(isGemihubOkfBundleName("My kiokuflow Notes"), true);
   assert.equal(isGemihubOkfBundleName("Knowledge"), false);
 });
 

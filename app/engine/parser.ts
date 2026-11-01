@@ -44,7 +44,7 @@ function isWorkflowNodeType(value: unknown): value is WorkflowNodeType {
 }
 
 /**
- * GemiHub workflows are plain YAML files. Obsidian-style workflow notes instead
+ * kiokuflow workflows are plain YAML files. Obsidian-style workflow notes instead
  * store the workflow inside a ```workflow fenced code block within a Markdown
  * file (one workflow per file). When such a block is present, return its body so
  * it can be parsed as workflow YAML; otherwise return the content unchanged so

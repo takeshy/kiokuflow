@@ -32,7 +32,7 @@ export interface TenantInfo {
   vertexOAuthOrgId?: string;
   /** Server-only user key used to resolve a personal Vertex OAuth connection. */
   vertexOAuthUserId?: string;
-  /** Customer-owned Vertex bypasses GemiHub's prepaid budget accounting. */
+  /** Customer-owned Vertex bypasses kiokuflow's prepaid budget accounting. */
   vertexBillingMode?: "service" | "customer";
 }
 
@@ -52,7 +52,7 @@ export interface Organization {
   idp: OrgIdpConfig | null;
   tenantProject: TenantInfo;
   aiSettings: OrganizationAiSettings;
-  /** Whether Vertex uses GemiHub's connection or this organization's OAuth connection. */
+  /** Whether Vertex uses kiokuflow's connection or this organization's OAuth connection. */
   vertexOAuthSource?: "default" | "own";
   /**
    * Storage add-on subscriptions: Stripe subscription id → purchased

@@ -1,3 +1,4 @@
+import { HUBWORK_DOMAIN } from "~/services/hubwork-accounts.server";
 import type { Route } from "./+types/hubwork.api.stripe.webhook";
 import { getStripe } from "~/services/stripe.server";
 import {
@@ -145,7 +146,7 @@ export async function action({ request }: Route.ActionArgs) {
           billingStatus: "active",
           accountStatus: "enabled",
           ...(email && !account.email ? { email } : {}),
-          ...(accountSlug && !account.accountSlug ? { accountSlug, defaultDomain: `${accountSlug}.gemihub.net` } : {}),
+          ...(accountSlug && !account.accountSlug ? { accountSlug, defaultDomain: `${accountSlug}.${HUBWORK_DOMAIN}` } : {}),
         });
         await setAccountBillingStatus(account.id, "active");
         provisionedAccountId = account.id;

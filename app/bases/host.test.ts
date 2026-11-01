@@ -6,7 +6,7 @@ import { createGemiHubHost } from "./host";
 import { queryView, resolveProperty } from "./query";
 import { valueToString } from "./values";
 
-test("GemiHub host exposes markdown frontmatter dates to Bases queries", () => {
+test("kiokuflow host exposes markdown frontmatter dates to Bases queries", () => {
   const base = compileBase(`
 views:
   - type: table
@@ -41,7 +41,7 @@ views:
   assert.equal(resolveProperty(result.data[0], "note.due", host, snapshot, []).type, "date");
 });
 
-test("GemiHub host resolves forward wikilinks after all files are indexed", () => {
+test("kiokuflow host resolves forward wikilinks after all files are indexed", () => {
   const { host } = createGemiHubHost({
     files: [
       {
@@ -66,7 +66,7 @@ test("GemiHub host resolves forward wikilinks after all files are indexed", () =
   assert.deepEqual(host.getOutgoingLinks(file), [{ target: "B", resolvedPath: "B.md" }]);
 });
 
-test("GemiHub host does not expose note properties for non-markdown files", () => {
+test("kiokuflow host does not expose note properties for non-markdown files", () => {
   const base = compileBase(`
 views:
   - type: table

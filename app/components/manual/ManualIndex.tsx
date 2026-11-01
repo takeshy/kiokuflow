@@ -12,12 +12,12 @@ export function ManualIndex({ lang, chapters }: ManualIndexProps) {
   return (
     <>
       <h1 className="mb-3 text-3xl font-bold text-gray-900 dark:text-gray-50">
-        {lang === "ja" ? "GemiHub ユーザーマニュアル" : "GemiHub User Manual"}
+        {lang === "ja" ? "kiokuflow ユーザーマニュアル" : "kiokuflow User Manual"}
       </h1>
       <p className="mb-10 text-sm text-gray-500 dark:text-gray-400">
         {lang === "ja"
-          ? "GemiHub の使い方を章ごとに説明します。各章のリンクをクリックして詳細を確認してください。"
-          : "A comprehensive guide to using GemiHub. Click on a chapter to learn more."}
+          ? "kiokuflow の使い方を章ごとに説明します。各章のリンクをクリックして詳細を確認してください。"
+          : "A comprehensive guide to using kiokuflow. Click on a chapter to learn more."}
       </p>
 
       <div className="grid gap-4 sm:grid-cols-2">

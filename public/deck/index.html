@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8" />
-<title>GemiHub — AIネイティブなGoogle Driveデータ基盤</title>
+<title>kiokuflow — AIネイティブなGoogle Driveデータ基盤</title>
 <script src="deck-stage.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -10,19 +10,19 @@
 
 <script type="application/json" id="speaker-notes">
 [
-  "こんにちは、GemiHubを開発している takeshy と申します。今日は、自分がGoogle Cloudの Agentic AI Hackathon に出したこのアプリを通じて、AIネイティブなGoogle Driveデータ基盤をどう設計したか、そしてその背景にある「個人情報はゼロ預かり・ロックインなし」という思想を10分弱でお話しします。目指しているのは、AI時代のExcelです。今すぐ gemihub.online で触っていただけます。",
+  "こんにちは、kiokuflowを開発している takeshy と申します。今日は、自分がGoogle Cloudの Agentic AI Hackathon に出したこのアプリを通じて、AIネイティブなGoogle Driveデータ基盤をどう設計したか、そしてその背景にある「個人情報はゼロ預かり・ロックインなし」という思想を10分弱でお話しします。目指しているのは、AI時代のExcelです。今すぐ kiokuflow.net で触っていただけます。",
 
-  "まず、今回のハッカソンで気づいたことから始めさせてください。GemiHubをAgentic AI Hackathonに応募したところ、AIに事前評価させた時は絶賛されたのに、本番ではノミネートすらされませんでした。AIの指摘は、自律性が足りない、効果が定量化されていない、ターゲットがぼやけている、の3つ。ハッカソンで勝つアドバイスとしては全部正しいです。でも、この評価を見て、むしろ自分が作りたいものが明確になりました。目指すのは全自動の魔法じゃなくて、使い手のスキルに合わせて育つ道具です。この確信のもと、ドメインを取り、商標を申請し、GoogleにOAuthの公開アプリ申請を出し、Stripeの審査も通しました。5万円ちょっとかかりましたが、本気でやる覚悟の表明です。",
+  "まず、今回のハッカソンで気づいたことから始めさせてください。kiokuflowをAgentic AI Hackathonに応募したところ、AIに事前評価させた時は絶賛されたのに、本番ではノミネートすらされませんでした。AIの指摘は、自律性が足りない、効果が定量化されていない、ターゲットがぼやけている、の3つ。ハッカソンで勝つアドバイスとしては全部正しいです。でも、この評価を見て、むしろ自分が作りたいものが明確になりました。目指すのは全自動の魔法じゃなくて、使い手のスキルに合わせて育つ道具です。この確信のもと、ドメインを取り、商標を申請し、GoogleにOAuthの公開アプリ申請を出し、Stripeの審査も通しました。5万円ちょっとかかりましたが、本気でやる覚悟の表明です。",
 
-  "目指しているのは、AI時代のExcelです。なぜExcelがこれほど長く愛されるのか。答えはLow Floor, High Ceiling。敷居は低く、天井は高い。初心者にはセル入力、慣れた人には関数、達人にはマクロとVBA。同じアプリが使い手のレベルで姿を変えます。GemiHubも同じ構造です。レベル1はメモ帳、リッチテキストとMarkdownで書ける。レベル2はRAG、過去のノートをAIが横断検索して「あの件どうなってたっけ」に答える。レベル3はワークフロー、MCP、プラグイン。自然言語でAIに自動化を組ませる。初心者にはノート、達人には開発環境。使いこなすほどできることが広がる、これが道具の本質です。",
+  "目指しているのは、AI時代のExcelです。なぜExcelがこれほど長く愛されるのか。答えはLow Floor, High Ceiling。敷居は低く、天井は高い。初心者にはセル入力、慣れた人には関数、達人にはマクロとVBA。同じアプリが使い手のレベルで姿を変えます。kiokuflowも同じ構造です。レベル1はメモ帳、リッチテキストとMarkdownで書ける。レベル2はRAG、過去のノートをAIが横断検索して「あの件どうなってたっけ」に答える。レベル3はワークフロー、MCP、プラグイン。自然言語でAIに自動化を組ませる。初心者にはノート、達人には開発環境。使いこなすほどできることが広がる、これが道具の本質です。",
 
-  "さて、今日一番伝えたいのはこのスライドです。設計思想は「個人情報ゼロ預かり、ロックインなし」。普通のSaaSはユーザーデータを自社DBに抱え込みます。GemiHubはその真逆です。DBを持ちません。データ実体はすべてユーザー自身のGoogle Drive上にあります。OAuthスコープも drive.files だけ、つまりGemiHubが作ったファイルしかアプリから見えない。ユーザーの他のドライブ資産には一切触れません。さらにRSAとAESのハイブリッド暗号化で、AIにすら中身を見せない選択ができます。オフラインはIndexedDBとServiceWorkerで動いて、再接続時にPush/Pullで同期。有料プランの課金情報だけは改ざん防止のためにFirebaseに置きますが、それ以外は本当に何も預かっていません。サービスが将来消えても、ユーザーのファイルはGoogle Driveにそのまま残ります。これが最大のセキュリティ対策であり、ユーザーへの約束です。",
+  "さて、今日一番伝えたいのはこのスライドです。設計思想は「個人情報ゼロ預かり、ロックインなし」。普通のSaaSはユーザーデータを自社DBに抱え込みます。kiokuflowはその真逆です。DBを持ちません。データ実体はすべてユーザー自身のGoogle Drive上にあります。OAuthスコープも drive.files だけ、つまりkiokuflowが作ったファイルしかアプリから見えない。ユーザーの他のドライブ資産には一切触れません。さらにRSAとAESのハイブリッド暗号化で、AIにすら中身を見せない選択ができます。オフラインはIndexedDBとServiceWorkerで動いて、再接続時にPush/Pullで同期。有料プランの課金情報だけは改ざん防止のためにFirebaseに置きますが、それ以外は本当に何も預かっていません。サービスが将来消えても、ユーザーのファイルはGoogle Driveにそのまま残ります。これが最大のセキュリティ対策であり、ユーザーへの約束です。",
 
   "では実際にどう使えるか、3段階でお見せします。レベル1、メモ帳としての使い方。オンラインでもオフラインでも書けて、PCを買い替えてもブラウザでログインすればメモが戻ってきます。レベル2、RAGとして。自動登録されたノートから文脈を拾って答える。「先週のMTGでなに決まったっけ」に答えられます。レベル3、マクロとして。自然言語で依頼するだけでVisual Workflow、Plugin、SkillをAIが生成します。たとえば「メールの下書きを作って、承認したら送信、そのままカレンダーに予定を入れる」。これが一文で組めます。既存プラグインも会計の複式簿記、タスク管理、楽譜起こし、AI同士の議論などいろいろ揃っています。ここで実際のデモをお見せします。",
 
-  "同じGemiHubが、使い手によって全く違う姿になります。ひとり目、私のパートナー。幼児保育の専門家で非エンジニアです。Debateプラグインで複数のAIと保育論を議論して、自分の専門知識を言語化・深化させています。ふたり目、知人の研究者。大量の論文をRAGに取り込み、分野横断の文献調査に使っています。そして私自身。海外記事を日本語インフォグラフィックに変換するワークフロー、父から来るスペイン語LINEの翻訳補助、日報の自動生成。データが一箇所に集約されたプラットフォームで、使い手が道具の意味を決める。これが私の考えるAI時代のExcelです。",
+  "同じkiokuflowが、使い手によって全く違う姿になります。ひとり目、私のパートナー。幼児保育の専門家で非エンジニアです。Debateプラグインで複数のAIと保育論を議論して、自分の専門知識を言語化・深化させています。ふたり目、知人の研究者。大量の論文をRAGに取り込み、分野横断の文献調査に使っています。そして私自身。海外記事を日本語インフォグラフィックに変換するワークフロー、父から来るスペイン語LINEの翻訳補助、日報の自動生成。データが一箇所に集約されたプラットフォームで、使い手が道具の意味を決める。これが私の考えるAI時代のExcelです。",
 
-  "最後にまとめさせてください。AIが優秀になるほど、データ自体の価値が上がります。だから秘匿情報も含めて一箇所に集約して管理を楽にしたい。でも秘匿情報をAIに見られるのは抵抗がある。だから暗号化で守って、必要な場面だけユーザーがパスワードで復号する。プログラマは今、レビューでコードをほとんど見ずにAIに聞いて動かして確認しています。同じように、処理内容をビジュアルで見えれば、非エンジニアでもバイブコーディングでタスク自動化が組めるはずです。Skill生成はハイエンドモデルでPlan・Generate・Reviewを回し、実行は安くて速いモデルを使う、というコスト最適化もできます。ProプランではカスタムドメインでAIがWebページとAPIごと実装する、つまりWebサービス丸ごと構築できます。面接予約ポータルのような例です。Googleさんからクーポンをいただいたおかげで様々なチャレンジを試すことができました。この機会を与えてくださり本当にありがとうございました。ぜひ gemihub.online で触ってみてください。"
+  "最後にまとめさせてください。AIが優秀になるほど、データ自体の価値が上がります。だから秘匿情報も含めて一箇所に集約して管理を楽にしたい。でも秘匿情報をAIに見られるのは抵抗がある。だから暗号化で守って、必要な場面だけユーザーがパスワードで復号する。プログラマは今、レビューでコードをほとんど見ずにAIに聞いて動かして確認しています。同じように、処理内容をビジュアルで見えれば、非エンジニアでもバイブコーディングでタスク自動化が組めるはずです。Skill生成はハイエンドモデルでPlan・Generate・Reviewを回し、実行は安くて速いモデルを使う、というコスト最適化もできます。ProプランではカスタムドメインでAIがWebページとAPIごと実装する、つまりWebサービス丸ごと構築できます。面接予約ポータルのような例です。Googleさんからクーポンをいただいたおかげで様々なチャレンジを試すことができました。この機会を与えてくださり本当にありがとうございました。ぜひ kiokuflow.net で触ってみてください。"
 ]
 </script>
 
@@ -594,7 +594,7 @@ deck-stage { display: block; }
 <section class="slide s-cover" data-label="Cover">
   <div class="dots"></div>
   <div class="top">
-    <div class="logo"><div class="mark"></div>GemiHub</div>
+    <div class="logo"><div class="mark"></div>kiokuflow</div>
     <div class="tag">Agentic AI Hackathon — Revenge Pitch</div>
   </div>
 
@@ -606,12 +606,12 @@ deck-stage { display: block; }
     </h1>
     <div class="sub">
       <b>個人情報ゼロ預かり・ロックインなし</b>の設計思想。<br>
-      AI時代の Excel を目指す、<b>GemiHub</b> の話。
+      AI時代の Excel を目指す、<b>kiokuflow</b> の話。
     </div>
   </div>
 
   <div class="bottom">
-    <div class="url"><span class="arrow">→</span> gemihub.online</div>
+    <div class="url"><span class="arrow">→</span> kiokuflow.net</div>
     <div class="by">Presented by <b>takeshy</b></div>
   </div>
 </section>
@@ -623,7 +623,7 @@ deck-stage { display: block; }
 
   <div class="grid">
     <div class="hack-story">
-      <p>Google Cloud <b>Agentic AI Hackathon</b> に、自作アプリ <b>GemiHub</b> を応募。<br>提出前、AIに評価させたら「完成度が高い」と絶賛された。</p>
+      <p>Google Cloud <b>Agentic AI Hackathon</b> に、自作アプリ <b>kiokuflow</b> を応募。<br>提出前、AIに評価させたら「完成度が高い」と絶賛された。</p>
       <p>けれど、本番ではノミネートすらされなかった。</p>
       <div class="turn">
         でも AI の指摘を読んで、むしろ <b>自分の本当にやりたいこと</b> が明確になった。
@@ -668,7 +668,7 @@ deck-stage { display: block; }
   </div>
 
   <div class="footer-ribbon">
-    <div>GemiHub — AI Revenge Pitch</div>
+    <div>kiokuflow — AI Revenge Pitch</div>
     <div class="r"><span><b>01</b> / 07</span></div>
   </div>
 </section>
@@ -677,14 +677,14 @@ deck-stage { display: block; }
 <section class="slide s-excel" data-label="Excel Ladder">
   <div class="eyebrow"><span class="num">02</span>目指すのは「AI時代のExcel」</div>
   <h2 class="title-l">Low Floor, High Ceiling.<br>敷居は低く、天井は高く。</h2>
-  <div class="excel-note">Excelが長く愛される理由は、<b>同じアプリが使い手のレベルで姿を変える</b>こと。<br>GemiHubもこの構造をそのまま継承する。</div>
+  <div class="excel-note">Excelが長く愛される理由は、<b>同じアプリが使い手のレベルで姿を変える</b>こと。<br>kiokuflowもこの構造をそのまま継承する。</div>
 
   <div class="grid">
     <div class="ladder-table">
       <div class="head">
         <div>Level</div>
         <div class="l-excel">Excel</div>
-        <div class="l-gem">GemiHub</div>
+        <div class="l-gem">kiokuflow</div>
       </div>
       <div class="row l1">
         <div class="lv">1</div>
@@ -696,7 +696,7 @@ deck-stage { display: block; }
         <div class="cell gem">
           <div class="n">メモ帳</div>
           <div class="s">リッチテキスト / Markdown</div>
-          <div class="k">/gemihub/pitch/ideas.md</div>
+          <div class="k">/kiokuflow/pitch/ideas.md</div>
         </div>
       </div>
       <div class="row l2">
@@ -734,7 +734,7 @@ deck-stage { display: block; }
   </div>
 
   <div class="footer-ribbon">
-    <div>GemiHub — AI Revenge Pitch</div>
+    <div>kiokuflow — AI Revenge Pitch</div>
     <div class="r"><span><b>02</b> / 07</span></div>
   </div>
 </section>
@@ -743,7 +743,7 @@ deck-stage { display: block; }
 <section class="slide s-principle" data-label="Design Principles">
   <div class="eyebrow"><span class="num">03</span>設計思想 — 個人情報ゼロ預かり・ロックインなし</div>
   <h2 class="title-xl">「預からない」が、<br>最大のセキュリティ対策。</h2>
-  <div class="sub">データ実体はすべて <b>ユーザー自身のGoogle Drive</b> に置く。GemiHubはDBを持たない。<br>サービスが消えても、ユーザーのファイルはそのまま残る。それがロックインなしという意味。</div>
+  <div class="sub">データ実体はすべて <b>ユーザー自身のGoogle Drive</b> に置く。kiokuflowはDBを持たない。<br>サービスが消えても、ユーザーのファイルはそのまま残る。それがロックインなしという意味。</div>
 
   <div class="pr-grid">
     <div class="pr-card c1">
@@ -761,7 +761,7 @@ deck-stage { display: block; }
     <div class="pr-card c3">
       <div class="ic">⎋</div>
       <div class="t">サービスが消えても残る</div>
-      <div class="d">ファイルは <b>Google Driveの.mdや.json</b>。GemiHubが閉じても、あなたのデータはあなたの手元に。</div>
+      <div class="d">ファイルは <b>Google Driveの.mdや.json</b>。kiokuflowが閉じても、あなたのデータはあなたの手元に。</div>
       <div class="tag">// lock-in: none</div>
     </div>
     <div class="pr-card c4">
@@ -837,7 +837,7 @@ deck-stage { display: block; }
   </div>
 
   <div class="footer-ribbon">
-    <div>GemiHub — AI Revenge Pitch</div>
+    <div>kiokuflow — AI Revenge Pitch</div>
     <div class="r"><span><b>04</b> / 07</span></div>
   </div>
 </section>
@@ -845,7 +845,7 @@ deck-stage { display: block; }
 <!-- 06 USERS -->
 <section class="slide s-users" data-label="Users">
   <div class="eyebrow"><span class="num">05</span>十人十色の「育てる道具箱」</div>
-  <h2 class="title-l">同じGemiHubが、<br>使い手によって全く違う姿になる。</h2>
+  <h2 class="title-l">同じkiokuflowが、<br>使い手によって全く違う姿になる。</h2>
 
   <div class="u-grid">
     <div class="u-card a">
@@ -892,7 +892,7 @@ deck-stage { display: block; }
   </div>
 
   <div class="footer-ribbon">
-    <div>GemiHub — AI Revenge Pitch</div>
+    <div>kiokuflow — AI Revenge Pitch</div>
     <div class="r"><span><b>05</b> / 07</span></div>
   </div>
 </section>
@@ -932,12 +932,12 @@ deck-stage { display: block; }
         <div class="t">
           <span class="google"><span class="b">G</span><span class="r">o</span><span class="y">o</span><span class="b">g</span><span class="g">l</span><span class="r">e</span></span> さんから<br>クーポンを配布いただいたおかげで、<br>様々なチャレンジを試せました。
         </div>
-        <div class="d">この機会を与えてくださり、本当にありがとうございました。<br>GemiHubは今日も開発を続けています。</div>
-        <div class="sig">— takeshy <em>/ builder of GemiHub</em></div>
+        <div class="d">この機会を与えてくださり、本当にありがとうございました。<br>kiokuflowは今日も開発を続けています。</div>
+        <div class="sig">— takeshy <em>/ builder of kiokuflow</em></div>
       </div>
       <div class="cta-card">
         <div class="l">Try it now</div>
-        <div class="url"><span class="dot">→</span>gemihub.online</div>
+        <div class="url"><span class="dot">→</span>kiokuflow.net</div>
         <div class="d">メモ帳として使うだけでも、目指す世界観を感じていただけます。<br>Sign in with Google — それだけで始まります。</div>
       </div>
     </div>

@@ -104,7 +104,7 @@ function pageJpeg(canvas: HTMLCanvasElement): string {
 }
 
 /**
- * Render a Timeline post as it appears in GemiHub (light theme) and cut it
+ * Render a Timeline post as it appears in kiokuflow (light theme) and cut it
  * into Bluesky-sized JPEG pages. Throws when the browser cannot export the
  * drawing; callers then publish the post as text.
  */

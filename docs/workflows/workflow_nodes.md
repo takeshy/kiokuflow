@@ -22,7 +22,7 @@ This document provides detailed specifications for all workflow node types.
 | Composition | `workflow` | Execute another workflow as a sub-workflow |
 | External | `mcp` | Call remote MCP servers |
 | RAG | `rag-sync` | Sync files to RAG stores |
-| Commands | `gemihub-command` | Execute GemiHub file operations |
+| Commands | `gemihub-command` | Execute kiokuflow file operations |
 
 ---
 
@@ -858,7 +858,7 @@ Use this to prepare files for RAG-powered `command` nodes (set `ragSetting` on t
 
 ### gemihub-command
 
-Execute GemiHub file operations (encrypt, publish, rename, etc.) as workflow nodes.
+Execute kiokuflow file operations (encrypt, publish, rename, etc.) as workflow nodes.
 
 ```yaml
 - id: pub

@@ -1666,9 +1666,9 @@ export function ChatPanel({
     }
   }, [messages, isStreaming, isCompacting, saveChat, selectedModel, settings.apiPlan, settings.usePersonalVertex, t]);
 
-  // Draft (not send) a question about GemiHub itself, enabling the installed
-  // GemiHub OKF help bundle if one is present, for the empty-chat "Ask about
-  // GemiHub" entry point.
+  // Draft (not send) a question about kiokuflow itself, enabling the installed
+  // kiokuflow OKF help bundle if one is present, for the empty-chat "Ask about
+  // kiokuflow" entry point.
   const handleAskAboutGemihub = useCallback(() => {
     const helpBundle = okfBundles.find((bundle) => isGemihubOkfBundleName(bundle.name));
     if (helpBundle && !activeOkfBundleIds.includes(helpBundle.id)) {

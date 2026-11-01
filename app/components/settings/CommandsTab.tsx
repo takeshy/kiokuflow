@@ -1,3 +1,4 @@
+import { ragSettingDisplayName } from "~/config/branding";
 import { useState, useCallback } from "react";
 import { useFetcher } from "react-router";
 import { Plus, Trash2, Pencil, Save, Loader2, Check, AlertCircle } from "lucide-react";
@@ -293,7 +294,7 @@ export function CommandsTab({ settings }: CommandsTabProps) {
               <option value="__websearch__">Web Search</option>
               {(settings.ragAvailable && settings.ragFeatureEnabled ? Object.keys(settings.ragSettings) : []).map((name) => (
                 <option key={name} value={name}>
-                  RAG: {name}
+                  RAG: {ragSettingDisplayName(name)}
                 </option>
               ))}
             </select>

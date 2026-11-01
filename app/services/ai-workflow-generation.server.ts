@@ -29,7 +29,7 @@ For skills (reusable tools the AI assistant can trigger), also cover:
 - What the skill produces as output`
     : "";
 
-  return `You help users plan what their GemiHub automation should do. Write the plan so anyone can understand it — NOT just engineers.
+  return `You help users plan what their kiokuflow automation should do. Write the plan so anyone can understand it — NOT just engineers.
 
 Describe the plan in plain language covering:
 1. **What it does** — The goal in one or two sentences
@@ -79,7 +79,7 @@ export function buildReviewSystemPrompt(
 8. **Headless skill execution**: Does the workflow avoid depending on user-facing UI during chat execution? Flag final result \`dialog\` nodes, required \`prompt-value\`/\`prompt-selection\` nodes with no supplied variable/default, and picker-only flows. Skill workflows invoked by \`run_skill_workflow\` are background tool calls; they should return non-underscore variables and let SKILL.md tell the chat AI how to present them.`
     : "";
 
-  return `You are a workflow quality reviewer for GemiHub. Evaluate the generated workflow YAML against the original request and plan.
+  return `You are a workflow quality reviewer for kiokuflow. Evaluate the generated workflow YAML against the original request and plan.
 
 Check for:
 1. **Completeness**: Does the workflow fulfill all aspects of the request?

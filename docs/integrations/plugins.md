@@ -9,9 +9,9 @@ tags:
 
 ## Portable Agent Plugins
 
-GemiHub also loads portable [Agent Plugins v1.0.0](https://agent-plugins.org/). This is additive to the GemiHub-specific `manifest.json` + `main.js` plugin format documented below.
+kiokuflow also loads portable [Agent Plugins v1.0.0](https://agent-plugins.org/). This is additive to the kiokuflow-specific `manifest.json` + `main.js` plugin format documented below.
 
-Open **Settings > Plugins > Agent Plugins**, enter a GitHub repository (`owner/repo`), and preview the package before installing it. GemiHub uses the latest GitHub Release tag when one exists and otherwise uses the repository's default branch. The resolved commit SHA is stored so updates are reproducible.
+Open **Settings > Plugins > Agent Plugins**, enter a GitHub repository (`owner/repo`), and preview the package before installing it. kiokuflow uses the latest GitHub Release tag when one exists and otherwise uses the repository's default branch. The resolved commit SHA is stored so updates are reproducible.
 
 Self-hosted deployments should set the optional server-side `AGENT_PLUGINS_GITHUB_TOKEN` environment variable to a fine-grained GitHub token with read-only access to the repositories being installed. The token is never sent to the browser or stored in Drive; it only raises the GitHub API rate limit for server-side discovery requests.
 
@@ -23,11 +23,11 @@ Supported portable components:
 | `streamable-http` servers in root `mcp.json` | Yes |
 | `stdio` MCP servers | No (reported and skipped) |
 | Legacy `sse` MCP servers | No (reported and skipped) |
-| Client extension namespaces | Ignored unless GemiHub adds explicit support |
+| Client extension namespaces | Ignored unless kiokuflow adds explicit support |
 
-The repository root must contain `plugin.json` using the canonical v1.0.0 schema identifier. Skills appear in chat under an internal `{plugin-name}.{skill-name}` ID, which prevents collisions with Drive-native skills. Imported MCP URLs and literal headers remain package-managed; OAuth credentials discovered or configured by GemiHub are preserved across plugin updates.
+The repository root must contain `plugin.json` using the canonical v1.0.0 schema identifier. Skills appear in chat under an internal `{plugin-name}.{skill-name}` ID, which prevents collisions with Drive-native skills. Imported MCP URLs and literal headers remain package-managed; OAuth credentials discovered or configured by kiokuflow are preserved across plugin updates.
 
-Agent Plugin packages are stored separately under `gemihub/agent-plugins/{plugin-name}/`. Disabling a package hides its skills and MCP servers without deleting it. Uninstalling removes the package and only the MCP entries owned by that package.
+Agent Plugin packages are stored separately under `kiokuflow/agent-plugins/{plugin-name}/`. Disabling a package hides its skills and MCP servers without deleting it. Uninstalling removes the package and only the MCP entries owned by that package.
 
 Install and update call `tools/list` for each bundled MCP server and cache its
 tool definitions. A discovery failure produces a warning without discarding the
@@ -36,7 +36,7 @@ connection or credentials. Enabled Agent Plugin MCP servers are selected in
 chat once by default when this behavior is first introduced. Later updates do
 not overwrite the user's explicit selection stored in `localStorage`.
 
-Extend Gemini Hub with community plugins installed from GitHub Releases. Inspired by Obsidian + BRAT.
+Extend kiokuflow with community plugins installed from GitHub Releases. Inspired by Obsidian + BRAT.
 
 ## Features
 
@@ -45,7 +45,7 @@ Extend Gemini Hub with community plugins installed from GitHub Releases. Inspire
 - **Drive Storage**: Plugin files and data stored in Google Drive (`plugins/` folder)
 - **IndexedDB Cache**: Plugin assets cached client-side for fast loading
 - **Hot Enable/Disable**: Toggle plugins without page reload
-- **Plugin API**: Access Gemini AI, Drive files, Google Calendar, Gmail, and plugin-scoped storage
+- **Plugin API**: Access Gemini AI, Drive files, Sheets, and plugin-scoped storage
 
 ## For Users
 
@@ -261,50 +261,6 @@ await api.drive.rebuildTree();
 
 > **Note:** `createFile` returns a temporary `new:*` prefixed ID for newly created files. This ID works with all other `api.drive` methods. After a push, the file receives a real Drive ID. `updateFile` automatically resolves stale `new:*` IDs by falling back to file name lookup.
 
-#### Google Calendar (Premium)
-
-Requires the premium plan with calendar scope. The `calendar` property is optional — check for its existence before use.
-
-```typescript
-if (api.calendar) {
-  // List events
-  const events = await api.calendar.listEvents({
-    timeMin: "2026-04-01T00:00:00Z",
-    timeMax: "2026-04-30T23:59:59Z",
-    maxResults: 10,
-  });
-
-  // Create an event
-  const { eventId, htmlLink } = await api.calendar.createEvent({
-    summary: "Meeting",
-    start: "2026-04-10T10:00:00+09:00",
-    end: "2026-04-10T11:00:00+09:00",
-  });
-
-  // Update an event
-  await api.calendar.updateEvent(eventId, { summary: "Updated Meeting" });
-
-  // Delete an event
-  await api.calendar.deleteEvent(eventId);
-}
-```
-
-#### Gmail (Premium)
-
-Requires the premium plan with gmail.send scope. The `gmail` property is optional — check for its existence before use.
-
-```typescript
-if (api.gmail) {
-  const { messageId } = await api.gmail.sendEmail({
-    to: "recipient@example.com",
-    subject: "Hello from GemiHub",
-    body: "<p>This is an HTML email.</p>",
-    cc: "cc@example.com",    // optional
-    bcc: "bcc@example.com",  // optional
-  });
-}
-```
-
 #### Plugin Storage
 
 Each plugin has its own `data.json` on Drive for persistent key-value storage:
@@ -434,5 +390,3 @@ To publish an update, create a new release with an updated version tag. Users cl
 | GET | `/api/plugins/:id?asset={name}` | Serve a cached external asset declared in manifest |
 | POST | `/api/plugins/:id` | Actions: `toggle`, `getData`, `setData`, `update`, `checkUpdate` |
 | DELETE | `/api/plugins/:id` | Uninstall plugin |
-| POST | `/api/calendar` | Calendar operations: `list`, `create`, `update`, `delete` |
-| POST | `/api/gmail` | Gmail operations: `send` |

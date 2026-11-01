@@ -1,6 +1,6 @@
 ---
 name: webpage-builder
-description: Use when building or editing the user's webpage / website — static HTML pages, magic-link login pages, protected pages, workflow-based JSON APIs (web/api/*.yaml), publishing blog posts or announcements, wiring sheet/calendar/gmail data into pages, setting up sign-in, building contact/booking forms, or operating the admin side of an existing site. Triggering keywords include web/, gemihub.*, requireAuth, sheet-read/sheet-write, "公開する" / "サイトに追加" / "Webページ作成". Lean toward using this skill whenever the user wants to put something on their site or expose data as a JSON endpoint — even if they don't name a file under web/.
+description: Use when building or editing the user's webpage / website — static HTML pages, magic-link login pages, protected pages, workflow-based JSON APIs (web/api/*.yaml), publishing blog posts or announcements, wiring sheet/calendar/gmail data into pages, setting up sign-in, building contact/booking forms, or operating the admin side of an existing site. Triggering keywords include web/, kiokuflow.*, requireAuth, sheet-read/sheet-write, "公開する" / "サイトに追加" / "Webページ作成". Lean toward using this skill whenever the user wants to put something on their site or expose data as a JSON endpoint — even if they don't name a file under web/.
 ---
 
 ```skill-capabilities
@@ -26,7 +26,7 @@ Even when the request seems trivial. Even when you "just want to confirm the lay
 
 **Use when:** the user wants to add or edit anything under `web/`, build a login or protected page, expose a sheet/calendar/gmail data source as a JSON endpoint, publish a blog post or announcement, or generate API mocks for the IDE preview.
 
-**Do NOT use when:** the user is editing a Drive-level workflow under `workflows/` (those run via `run_skill_workflow`, not served as HTTP), asking about the GemiHub IDE itself, or working with files outside `web/`.
+**Do NOT use when:** the user is editing a Drive-level workflow under `workflows/` (those run via `run_skill_workflow`, not served as HTTP), asking about the kiokuflow IDE itself, or working with files outside `web/`.
 
 ## First Step Every Conversation
 
@@ -36,11 +36,11 @@ Read `web/__gemihub/spec.md` with `read_drive_file` to learn what already exists
 
 | ❌ DOES NOT WORK on this platform | ✅ Correct pattern |
 |---|---|
-| `<form action="/api/login" method="post">` | `gemihub.auth.login("accounts", email)` in JS |
-| `await fetch("/api/tickets")` | `await gemihub.get("tickets/list")` |
-| `await fetch("/api/save", { method: "POST", body: ... })` | `await gemihub.post("tickets/save", body)` |
-| Alpine.js / Vue / React for reactivity | Plain JS with `gemihub.*` |
-| Reading session cookies in JS | `await gemihub.auth.me("accounts")` |
+| `<form action="/api/login" method="post">` | `kiokuflow.auth.login("accounts", email)` in JS |
+| `await fetch("/api/tickets")` | `await kiokuflow.get("tickets/list")` |
+| `await fetch("/api/save", { method: "POST", body: ... })` | `await kiokuflow.post("tickets/save", body)` |
+| Alpine.js / Vue / React for reactivity | Plain JS with `kiokuflow.*` |
+| Reading session cookies in JS | `await kiokuflow.auth.me("accounts")` |
 | `<input type="password">` on login | Magic-link only — email input + "Send Login Link" |
 
 Every HTML page that touches data or auth MUST include `<script src="/__gemihub/api.js"></script>`.
@@ -51,17 +51,17 @@ Every HTML page that touches data or auth MUST include `<script src="/__gemihub/
 
 | Call | Purpose |
 |---|---|
-| `gemihub.auth.login(type, email, redirect?)` | Send magic link. NO form action, NO fetch. |
-| `await gemihub.auth.require(type, "/login/...")` | Guard a page. Returns user or redirects. |
-| `await gemihub.auth.me(type)` | Get user, returns `null` if not logged in. |
-| `await gemihub.auth.logout(type)` | Destroy session. NO fetch. |
+| `kiokuflow.auth.login(type, email, redirect?)` | Send magic link. NO form action, NO fetch. |
+| `await kiokuflow.auth.require(type, "/login/...")` | Guard a page. Returns user or redirects. |
+| `await kiokuflow.auth.me(type)` | Get user, returns `null` if not logged in. |
+| `await kiokuflow.auth.logout(type)` | Destroy session. NO fetch. |
 
 **Data:**
 
 | Call | Maps to |
 |---|---|
-| `await gemihub.get("path", { qkey: v })` | `GET /__gemihub/api/path?qkey=v` |
-| `await gemihub.post("path", { ... })` | `POST /__gemihub/api/path` (JSON body) |
+| `await kiokuflow.get("path", { qkey: v })` | `GET /__gemihub/api/path?qkey=v` |
+| `await kiokuflow.post("path", { ... })` | `POST /__gemihub/api/path` (JSON body) |
 
 **Workflow caller-input variables (NEVER use bare `{{query.x}}` / `{{body.x}}`):**
 
@@ -103,18 +103,18 @@ If you catch yourself thinking any of these, STOP — the counter-rule is load-b
 | "I'll use `{{sys.uuid}}` / `{{now}}` / `{{request.body.datetime}}` directly in `gmail-send`." | No `sys.*` helpers exist. UUIDs, timestamps, and human-readable dates are produced by a `script` node and referenced via `{{<saveTo>.field}}`. Unknown placeholders end up in sheets/emails verbatim. |
 | "`data:` as a YAML map is cleaner than the JSON string." | The handler `JSON.parse`s the value. A YAML map crashes at runtime. `data:` is always a single-quoted JSON string literal: `data: '[{"id":"{{prepared.id}}"}]'`. |
 | "User-derived `{{...}}` inside a JSON literal is fine without `:json`." | A single `"` in the value breaks `JSON.parse`. ALL user-derived values inside JSON string literals (`sheet-write` / `sheet-update` / `sheet-delete` `data:`, `sheet-read` filters, `http` body) MUST be `"{{var:json}}"`. Bare `"{{var}}"` is only safe for engine-generated primitives (UUIDs, ISO timestamps from `new Date().toISOString()`). |
-| "I'll use Alpine.js / Vue / React for reactivity." | Plain JS with the `gemihub.*` API. Frameworks break on this platform. |
-| "I'll add an email field to the protected form." | The user is already authenticated. Use `(await gemihub.auth.me(type)).email` in JS or `{{auth.email}}` in workflows. |
+| "I'll use Alpine.js / Vue / React for reactivity." | Plain JS with the `kiokuflow.*` API. Frameworks break on this platform. |
+| "I'll add an email field to the protected form." | The user is already authenticated. Use `(await kiokuflow.auth.me(type)).email` in JS or `{{auth.email}}` in workflows. |
 | "Calendar event has `evt.start.dateTime`." | That's the raw Google Calendar shape. Our API flattens it. Use `new Date(evt.start)` directly. |
 | "`requireAuth` will limit which rows the user sees." | It only checks login. ALWAYS filter `sheet-read` by `{{auth.email}}` for user-specific data. |
-| "I'll guard the register page with `gemihub.auth.require()`." | Register pages are UNAUTHENTICATED — the user has no session yet. `require()` redirects to /login and blanks the page. Use plain form → `gemihub.post("register", body)`; copy the Register Page Template from `references/page-patterns.md`. |
+| "I'll guard the register page with `kiokuflow.auth.require()`." | Register pages are UNAUTHENTICATED — the user has no session yet. `require()` redirects to /login and blanks the page. Use plain form → `kiokuflow.post("register", body)`; copy the Register Page Template from `references/page-patterns.md`. |
 | "I'll put the admin page under `web/admin/` — one folder is simpler." | Puts the admin API on the public domain. The serving layer only exposes `web/`, so admin pages belong at `admin/*.html` + `admin/api/*.yaml`. |
 | "I'll add `trigger.requireAuth: admin` to the admin workflow." | No `admin` account type exists — admins are the Drive owner, authenticated by the IDE. Adding `requireAuth` breaks the workflow (no `admins` identity sheet to match against). Omit `requireAuth` entirely on `admin/api/*.yaml`. |
 | "I'll use `{{auth.email}}` to record who cancelled the booking." | Admin workflows don't have `auth.*`. Use `{{session.email}}` (injected by the IDE admin preview) for `cancelled_by`, `reply_by`, etc. |
 | "I'll `sheet-delete` the cancelled booking." | Soft-delete only — `sheet-update` sets `status: "cancelled"` and records `cancelled_at` / `cancelled_by`. Hard delete loses the audit trail and can't distinguish a cancellation from a no-show. |
 | "I'll expose customer bookings to admin via `{{auth.meetings}}` / `data:` config." | `data:` returns only the logged-in user's own rows — useless for admin (who needs every row). Use `sheet-read` with no filter in `admin/api/*.yaml`. |
 | "I'll add `trigger.requireAuth` to the contact form so only members can ask." | A contact form's whole point is accepting questions from people without an account. Leave it public (no `requireAuth`). |
-| "I'll add `trigger.honeypotField` / `trigger.idempotencyKeyField` to the contact form." | Those trigger options are checked only for `application/x-www-form-urlencoded` / `multipart/form-data` submissions. A contact form that posts via `gemihub.post()` sends JSON, so those checks never run. Implement bot-defense (honeypot) and dedup (submissionId) as workflow nodes instead — see the **API Workflow Template (Public Contact Form)** in `references/page-patterns.md`. |
+| "I'll add `trigger.honeypotField` / `trigger.idempotencyKeyField` to the contact form." | Those trigger options are checked only for `application/x-www-form-urlencoded` / `multipart/form-data` submissions. A contact form that posts via `kiokuflow.post()` sends JSON, so those checks never run. Implement bot-defense (honeypot) and dedup (submissionId) as workflow nodes instead — see the **API Workflow Template (Public Contact Form)** in `references/page-patterns.md`. |
 
 ## Spreadsheet & Schema
 
@@ -166,8 +166,8 @@ The standard Plan → Approval flow still applies. After collecting inputs, post
 
 - **HTML pages** — `web/about.html` → `/about`
 - **Workflow APIs** — `web/api/users/list.yaml` → `/__gemihub/api/users/list`
-- **Login pages** — magic-link only (email input + `gemihub.auth.login`)
-- **Protected pages** — `gemihub.auth.require` guard
+- **Login pages** — magic-link only (email input + `kiokuflow.auth.login`)
+- **Protected pages** — `kiokuflow.auth.require` guard
 - **Contact forms** — public `web/contact.html` + `web/api/contact.yaml` (writes to `inquiries`, notifies owner; replies are sent from the IDE admin preview, see below)
 - **Admin pages (IDE-only)** — `admin/*.html` + `admin/api/*.yaml` for the Drive owner to cancel bookings, mark no-shows, reply to inquiries. See `references/admin-patterns.md`.
 - **Mock files** — `web/__gemihub/auth/me.json` (auth) and `web/__gemihub/api/{path}.json` (one per **GET** endpoint; POST endpoints don't need a mock) for IDE preview
@@ -176,7 +176,7 @@ The standard Plan → Approval flow still applies. After collecting inputs, post
 
 ## Admin Pages (IDE-only)
 
-Operator-facing pages (cancel a booking, mark no-show, reply to an inquiry) are **not** published on the public custom domain. They live under `admin/` (not `web/admin/`) — the serving layer only exposes `web/`, so `admin/` is automatically 404 from the public web. The Drive owner opens these pages in the GemiHub IDE "admin preview" mode, which injects `{{session.email}}` (the IDE-logged-in Google account) into the workflow context in place of the public site's `{{auth.*}}`.
+Operator-facing pages (cancel a booking, mark no-show, reply to an inquiry) are **not** published on the public custom domain. They live under `admin/` (not `web/admin/`) — the serving layer only exposes `web/`, so `admin/` is automatically 404 from the public web. The Drive owner opens these pages in the kiokuflow IDE "admin preview" mode, which injects `{{session.email}}` (the IDE-logged-in Google account) into the workflow context in place of the public site's `{{auth.*}}`.
 
 Key rules (full templates in `references/admin-patterns.md`):
 
@@ -231,19 +231,19 @@ Run before saving AND after `read_drive_file` of each saved file.
 ### All HTML pages
 - [ ] Has `<script src="https://cdn.tailwindcss.com"></script>`
 - [ ] Has `<script src="/__gemihub/api.js"></script>` (if page uses data or auth)
-- [ ] Uses `gemihub.get()`/`gemihub.post()` for API calls — NEVER raw `fetch()`
+- [ ] Uses `kiokuflow.get()`/`kiokuflow.post()` for API calls — NEVER raw `fetch()`
 
 ### Login pages
 - [ ] Has email input ONLY — NO password field, NO username field
-- [ ] Uses `gemihub.auth.login("TYPE", email, redirect)` for magic link
+- [ ] Uses `kiokuflow.auth.login("TYPE", email, redirect)` for magic link
 - [ ] Button text says "Send Login Link" or similar — NOT "Login" or "Sign In"
 - [ ] Shows success message about checking email after submission
-- [ ] NO form action or fetch — uses `gemihub.auth.login()` in JS
+- [ ] NO form action or fetch — uses `kiokuflow.auth.login()` in JS
 
 ### Register pages (self-registration)
 - [ ] Has an email input AND every profile field stored in the identity sheet
-- [ ] Submits via `gemihub.post("register", body)` — path is literally `register` (or `register/<sub>`)
-- [ ] **NO `gemihub.auth.require()` / `gemihub.auth.me()`** — the user has no session yet; any auth check redirects to /login and blanks the page
+- [ ] Submits via `kiokuflow.post("register", body)` — path is literally `register` (or `register/<sub>`)
+- [ ] **NO `kiokuflow.auth.require()` / `kiokuflow.auth.me()`** — the user has no session yet; any auth check redirects to /login and blanks the page
 - [ ] Matching `web/api/register.yaml` workflow exists, copied from the **API Workflow Template (Public Register)** in `references/page-patterns.md`:
   - No `trigger.requireAuth` (endpoint is public)
   - Reads the identity sheet first and short-circuits on duplicate email (silent success — never reveal whether an email is registered)
@@ -254,7 +254,7 @@ Run before saving AND after `read_drive_file` of each saved file.
 ### Protected pages
 - [ ] Starts with loading state (`<div id="loading">Loading...</div>`)
 - [ ] Content is hidden by default (`class="hidden"`)
-- [ ] Calls `gemihub.auth.require("TYPE", "/login/TYPE")` FIRST
+- [ ] Calls `kiokuflow.auth.require("TYPE", "/login/TYPE")` FIRST
 - [ ] Has `if (!user) return;` guard after require
 - [ ] Content is revealed only after auth resolves
 - (A logout button / user-email header is OPTIONAL — include it when the page benefits from one, omit it for narrow-purpose pages such as a single-action confirmation. Not a checklist failure either way.)
@@ -271,18 +271,18 @@ Run before saving AND after `read_drive_file` of each saved file.
 
 ### Contact form (public)
 - [ ] Page file is `web/contact.html` (or similar under `web/`) — publicly reachable
-- [ ] HTML does NOT call `gemihub.auth.require()` / `gemihub.auth.me()`
+- [ ] HTML does NOT call `kiokuflow.auth.require()` / `kiokuflow.auth.me()`
 - [ ] Workflow at `web/api/contact.yaml` has NO `trigger.requireAuth`
-- [ ] Honeypot + idempotency are implemented **as workflow nodes** (script checks `{{request.body._hp:json}}`; `sheet-read` + `if` rejects a duplicate `submissionId`). Do **NOT** declare `trigger.honeypotField` / `trigger.idempotencyKeyField` — those trigger options run only for form-POST requests and are silently ignored for `gemihub.post()` JSON requests.
+- [ ] Honeypot + idempotency are implemented **as workflow nodes** (script checks `{{request.body._hp:json}}`; `sheet-read` + `if` rejects a duplicate `submissionId`). Do **NOT** declare `trigger.honeypotField` / `trigger.idempotencyKeyField` — those trigger options run only for form-POST requests and are silently ignored for `kiokuflow.post()` JSON requests.
 - [ ] HTML form has `<input name="_hp" class="hidden">` and a hidden `<input name="submissionId">` populated via JS on form init (`crypto.randomUUID()` with a `Math.random` fallback)
 - [ ] `inquiries` sheet schema (with `submissionId` + `reply_text` / `reply_at` / `reply_by` / `status` columns) is in `web/__gemihub/schema.md` and migrated before first write
 
 ### Admin HTML pages (`admin/*.html`)
 - [ ] Path starts with `admin/`, **NOT** `web/admin/`
-- [ ] Does NOT call `gemihub.auth.require("admin", ...)` / `gemihub.auth.me("admin")` — admin account type does not exist
+- [ ] Does NOT call `kiokuflow.auth.require("admin", ...)` / `kiokuflow.auth.me("admin")` — admin account type does not exist
 - [ ] Does NOT reference `data:` sources (`auth.meetings` etc.)
 - [ ] Escapes user-derived values (`name`, `subject`, `message`) when rendering to the DOM (`innerHTML`)
-- [ ] Destructive actions (cancel, no-show, reply) go through `confirm()` before calling `gemihub.post(...)`
+- [ ] Destructive actions (cancel, no-show, reply) go through `confirm()` before calling `kiokuflow.post(...)`
 
 ### Admin API workflows (`admin/api/*.yaml`)
 - [ ] Path starts with `admin/api/`
@@ -297,7 +297,7 @@ Run before saving AND after `read_drive_file` of each saved file.
 
 ### Mock files
 - [ ] Auth mock at `web/__gemihub/auth/me.json` exists (if ANY page uses auth)
-- [ ] API mock at `web/__gemihub/api/{path}.json` exists for each **GET** endpoint (the page calls `gemihub.get(...)` against it). **POST endpoints do NOT need a mock** — `gemihub.post(...)` and HTML form submissions are no-ops in IDE preview, and the page typically just shows a success state regardless of response. Skip the mock unless the page renders specific fields out of the POST response.
+- [ ] API mock at `web/__gemihub/api/{path}.json` exists for each **GET** endpoint (the page calls `kiokuflow.get(...)` against it). **POST endpoints do NOT need a mock** — `kiokuflow.post(...)` and HTML form submissions are no-ops in IDE preview, and the page typically just shows a success state regardless of response. Skip the mock unless the page renders specific fields out of the POST response.
 - [ ] Admin page mocks go at `admin/__gemihub/api/{path}.json` (same `[param]` pattern rules, GET only) — only if the IDE preview for `admin/` is still using mocks; once live exec is enabled, mocks are optional
 - [ ] Mock data structure matches what the API/auth would return
 

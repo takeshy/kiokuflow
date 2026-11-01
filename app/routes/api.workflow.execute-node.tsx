@@ -182,8 +182,6 @@ export async function action({ request }: Route.ActionArgs) {
       serviceContext.hubworkSheetsClient = google.sheets({ version: "v4", auth: oauth2Client });
       serviceContext.hubworkSpreadsheetId = hubworkSpreadsheetId;
     }
-    serviceContext.hubworkGmailClient = google.gmail({ version: "v1", auth: oauth2Client });
-    serviceContext.hubworkCalendarClient = google.calendar({ version: "v3", auth: oauth2Client });
   }
 
   // Execute the server-side node and return JSON

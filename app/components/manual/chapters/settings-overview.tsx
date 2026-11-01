@@ -16,7 +16,7 @@ function SettingsEn() {
       </figure>)}
       <div className={prose}>
         <p>
-          The Settings page is accessible from the gear icon in the IDE header. Settings are stored as <code>settings.json</code> in your Drive <code>gemihub/</code> folder and synced across devices.
+          The Settings page is accessible from the gear icon in the IDE header. Settings are stored as <code>settings.json</code> in your Drive <code>kiokuflow/</code> folder and synced across devices.
         </p>
 
         <h2>AI providers</h2>
@@ -137,7 +137,7 @@ function SettingsJa() {
       </figure>)}
       <div className={prose}>
         <p>
-          設定ページはIDEヘッダーのギアアイコンからアクセスできます。設定はDriveの<code>gemihub/</code>フォルダに<code>settings.json</code>として保存され、デバイス間で同期されます。
+          設定ページはIDEヘッダーのギアアイコンからアクセスできます。設定はDriveの<code>kiokuflow/</code>フォルダに<code>settings.json</code>として保存され、デバイス間で同期されます。
         </p>
 
         <h2>AIプロバイダー</h2>

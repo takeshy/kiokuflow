@@ -13,11 +13,11 @@ import { isExternalChatModel } from "~/types/settings";
 // The base editor's AI uses the same spec the bundled "base" skill ships to the
 // model, so it knows the full Bases syntax (filters, functions, view options,
 // formulas, summaries) — not just a hand-written schema summary.
-const BASE_SYSTEM_PROMPT = `You create and edit GemiHub Bases (.base) files.
+const BASE_SYSTEM_PROMPT = `You create and edit kiokuflow Bases (.base) files.
 
 A .base file is YAML. Return ONLY the complete valid .base YAML, with no prose and no markdown code fence.
 
-The following is the authoritative GemiHub Bases reference.
+The following is the authoritative kiokuflow Bases reference.
 
 ===== BASES SKILL =====
 ${BASE_SKILL_MD}

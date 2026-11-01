@@ -11,7 +11,7 @@ Agent Skills extend the AI's capabilities by providing custom instructions, refe
 
 ## Folder Structure
 
-Skills are stored in the `skills/` folder within your Drive's `gemihub/` directory. Each skill is a subfolder containing a `SKILL.md` file:
+Skills are stored in the `skills/` folder within your Drive's `kiokuflow/` directory. Each skill is a subfolder containing a `SKILL.md` file:
 
 ```
 gemihub/
@@ -135,7 +135,7 @@ Skills load in three layers, and you should design around them:
 
 ## Workflows
 
-Skill workflows use the standard GemiHub YAML workflow format (see [Workflow Node Reference](../workflows/workflow_nodes.md)). Place `.yaml` files in the `workflows/` subfolder:
+Skill workflows use the standard kiokuflow YAML workflow format (see [Workflow Node Reference](../workflows/workflow_nodes.md)). Place `.yaml` files in the `workflows/` subfolder:
 
 ```yaml
 name: Run Lint
@@ -225,8 +225,8 @@ The folder name (not the skill display name) is used as the command — e.g., a 
 
 ### Example: Creating a Skill
 
-1. Create a folder: `gemihub/skills/summarizer/`
-2. Create `gemihub/skills/summarizer/SKILL.md`:
+1. Create a folder: `kiokuflow/skills/summarizer/`
+2. Create `kiokuflow/skills/summarizer/SKILL.md`:
 
 ```markdown
 ---

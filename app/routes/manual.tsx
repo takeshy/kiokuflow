@@ -36,7 +36,7 @@ interface ChapterDef extends ChapterInfo {
 }
 
 const ALL_CHAPTERS: ChapterDef[] = [
-  { slug: "intro", num: 1, titleEn: "What is GemiHub?", titleJa: "GemiHubとは", descEn: "Overview, key features, and how GemiHub works.", descJa: "概要、主な機能、GemiHubの仕組み。", component: IntroChapter },
+  { slug: "intro", num: 1, titleEn: "What is kiokuflow?", titleJa: "kiokuflowとは", descEn: "Overview, key features, and how kiokuflow works.", descJa: "概要、主な機能、kiokuflowの仕組み。", component: IntroChapter },
   { slug: "layout", num: 2, titleEn: "Screen Layout", titleJa: "画面構成", descEn: "Understanding the IDE layout: sidebar, editor, and panels.", descJa: "IDE画面の構成：サイドバー、エディタ、パネル。", component: LayoutChapter },
   { slug: "setup", num: 3, titleEn: "Initial Setup", titleJa: "初期セットアップ", descEn: "Sign in, API key configuration, optional features, and first sync.", descJa: "サインイン、APIキー、任意の上級機能、初回同期の設定。", component: SetupChapter },
   { slug: "settings-overview", num: 4, titleEn: "Settings Overview", titleJa: "設定一覧", descEn: "Settings in recommended order, including optional advanced features and account-specific tabs.", descJa: "任意の上級機能とアカウント別タブを含む、推奨順序での設定概要。", component: SettingsOverviewChapter },

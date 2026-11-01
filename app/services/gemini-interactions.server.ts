@@ -90,7 +90,7 @@ function toJsonSchema(params: ToolDefinition["parameters"]): Record<string, unkn
 }
 
 /**
- * Convert GemiHub ToolDefinition[] + search flags into Interactions API Tool_2[].
+ * Convert kiokuflow ToolDefinition[] + search flags into Interactions API Tool_2[].
  * Function tools, File Search, and Google Search are represented as native
  * Interactions API tools.
  */

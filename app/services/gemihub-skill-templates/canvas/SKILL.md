@@ -1,11 +1,11 @@
 ---
 name: canvas
-description: Create and edit GemiHub .canvas files using JSON Canvas nodes, edges, groups, colors, and file/link references.
+description: Create and edit kiokuflow .canvas files using JSON Canvas nodes, edges, groups, colors, and file/link references.
 ---
 
-# GemiHub Canvas Skill
+# kiokuflow Canvas Skill
 
-Create and edit `.canvas` files for GemiHub. A canvas file is JSON with top-level `nodes` and `edges` arrays. Use this skill when the user asks for a canvas, visual map, mind map, diagram board, planning board, concept map, or `.canvas` file.
+Create and edit `.canvas` files for kiokuflow. A canvas file is JSON with top-level `nodes` and `edges` arrays. Use this skill when the user asks for a canvas, visual map, mind map, diagram board, planning board, concept map, or `.canvas` file.
 
 Always output valid JSON when creating or modifying a `.canvas` file.
 

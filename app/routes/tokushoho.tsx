@@ -71,8 +71,8 @@ function TokushohoJa() {
       </a>
     )},
     { label: "ホームページURL", value: (
-      <a href="https://gemihub.net/lp" className="text-blue-600 hover:underline dark:text-blue-400">
-        https://gemihub.net/lp
+      <a href="https://kiokuflow.net/lp" className="text-blue-600 hover:underline dark:text-blue-400">
+        https://kiokuflow.net/lp
       </a>
     )},
     { label: "販売価格", value: (
@@ -89,7 +89,7 @@ function TokushohoJa() {
     { label: "商品代金以外の必要料金", value: (
       <>
         インターネット接続料金、通信料金等はお客様のご負担となります。<br />
-        Gemini API の利用料金はお客様ご自身の Google Cloud アカウントから請求されます（GemiHub は API 利用料を代理請求しません）。
+        Gemini API の利用料金はお客様ご自身の Google Cloud アカウントから請求されます（kiokuflow は API 利用料を代理請求しません）。
       </>
     )},
     { label: "お支払い方法", value: "クレジットカード決済（Stripe 経由：Visa / Mastercard / American Express / JCB / Diners Club / Discover）" },
@@ -127,8 +127,8 @@ function TokushohoEn() {
       </a>
     )},
     { label: "Website", value: (
-      <a href="https://gemihub.net/lp" className="text-blue-600 hover:underline dark:text-blue-400">
-        https://gemihub.net/lp
+      <a href="https://kiokuflow.net/lp" className="text-blue-600 hover:underline dark:text-blue-400">
+        https://kiokuflow.net/lp
       </a>
     )},
     { label: "Pricing", value: (
@@ -145,7 +145,7 @@ function TokushohoEn() {
     { label: "Additional Fees", value: (
       <>
         Customers are responsible for their own internet connection and communication fees.<br />
-        Gemini API usage fees are billed directly to the customer&apos;s own Google Cloud account (GemiHub does not bill for API usage).
+        Gemini API usage fees are billed directly to the customer&apos;s own Google Cloud account (kiokuflow does not bill for API usage).
       </>
     )},
     { label: "Payment Methods", value: "Credit card via Stripe (Visa / Mastercard / American Express / JCB / Diners Club / Discover)" },

@@ -9,8 +9,6 @@ export type PluginPermission =
   | "gemini"    // Gemini AI API
   | "drive"     // Drive file operations (read/search/list/create/update)
   | "storage"   // Plugin-scoped persistent storage
-  | "calendar"  // Google Calendar API (premium)
-  | "gmail"     // Gmail API (premium)
   | "sheets";   // Google Sheets API (premium)
 
 /** All known permission values (for validation) */
@@ -18,8 +16,6 @@ export const PLUGIN_PERMISSIONS: PluginPermission[] = [
   "gemini",
   "drive",
   "storage",
-  "calendar",
-  "gmail",
   "sheets",
 ];
 
@@ -141,59 +137,6 @@ export interface PluginAPI {
      * Returns the raw bytes as an ArrayBuffer.
      */
     fetch(name: string): Promise<ArrayBuffer>;
-  };
-
-  // Google Calendar API (requires premium plan with calendar scope)
-  calendar?: {
-    listEvents(options?: {
-      timeMin?: string;
-      timeMax?: string;
-      query?: string;
-      maxResults?: number;
-      calendarId?: string;
-    }): Promise<
-      Array<{
-        id: string;
-        summary: string;
-        description?: string;
-        start: string;
-        end: string;
-        location?: string;
-        status?: string;
-        htmlLink?: string;
-      }>
-    >;
-    createEvent(event: {
-      summary: string;
-      start: string;
-      end: string;
-      description?: string;
-      location?: string;
-      calendarId?: string;
-    }): Promise<{ eventId: string; htmlLink: string }>;
-    updateEvent(
-      eventId: string,
-      event: {
-        summary?: string;
-        start?: string;
-        end?: string;
-        description?: string;
-        location?: string;
-        calendarId?: string;
-      }
-    ): Promise<{ eventId: string; htmlLink: string }>;
-    deleteEvent(eventId: string, calendarId?: string): Promise<void>;
-  };
-
-  // Gmail API (requires premium plan with gmail.send scope)
-  gmail?: {
-    sendEmail(options: {
-      to: string;
-      subject: string;
-      body: string;
-      cc?: string;
-      bcc?: string;
-    }): Promise<{ messageId: string }>;
   };
 
   // Google Sheets API (requires premium plan; uses drive.file scope — works with app-created or Picker-selected spreadsheets)

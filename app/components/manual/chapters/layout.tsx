@@ -11,27 +11,27 @@ function LayoutEn() {
     <>
       <h1 className="mb-6 text-3xl font-bold text-gray-900 dark:text-gray-50">Screen Layout</h1>
       <figure className="mb-8 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-        <img src="/images/cap.png" alt="GemiHub IDE layout" className="w-full" loading="lazy" />
+        <img src="/images/cap.png" alt="kiokuflow IDE layout" className="w-full" loading="lazy" />
       </figure>
       <div className={prose}>
         <p>
-          GemiHub uses an IDE-style layout with four main areas: the Header, the Left Sidebar, the Main Viewer, and the Right Sidebar.
+          kiokuflow uses an IDE-style layout with four main areas: the Header, the Left Sidebar, the Main Viewer, and the Right Sidebar.
         </p>
 
         <h2>Header</h2>
         <p>The top bar contains:</p>
         <ul>
-          <li><strong>GemiHub logo</strong> — Links to the landing page.</li>
+          <li><strong>kiokuflow logo</strong> — Links to the landing page.</li>
           <li><strong>Sync status</strong> — Shows Push to Drive / Pull to Local badges with pending change counts. Click to view change details or initiate sync.</li>
           <li><strong>Quick Open</strong> — Click the search icon or press <kbd>Ctrl+P</kbd> / <kbd>Cmd+P</kbd> to quickly navigate to any file.</li>
           <li><strong>Panel tabs</strong> — Toggle between Chat, Workflow, and Plugin panels on the right.</li>
           <li><strong>Settings</strong> — Opens the Settings page.</li>
           <li><strong>Manual</strong> — Opens this user manual in a new tab.</li>
-          <li><strong>Logout</strong> — Signs out of GemiHub.</li>
+          <li><strong>Logout</strong> — Signs out of kiokuflow.</li>
         </ul>
 
         <h2>Left Sidebar</h2>
-        <p>The left sidebar shows the file tree from your Google Drive <code>gemihub/</code> folder. You can:</p>
+        <p>The left sidebar shows the file tree from your Google Drive <code>kiokuflow/</code> folder. You can:</p>
         <ul>
           <li>Click a file to open it in the Main Viewer.</li>
           <li>Right-click for context menu actions (rename, download, delete, publish, encrypt, etc.).</li>
@@ -71,27 +71,27 @@ function LayoutJa() {
     <>
       <h1 className="mb-6 text-3xl font-bold text-gray-900 dark:text-gray-50">画面構成</h1>
       <figure className="mb-8 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-        <img src="/images/cap.png" alt="GemiHub IDE画面構成" className="w-full" loading="lazy" />
+        <img src="/images/cap.png" alt="kiokuflow IDE画面構成" className="w-full" loading="lazy" />
       </figure>
       <div className={prose}>
         <p>
-          GemiHubはIDE風のレイアウトで、ヘッダー、左サイドバー、メインビューア、右サイドバーの4つのエリアで構成されています。
+          kiokuflowはIDE風のレイアウトで、ヘッダー、左サイドバー、メインビューア、右サイドバーの4つのエリアで構成されています。
         </p>
 
         <h2>ヘッダー</h2>
         <p>上部バーには以下が含まれます：</p>
         <ul>
-          <li><strong>GemiHubロゴ</strong> — ランディングページへのリンク。</li>
+          <li><strong>kiokuflowロゴ</strong> — ランディングページへのリンク。</li>
           <li><strong>同期ステータス</strong> — ドライブ反映 / ローカル反映のバッジで保留中の変更数を表示。クリックで変更の詳細表示や同期を実行。</li>
           <li><strong>Quick Open</strong> — 検索アイコンをクリックするか<kbd>Ctrl+P</kbd> / <kbd>Cmd+P</kbd>で任意のファイルにすばやく移動。</li>
           <li><strong>パネルタブ</strong> — 右側のチャット、ワークフロー、プラグインパネルを切り替え。</li>
           <li><strong>設定</strong> — 設定ページを開く。</li>
           <li><strong>マニュアル</strong> — このユーザーマニュアルを新しいタブで開く。</li>
-          <li><strong>ログアウト</strong> — GemiHubからサインアウト。</li>
+          <li><strong>ログアウト</strong> — kiokuflowからサインアウト。</li>
         </ul>
 
         <h2>左サイドバー</h2>
-        <p>左サイドバーには、Google Drive <code>gemihub/</code>フォルダのファイルツリーが表示されます：</p>
+        <p>左サイドバーには、Google Drive <code>kiokuflow/</code>フォルダのファイルツリーが表示されます：</p>
         <ul>
           <li>ファイルをクリックしてメインビューアで開く。</li>
           <li>右クリックでコンテキストメニュー（名前変更、ダウンロード、削除、公開、暗号化など）。</li>

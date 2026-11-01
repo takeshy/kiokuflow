@@ -4,7 +4,7 @@ export const THIRD_PARTY_NOTICES = `Third-Party Notices
 
 kepano/obsidian-skills
 
-The documentation for GemiHub's built-in Markdown, Base, and Canvas Agent Skills was initially adapted from https://github.com/kepano/obsidian-skills. GemiHub's current Base documentation has since been rewritten around GemiHub's independently implemented compatibility layer.
+The documentation for kiokuflow's built-in Markdown, Base, and Canvas Agent Skills was initially adapted from https://github.com/kepano/obsidian-skills. kiokuflow's current Base documentation has since been rewritten around kiokuflow's independently implemented compatibility layer.
 
 MIT License
 
@@ -30,7 +30,7 @@ SOFTWARE.
 
 JSON Canvas
 
-GemiHub's Canvas support follows the open JSON Canvas specification at https://jsoncanvas.org/, maintained by https://github.com/obsidianmd/jsoncanvas.
+kiokuflow's Canvas support follows the open JSON Canvas specification at https://jsoncanvas.org/, maintained by https://github.com/obsidianmd/jsoncanvas.
 
 MIT License
 
@@ -56,7 +56,7 @@ SOFTWARE.
 
 Wysimark / wysimark-lite
 
-GemiHub uses https://github.com/takeshy/wysimark-lite, a lightweight fork of https://github.com/portive/wysimark, for WYSIWYG Markdown editing. The wysimark-lite package declares the MIT License; the following notice is retained from the upstream Wysimark project.
+kiokuflow uses https://github.com/takeshy/wysimark-lite, a lightweight fork of https://github.com/portive/wysimark, for WYSIWYG Markdown editing. The wysimark-lite package declares the MIT License; the following notice is retained from the upstream Wysimark project.
 
 Wysimark is licensed under:
 

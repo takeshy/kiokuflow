@@ -13,7 +13,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     return new Response("Missing fileId or fileName", { status: 400 });
   }
 
-  // A signed link proves GemiHub minted it for a file its owner published.
+  // A signed link proves kiokuflow minted it for a file its owner published.
   // Links published before signing existed carry no signature; they keep
   // working for passive content (embedded images and the like) but never for
   // content that can execute script on this origin.
@@ -21,7 +21,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const signed = verifyPublicFileSignature(fileId, signature);
   if (!signed && isActivePublicExtension(fileName)) {
     return new Response(
-      "This public link is no longer valid. Re-publish the file in GemiHub to get a new link.",
+      "This public link is no longer valid. Re-publish the file in kiokuflow to get a new link.",
       { status: 403, headers: { "Content-Type": "text/plain; charset=utf-8" } }
     );
   }

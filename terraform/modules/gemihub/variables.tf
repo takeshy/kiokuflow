@@ -47,7 +47,7 @@ variable "cpu_idle" {
 variable "root_folder_name" {
   description = "Google Drive root folder name for the application"
   type        = string
-  default     = "gemihub"
+  default     = "kiokuflow"
 }
 
 variable "hubwork_review_slugs" {
@@ -108,4 +108,24 @@ variable "shared_vm_hosts" {
     ])
     error_message = "Each backend requires at least one DNS hostname."
   }
+}
+
+# A rename adds the new domain while retaining the original zone/certificates.
+# Leave null for a fresh deployment; set explicitly for an existing service.
+variable "legacy_app_domain" {
+  description = "Original primary domain retained during the kiokuflow domain migration."
+  type        = string
+  default     = null
+}
+
+variable "rebrand_site_verification_token" {
+  description = "Google Search Console verification token for the new domain, independently of the original domain token."
+  type        = string
+  default     = ""
+}
+
+variable "manage_rebrand_dns" {
+  description = "Manage the new brand domain in Cloud DNS. False keeps its DNS at an external provider such as Cloudflare without changing the original domain's DNS resources."
+  type        = bool
+  default     = true
 }

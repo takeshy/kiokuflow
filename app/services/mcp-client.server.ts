@@ -100,7 +100,7 @@ export const MCP_APPS_CLIENT_CAPABILITIES = {
 /** The newest MCP revision implemented by this client. */
 export const MCP_PROTOCOL_VERSION = "2026-07-28";
 const LEGACY_PROTOCOL_VERSION = "2025-11-25";
-const CLIENT_INFO = { name: "gemihub", version: "1.0.0" } as const;
+const CLIENT_INFO = { name: "kiokuflow", version: "1.0.0" } as const;
 
 type ProtocolMode = "unknown" | "modern" | "legacy";
 

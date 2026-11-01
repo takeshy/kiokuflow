@@ -68,7 +68,6 @@ export interface SettingsTemplateProps {
   hasApiKey: boolean;
   hasUnsupportedRagApiKey?: boolean;
   maskedKey: string | null;
-  hasHubworkScopes: boolean;
   rootFolderId: string;
   activeTab: SettingsTabId;
   onTabChange: (tab: SettingsTabId) => void;
@@ -88,7 +87,6 @@ export function SettingsTemplate({
   hasApiKey,
   hasUnsupportedRagApiKey = false,
   maskedKey,
-  hasHubworkScopes,
   rootFolderId,
   activeTab,
   onTabChange,
@@ -206,7 +204,6 @@ export function SettingsTemplate({
         {activeTab === "hubwork" && showHubworkTab && (
           <HubworkTab
             settings={settings}
-            hasHubworkScopes={hasHubworkScopes}
             rootFolderId={rootFolderId}
             isCallback={hubworkCallback}
           />

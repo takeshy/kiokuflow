@@ -14,7 +14,7 @@ chat model: an OpenAI chat can use a Gemini index and vice versa.
 
 ## Eligibility and setup
 
-RAG requires an active paid GemiHub account (Lite, Pro, Business or Granted)
+RAG requires an active paid kiokuflow account (Lite, Pro, Business or Granted)
 and configured Firestore. Canceled and disabled accounts cannot index or search.
 This is separate from the Gemini API Free/Paid setting. Server APIs verify the
 subscription; a stored plan or `ragAvailable` UI flag never authorizes access.
@@ -116,7 +116,7 @@ Existing settings keep their target folders and exclusion rules. Choose an
 embedding provider/model and Sync to build the new Firestore index. Legacy
 `fileSearchStores/...` handles are rejected by retrieval until re-indexed.
 External File Search store sharing is retired. Legacy remote stores are left
-untouched; GemiHub no longer reads, uploads to or deletes those remote stores.
+untouched; kiokuflow no longer reads, uploads to or deletes those remote stores.
 Re-indexing requires access to the original Drive documents.
 
 The UI retains `storeId`/`storeName` as opaque index handles for compatibility

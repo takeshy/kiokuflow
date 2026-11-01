@@ -18,7 +18,7 @@
   <script src="/__gemihub/api.js"></script>
   <script>
     (async () => {
-      const user = await gemihub.auth.require("partner", "/login/partner");
+      const user = await kiokuflow.auth.require("partner", "/login/partner");
       const profile = user.profile || {};
       document.getElementById("user").innerHTML = `
         <p><strong>氏名:</strong> ${profile.name || "-"}</p>
@@ -26,7 +26,7 @@
         <p><strong>メール:</strong> ${profile.email || user.email}</p>
       `;
       document.getElementById("logout").addEventListener("click", async () => {
-        await gemihub.auth.logout("partner");
+        await kiokuflow.auth.logout("partner");
         location.href = "/login/partner";
       });
     })();

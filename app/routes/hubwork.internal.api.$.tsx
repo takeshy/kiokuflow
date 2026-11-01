@@ -269,8 +269,6 @@ async function handleApiRequest(request: Request, apiPath: string) {
       serviceContext.hubworkSheetsClient = google.sheets({ version: "v4", auth: oauth2Client });
       serviceContext.hubworkSpreadsheetId = defaultSpreadsheetId;
     }
-    serviceContext.hubworkGmailClient = google.gmail({ version: "v1", auth: oauth2Client });
-    serviceContext.hubworkCalendarClient = google.calendar({ version: "v3", auth: oauth2Client });
   }
 
   // Timeout

@@ -1,6 +1,6 @@
-# GemiHub Base Expression Reference
+# kiokuflow Base Expression Reference
 
-This reference documents functions implemented by GemiHub's Base evaluator. It is a capability list for authoring GemiHub-compatible files, not a description of another application's internals.
+This reference documents functions implemented by kiokuflow's Base evaluator. It is a capability list for authoring kiokuflow-compatible files, not a description of another application's internals.
 
 ## Global Functions
 

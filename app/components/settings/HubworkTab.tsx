@@ -9,7 +9,7 @@ import { compareSkillVersions, WEBPAGE_BUILDER_SKILL_VERSION } from "~/services/
 import { useEnterpriseSelection } from "~/contexts/EnterpriseContext";
 
 
-export function HubworkTab({ settings, hasHubworkScopes, rootFolderId: _rootFolderId, isCallback }: { settings: UserSettings; hasHubworkScopes: boolean; rootFolderId: string; isCallback?: boolean }) {
+export function HubworkTab({ settings, rootFolderId: _rootFolderId, isCallback }: { settings: UserSettings; rootFolderId: string; isCallback?: boolean }) {
   const { t } = useI18n();
   const organizationSelected = useEnterpriseSelection() !== null;
   const hubwork = settings.hubwork;
@@ -176,9 +176,7 @@ export function HubworkTab({ settings, hasHubworkScopes, rootFolderId: _rootFold
 
   const litePlanFeatures = [
     t("settings.hubwork.featureInteractionsApiChat"),
-    t("settings.hubwork.featureGmailSend"),
     t("settings.hubwork.featurePdfGeneration"),
-    t("settings.hubwork.featureCalendar"),
     t("settings.hubwork.featureExternalSyncToken"),
     t("settings.hubwork.featureTempUploadUrl"),
     t("settings.hubwork.featureMaxFileSize5gb"),
@@ -252,7 +250,7 @@ export function HubworkTab({ settings, hasHubworkScopes, rootFolderId: _rootFold
             <p className="mt-1 text-xs leading-5 text-gray-600 dark:text-gray-400">{t("settings.hubwork.additionalBusinessDescription")}</p>
             <div className="mt-3 flex items-center gap-1">
               <input type="text" value={slug} onChange={(e) => { setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "")); setSlugError(""); }} placeholder="another-org" className="w-36 rounded-md border border-gray-300 bg-white px-2 py-1.5 font-mono text-sm dark:border-gray-700 dark:bg-gray-800" />
-              <span className="text-xs text-gray-400">.gemihub.net</span>
+              <span className="text-xs text-gray-400">.kiokuflow.net</span>
             </div>
             {slugError && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{slugError}</p>}
             <stripeFetcher.Form method="post" action="/hubwork/api/stripe/checkout" className="mt-3" onSubmit={(event) => {
@@ -303,7 +301,7 @@ export function HubworkTab({ settings, hasHubworkScopes, rootFolderId: _rootFold
                       placeholder="acme"
                       className="w-28 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono"
                     />
-                    <span className="text-xs text-gray-400">.gemihub.net</span>
+                    <span className="text-xs text-gray-400">.kiokuflow.net</span>
                   </div>
                   {slugError && (
                     <p className="text-xs text-red-600 dark:text-red-400 mt-1">{slugError}</p>
@@ -388,7 +386,7 @@ export function HubworkTab({ settings, hasHubworkScopes, rootFolderId: _rootFold
                           placeholder="acme"
                           className="w-28 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono"
                         />
-                        <span className="text-xs text-gray-400">.gemihub.net</span>
+                        <span className="text-xs text-gray-400">.kiokuflow.net</span>
                       </div>
                       {slugError && (
                         <p className="text-xs text-red-600 dark:text-red-400 mt-1">{slugError}</p>
@@ -440,7 +438,7 @@ export function HubworkTab({ settings, hasHubworkScopes, rootFolderId: _rootFold
                 {t("settings.hubwork.siteUrl")}
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-300 font-mono mt-0.5">
-                {hubwork.accountSlug}.gemihub.net
+                {hubwork.accountSlug}.kiokuflow.net
               </p>
             </div>
           </div>
@@ -449,27 +447,6 @@ export function HubworkTab({ settings, hasHubworkScopes, rootFolderId: _rootFold
 
       {isEnabled && (
         <>
-          {/* Scope upgrade banner — Lite needs Gmail, Pro needs Sheets+Gmail */}
-          {isEnabled && !hasHubworkScopes && (
-            <SectionCard>
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
-                    {t("settings.hubwork.scopeUpgradeRequired")}
-                  </p>
-                  <p className="text-xs text-amber-600 dark:text-amber-500 mt-0.5">
-                    {t("settings.hubwork.scopeUpgradeDescription")}
-                  </p>
-                </div>
-                <a
-                  href="/auth/google?hubwork=1"
-                  className="px-4 py-2 text-sm bg-amber-600 text-white rounded-md hover:bg-amber-700 whitespace-nowrap"
-                >
-                  {t("settings.hubwork.scopeUpgradeButton")}
-                </a>
-              </div>
-            </SectionCard>
-          )}
 
           {/* Business-only: Custom Domain */}
           {organizationSelected && isBusiness && (

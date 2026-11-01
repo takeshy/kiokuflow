@@ -209,7 +209,7 @@ export async function* executeLocalChat(
   tools.push({
     name: "get_workflow_spec",
     description:
-      "Return the authoritative GemiHub workflow specification (variable syntax, condition syntax, all node types, trigger block, request.* / __response variables, etc.). Call this WHENEVER you touch a workflow YAML file — creating, modifying, reviewing, or DEBUGGING. When investigating why a workflow does not work, ALWAYS call this FIRST before guessing at the cause: most workflow bugs are wrong parameter names, missing `request.` prefix on input variables, or missing `__response`. Call with no arguments to get the full spec; pass `nodeTypes` only if you already know exactly which sections you need.",
+      "Return the authoritative kiokuflow workflow specification (variable syntax, condition syntax, all node types, trigger block, request.* / __response variables, etc.). Call this WHENEVER you touch a workflow YAML file — creating, modifying, reviewing, or DEBUGGING. When investigating why a workflow does not work, ALWAYS call this FIRST before guessing at the cause: most workflow bugs are wrong parameter names, missing `request.` prefix on input variables, or missing `__response`. Call with no arguments to get the full spec; pass `nodeTypes` only if you already know exactly which sections you need.",
     parameters: {
       type: "object",
       properties: {
@@ -217,7 +217,7 @@ export async function* executeLocalChat(
           type: "array",
           items: { type: "string" },
           description:
-            "Optional. Filter to specific sections (node type names like 'command', 'drive-file', 'calendar-list', or the special name 'trigger'). Omit to receive the entire spec — recommended when debugging an unfamiliar workflow.",
+            "Optional. Filter to specific sections (node type names like 'command', 'drive-file', 'sheet-read', or the special name 'trigger'). Omit to receive the entire spec — recommended when debugging an unfamiliar workflow.",
         },
       },
     },

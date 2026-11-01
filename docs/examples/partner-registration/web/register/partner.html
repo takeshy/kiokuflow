@@ -57,7 +57,7 @@
 
       try {
         const redirect = new URLSearchParams(location.search).get("redirect") || "/partner/";
-        await gemihub.auth.register("partner", data.email, {
+        await kiokuflow.auth.register("partner", data.email, {
           name: data.name,
           company: data.company,
         }, redirect);

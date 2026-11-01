@@ -1,11 +1,11 @@
 ---
 name: dashboard
-description: Create GemiHub Dashboards (.dashboard files) — a grid of widgets that embed Bases views, folder card/table/kanban views, notes, web pages, and workflow output. Use when the user asks for a dashboard, a home/overview page, or to arrange .base views and data widgets in a grid.
+description: Create kiokuflow Dashboards (.dashboard files) — a grid of widgets that embed Bases views, folder card/table/kanban views, notes, web pages, and workflow output. Use when the user asks for a dashboard, a home/overview page, or to arrange .base views and data widgets in a grid.
 ---
 
-# GemiHub Dashboard Skill
+# kiokuflow Dashboard Skill
 
-Create `.dashboard` files: a grid of widgets rendered on the GemiHub home view. A `.dashboard` file is YAML. It is normally authored visually (drag/resize/configure in edit mode), but you can also write the YAML directly.
+Create `.dashboard` files: a grid of widgets rendered on the kiokuflow home view. A `.dashboard` file is YAML. It is normally authored visually (drag/resize/configure in edit mode), but you can also write the YAML directly.
 
 Always output valid YAML when creating or modifying a `.dashboard` file.
 
@@ -138,7 +138,7 @@ Renders a named view of a `.base` file (table / cards / list). **Use this for an
 
 ### `workflow` — run a workflow and render its output
 
-Runs a GemiHub workflow headlessly and renders the result. The workflow runs unattended (no interactive nodes).
+Runs a kiokuflow workflow headlessly and renders the result. The workflow runs unattended (no interactive nodes).
 
 ```yaml
 - id: digest-1

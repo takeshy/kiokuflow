@@ -67,7 +67,7 @@ Widgets are registered in `widgets/registry.ts` via `registerWidget(def)`. Each 
 | `kanban` | Kanban board over a folder of markdown files | `.kanban` definition file + folder |
 | `secret-manager` | Create, search, unlock, copy, and update encrypted values | `.encrypted` files |
 | `timeline` | Personal microblog of dated posts (tags, image attachments, pin/edit) | timeline folder |
-| `calendar` | Month calendar combining local events, Timeline activity, and explicitly refreshed Google Calendar events | system timeline + browser cache |
+| `calendar` | Month calendar combining local events and Timeline activity | system timeline + browser cache |
 | `workflow` | Run a workflow and render its output | workflow |
 | `web` | Embed an external URL (with embeddability check + fallback card) | URL |
 | `memo-list` | Browse all memo files (filter, paging, newest-memo preview) | `Dashboards/Memos/` |
@@ -122,7 +122,6 @@ The same memo timeline is also available in the **IDE main viewers** (Markdown /
 
 The `base` widget renders a **view of an Obsidian-style `.base` file** — a saved query (filters, sort, limit, computed properties) over a folder of Markdown notes — as a **table**, **card grid**, or **list**. It replaces the old `card` / `table` / `file-list` folder widgets (which can be converted to Bases from their settings, see the note above). Implemented by `widgets/BaseWidget.tsx`; the `.base` parsing/query engine lives in `app/bases/` (`compileBase`, `queryView`, `createGemiHubHost`) and the view renderer in `app/components/bases/BaseViewRenderer.tsx`.
 
-![Base widget settings](../../public/images/base_setting.png)
 
 ```yaml
 config:
@@ -141,9 +140,7 @@ config:
 
 The `timeline` widget is a **personal microblog**: a reverse-chronological feed of short posts with `#tags` and image attachments. Implemented by `widgets/TimelineWidget.tsx`.
 
-![Timeline widget](../../public/images/timeline_edit.png)
 
-![Timeline widget settings](../../public/images/timeline_setting.png)
 
 ```yaml
 config:
@@ -164,12 +161,10 @@ config:
 
 ### Calendar widget and Launcher calendar
 
-The `calendar` widget shows a month grid that combines local calendar events with activity from the system Timeline. The same `CalendarWidget` is also available from the IDE Launcher, so both surfaces share the same events, Google Calendar cache, and day-detail behavior.
+The `calendar` widget shows a month grid that combines local calendar events with activity from the system Timeline. The same `CalendarWidget` is also available from the IDE Launcher, so both surfaces share the same local events and day-detail behavior.
 
 - **Day details** — clicking a date opens a portal-based modal instead of expanding content below the month. The modal lists that day's events and activity and keeps only **Add event** in its header; an empty day does not render a redundant “No events or activity” message. Close it with the backdrop, ×, or Escape. In the Launcher, Escape closes the day modal first and leaves the Launcher open.
-- **Local events** — Add event writes a calendar-marked entry to `Dashboards/Timeline/System/<YYYY-MM-DD>.md`; local events can be edited, moved to another date, and deleted. Timeline activity is read-only in this view.
-- **Google Calendar** — **Google events** requests the primary calendar for exactly the visible month (`timeMin` inclusive, next-month `timeMax` exclusive, up to 250 results). Returned events are read-only and link to Google Calendar. Refresh is explicit; changing months never makes a network request by itself.
-- **Month cache** — successful Google results are stored by month in the app-level Drive IndexedDB (`googleCalendarMonths`, schema version 9). Returning from another file, dashboard, or Launcher instance restores the cached month immediately. The cache belongs to the personal app cache even while an organization project is selected; it is not written into a `.dashboard` file or synced to project storage.
+- **Local events** — Add event writes a calendar-marked entry to `Dashboards/Timeline/Timeline/<YYYY-MM-DD>.md`; local events can be edited, moved to another date, and deleted. Timeline activity is read-only in this view.
 - **Overlay behavior** — the day modal is portaled to `document.body` at a higher layer than the Launcher, avoiding clipping by widget and Launcher overflow containers.
 
 ### Memo List widget
@@ -185,9 +180,7 @@ The `memo-list` widget browses every memo file under `Dashboards/Memos/` (config
 
 The `secret-manager` widget manages encrypted values as normal local-first `.encrypted` files. It is implemented by `widgets/SecretManagerWidget.tsx`; path normalization and search helpers live in `secret-manager.ts`.
 
-![Secret Manager widget](../../public/images/secret_manager.png)
 
-![New secret dialog](../../public/images/secret_manager_new.png)
 
 ```yaml
 config:
@@ -263,7 +256,6 @@ Frontmatter cells are editable inline (double-click); edits are written back to 
 
 The `kanban` widget reads Markdown files from a folder, groups them by a frontmatter status property, and writes status changes back to the same file when a card is dragged to another column.
 
-![Kanban board](../../public/images/dashboard_kanban.png)
 
 The board definition always lives in a **`.kanban` file** (like `base` widgets and `.base` files); the widget config only references it:
 
@@ -302,7 +294,7 @@ File-backed widgets get the cell chrome's Open button; `.kanban` files open in a
 
 ## Workflow widget
 
-The `workflow` widget runs a GemiHub workflow headlessly and renders its output. Implemented by `WorkflowWidget.tsx` + `workflow-runner.ts`.
+The `workflow` widget runs a kiokuflow workflow headlessly and renders its output. Implemented by `WorkflowWidget.tsx` + `workflow-runner.ts`.
 
 ```yaml
 config:
@@ -374,7 +366,7 @@ Plugins add custom widget types with `registerWidget(def)` (`widgets/registry.ts
 ## Bluesky publication
 
 Connect your own Bluesky account in **Settings → Bluesky** (OAuth on Bluesky's
-own authorization screen; the password is never entered in GemiHub). The popup
+own authorization screen; the password is never entered in kiokuflow). The popup
 reports the outcome back through a `BroadcastChannel` and closes, and the tab
 shows the connected account. While an account is connected, Timeline posts show
 a Bluesky (butterfly) button; the dialog needs no setup — only the selection.
@@ -388,7 +380,7 @@ tables, callouts or math default to Image, and a post that cannot be drawn
 falls back to text. What the dialog shows is what is sent. Unselected messages
 and replies added after opening the dialog are excluded, and selected replies
 attach to their closest selected ancestor. Implemented by
-`app/components/bluesky/` and `app/services/bluesky.ts` (ported from GemiHub
+`app/components/bluesky/` and `app/services/bluesky.ts` (ported from kiokuflow
 Desktop).
 
 A failed/uncertain response can be retried with the same selection: deterministic

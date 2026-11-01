@@ -6,7 +6,7 @@ import {
 
 import GUIDE_CONTENT from "./project-initial-files/gemihubガイド.md?raw";
 
-export const PROJECT_GUIDE_PATH = "gemihubガイド.md";
+export const PROJECT_GUIDE_PATH = "kiokuflowガイド.md";
 
 /** Create the editable welcome guide once without overwriting user content. */
 export async function initializeProjectGuide(ctx: ProjectAccessContext): Promise<void> {

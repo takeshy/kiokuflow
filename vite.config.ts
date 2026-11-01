@@ -1,3 +1,4 @@
+import { isMainAppDomain } from "./app/config/branding";
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -77,7 +78,7 @@ function hubworkRootPage(): Plugin {
         const host = req.headers.host;
         if (!host) return next();
         const domain = host.split(":")[0];
-        if (domain === "localhost" || domain === "gemihub.net" || domain === "www.gemihub.net") return next();
+        if (isMainAppDomain(domain)) return next();
 
         try {
           const mod = await server.ssrLoadModule("/app/services/hubwork-page.server.ts");

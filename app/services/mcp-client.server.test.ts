@@ -68,7 +68,7 @@ test("uses a complete stateless 2026-07-28 request envelope", async (t) => {
     const meta = params._meta as Record<string, unknown>;
     assert.equal(meta["io.modelcontextprotocol/protocolVersion"], MCP_PROTOCOL_VERSION);
     assert.deepEqual(meta["io.modelcontextprotocol/clientInfo"], {
-      name: "gemihub",
+      name: "kiokuflow",
       version: "1.0.0",
     });
     assert.deepEqual(meta["io.modelcontextprotocol/clientCapabilities"], MCP_APPS_CLIENT_CAPABILITIES);

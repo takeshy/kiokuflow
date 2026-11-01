@@ -10,9 +10,9 @@ tags:
 ---
 # Storage Mounts & AI Providers
 
-GemiHub runs on a *coexistence* model, not a deployment switch. Every session
+kiokuflow runs on a *coexistence* model, not a deployment switch. Every session
 has a **Drive mount** — the user's own Google Drive. Its AI provider is chosen
-independently: the user's Gemini API key (default), GemiHub Vertex AI against a
+independently: the user's Gemini API key (default), kiokuflow Vertex AI against a
 personal prepaid balance, or the user's own Vertex AI connection. A member of
 an organization additionally gets a **GCS project mount**
 while an org project is selected. An ordinary user (or a self-hosted install
@@ -23,7 +23,7 @@ with no Google Cloud credentials) never sees any of the organization surface.
 | | Drive mount (default) | GCS project mount |
 | --- | --- | --- |
 | Who | everyone | org members with a project selected |
-| Files | the user's Drive `gemihub/` folder (flat layout: the Drive file NAME is the relative path; folders are virtual) | per-project prefix in the shared tenant GCS bucket |
+| Files | the user's Drive `kiokuflow/` folder (flat layout: the Drive file NAME is the relative path; folders are virtual) | per-project prefix in the shared tenant GCS bucket |
 | Identity | relative path (fileId on Drive resolves via `_sync-meta.json`) | relative path |
 | Concurrency | `revision` = md5Checksum | `revision` = GCS `generation` (412 on mismatch) |
 | Local cache | `gemihub-cache` IndexedDB (fileId keys) | `gemihub-storage` IndexedDB, namespaced by `mountKey` (`gcs:{orgId}/{projectId}`) |
@@ -46,7 +46,7 @@ client, the start route rejects a personal connection without one, and
 uploading a new client drops the existing refresh token because a token is
 bound to its issuer. Chat then runs `personal-vertex-route.server.ts` with
 `vertexBillingMode: "customer"`, so charges land on the user's project and no
-GemiHub balance is touched. The JSON must list `{origin}/auth/vertex/callback`
+kiokuflow balance is touched. The JSON must list `{origin}/auth/vertex/callback`
 among its authorized redirect URIs; a Desktop-application JSON is rejected
 with a hint to create a Web application client instead.
 

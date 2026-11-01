@@ -26,9 +26,7 @@ function WorkflowEn() {
         </ol>
 
         <h2>AI Workflow Generation</h2>
-        <figure className="my-4 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-          <img src="/images/ai_generate_workflow.png" alt="AI workflow generation" className="w-full" loading="lazy" />
-        </figure>
+
         <p>
           Describe what you want in plain language and AI will create the workflow YAML for you. Click the <strong>AI Generate</strong> button in the workflow editor, type a natural language description (e.g. &quot;Read all Markdown files in the reports folder and summarize each one&quot;), and the AI generates the corresponding YAML definition. A live Mermaid diagram preview updates as the YAML is generated, so you can see the workflow structure in real-time.
         </p>
@@ -100,9 +98,7 @@ function WorkflowEn() {
         </p>
 
         <h2>Execution History</h2>
-        <figure className="my-4 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-          <img src="/images/edit_workflow.png" alt="Workflow editing" className="w-full" loading="lazy" />
-        </figure>
+
         <p>
           Each execution is recorded and saved to Drive. You can reference past execution history when creating or modifying workflows.
         </p>
@@ -131,9 +127,7 @@ function WorkflowJa() {
         </ol>
 
         <h2>AIワークフロー生成</h2>
-        <figure className="my-4 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-          <img src="/images/ai_generate_workflow.png" alt="AIワークフロー生成" className="w-full" loading="lazy" />
-        </figure>
+
         <p>
           やりたいことを自然言語で伝えるだけで、AIがワークフローのYAMLを生成します。ワークフローエディタの<strong>AI生成</strong>ボタンをクリックし、説明を入力してください（例：「reportsフォルダ内のすべてのMarkdownファイルを読み取り、各ファイルを要約する」）。AIが対応するYAML定義を生成します。生成中はMermaidダイアグラムのライブプレビューがリアルタイムで更新され、ワークフローの構造を確認できます。
         </p>
@@ -205,9 +199,7 @@ function WorkflowJa() {
         </p>
 
         <h2>実行履歴</h2>
-        <figure className="my-4 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-          <img src="/images/edit_workflow.png" alt="ワークフロー編集" className="w-full" loading="lazy" />
-        </figure>
+
         <p>
           各実行は記録されDriveに保存されます。ワークフローの作成・修正時に過去の実行履歴を参照できます。
         </p>

@@ -67,7 +67,7 @@ export async function* compatibleChatEvents(
   const response = await fetch(options.serverApiKey ? `${definition.baseUrl}/chat/completions` : `/api/ai-providers/${provider}/chat`, {
     method: "POST", headers: {
       "Content-Type": "application/json",
-      ...(options.serverApiKey ? { Authorization: `Bearer ${options.serverApiKey}`, ...(provider === "opencodego" ? { "User-Agent": "gemihub/1.0", "x-opencode-session": upstreamSession } : { "X-Title": "GemiHub" }) } : {}),
+      ...(options.serverApiKey ? { Authorization: `Bearer ${options.serverApiKey}`, ...(provider === "opencodego" ? { "User-Agent": "kiokuflow/1.0", "x-opencode-session": upstreamSession } : { "X-Title": "kiokuflow" }) } : {}),
     },
     body: JSON.stringify(options.serverApiKey ? { ...upstream, stream: true, stream_options: { include_usage: true }, ...(options.webSearchEnabled ? { plugins: [{ id: "web" }] } : {}) } : body),
     signal: options.abortSignal,

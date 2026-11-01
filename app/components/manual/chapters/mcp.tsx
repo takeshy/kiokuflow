@@ -10,12 +10,10 @@ function McpEn() {
   return (
     <>
       <h1 className="mb-6 text-3xl font-bold text-gray-900 dark:text-gray-50">MCP (Model Context Protocol)</h1>
-      <figure className="mb-8 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-        <img src="/images/mcp_apps.png" alt="MCP Apps" className="w-full" loading="lazy" />
-      </figure>
+
       <div className={prose}>
         <p>
-          MCP allows GemiHub to connect to external services and tools. The AI can automatically discover and use tools provided by MCP-compatible servers during chat conversations and workflow execution.
+          MCP allows kiokuflow to connect to external services and tools. The AI can automatically discover and use tools provided by MCP-compatible servers during chat conversations and workflow execution.
         </p>
 
         <h2>Setting Up MCP Servers</h2>
@@ -32,20 +30,18 @@ function McpEn() {
 
         <h2>OAuth Authentication</h2>
         <p>
-          MCP servers that support OAuth are automatically detected. GemiHub handles the OAuth flow — click the authenticate button and follow the prompts. Tokens are stored and refreshed automatically.
+          MCP servers that support OAuth are automatically detected. kiokuflow handles the OAuth flow — click the authenticate button and follow the prompts. Tokens are stored and refreshed automatically.
         </p>
 
         <h2>Using MCP Tools in Chat</h2>
-        <figure className="my-4 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-          <img src="/images/setting_mcp_server_tool.png" alt="MCP server tools" className="w-full" loading="lazy" />
-        </figure>
+
         <p>
           When MCP servers are configured, the AI can use their tools during conversation. Tools appear with prefixed names like <code>mcp_serverName_toolName</code>. You can enable or disable specific servers per chat session.
         </p>
 
         <h2>MCP Apps</h2>
         <p>
-          When an MCP tool returns rich content (HTML, JSON), GemiHub renders it in a sandboxed iframe called an &quot;MCP App.&quot; This allows interactive visualizations and custom UIs from external tools.
+          When an MCP tool returns rich content (HTML, JSON), kiokuflow renders it in a sandboxed iframe called an &quot;MCP App.&quot; This allows interactive visualizations and custom UIs from external tools.
         </p>
 
         <h2>MCP in Workflows</h2>
@@ -61,12 +57,10 @@ function McpJa() {
   return (
     <>
       <h1 className="mb-6 text-3xl font-bold text-gray-900 dark:text-gray-50">MCP（モデルコンテキストプロトコル）</h1>
-      <figure className="mb-8 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-        <img src="/images/mcp_apps.png" alt="MCPアプリ" className="w-full" loading="lazy" />
-      </figure>
+
       <div className={prose}>
         <p>
-          MCPにより、GemiHubは外部サービスやツールに接続できます。AIはチャットやワークフロー実行中に、MCP互換サーバーが提供するツールを自動的に発見して使用できます。
+          MCPにより、kiokuflowは外部サービスやツールに接続できます。AIはチャットやワークフロー実行中に、MCP互換サーバーが提供するツールを自動的に発見して使用できます。
         </p>
 
         <h2>MCPサーバーのセットアップ</h2>
@@ -83,20 +77,18 @@ function McpJa() {
 
         <h2>OAuth認証</h2>
         <p>
-          OAuthをサポートするMCPサーバーは自動検出されます。GemiHubがOAuthフローを処理します。認証ボタンをクリックしてプロンプトに従ってください。トークンは自動的に保存・更新されます。
+          OAuthをサポートするMCPサーバーは自動検出されます。kiokuflowがOAuthフローを処理します。認証ボタンをクリックしてプロンプトに従ってください。トークンは自動的に保存・更新されます。
         </p>
 
         <h2>チャットでのMCPツール使用</h2>
-        <figure className="my-4 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-          <img src="/images/setting_mcp_server_tool.png" alt="MCPサーバーツール" className="w-full" loading="lazy" />
-        </figure>
+
         <p>
           MCPサーバーが設定されている場合、AIは会話中にそれらのツールを使用できます。ツールは<code>mcp_サーバー名_ツール名</code>のプレフィックス付き名前で表示されます。チャットセッションごとに特定のサーバーを有効/無効にできます。
         </p>
 
         <h2>MCPアプリ</h2>
         <p>
-          MCPツールがリッチコンテンツ（HTML、JSON）を返す場合、GemiHubはサンドボックス化されたiframe「MCPアプリ」でレンダリングします。外部ツールからのインタラクティブな可視化やカスタムUIが可能です。
+          MCPツールがリッチコンテンツ（HTML、JSON）を返す場合、kiokuflowはサンドボックス化されたiframe「MCPアプリ」でレンダリングします。外部ツールからのインタラクティブな可視化やカスタムUIが可能です。
         </p>
 
         <h2>ワークフローでのMCP</h2>

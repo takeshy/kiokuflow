@@ -28,7 +28,6 @@ File editing system with a WYSIWYG markdown editor, visual workflow editor, HTML
 
 The file tree toolbar provides a **New File** button that opens a creation dialog. In addition to specifying a file name and extension, you can optionally include date/time and geolocation metadata in the initial file content.
 
-![New File Dialog](/images/editor_new.png)
 
 ### Options
 
@@ -46,7 +45,6 @@ The file tree toolbar provides a **New File** button that opens a creation dialo
 
 When a memo contains latitude and longitude, you can ask the AI in the chat panel to identify the place name. The AI reads the file content via the `read_drive_file` function call and resolves the coordinates to a human-readable location.
 
-![Memo with Location and AI Chat](/images/editor_memo.png)
 
 ---
 

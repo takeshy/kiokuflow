@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { executeIsolatedJS } from "./isolated-vm-executor.server.ts";
 
-// The `utils` helper namespace is the sole GemiHub-provided surface inside the
+// The `utils` helper namespace is the sole kiokuflow-provided surface inside the
 // script sandbox. These tests lock in the contract the skill docs and the
 // client-side sandbox (sandbox-executor.ts) agree on: `utils.randomUUID()`
 // exists, `crypto` does NOT, and the ECMAScript standard library works.

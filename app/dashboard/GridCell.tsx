@@ -67,7 +67,7 @@ export default function GridCell({
   const isActive = interactionMode !== null;
   // Maximized cells aren't movable/resizable. (obsidian-gemini-helper also
   // disables the handles while a file widget's memo panel is open, but its
-  // full-width drag tab conflicted with memo text selection — GemiHub's drag
+  // full-width drag tab conflicted with memo text selection — kiokuflow's drag
   // is confined to the pill grip, so no such guard is needed.)
   const layoutHandlesEnabled = !isMaximized;
 

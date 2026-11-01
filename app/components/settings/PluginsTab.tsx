@@ -40,8 +40,6 @@ const PERMISSION_I18N_KEYS: Record<PluginPermission, keyof TranslationStrings> =
   gemini: "plugins.permissionGemini",
   drive: "plugins.permissionDrive",
   storage: "plugins.permissionStorage",
-  calendar: "plugins.permissionCalendar",
-  gmail: "plugins.permissionGmail",
   sheets: "plugins.permissionSheets",
 };
 

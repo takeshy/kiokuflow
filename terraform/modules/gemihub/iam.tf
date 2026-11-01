@@ -1,6 +1,6 @@
 resource "google_service_account" "cloud_run" {
   account_id   = "gemini-hub-run"
-  display_name = "Gemini Hub IDE Cloud Run"
+  display_name = "kiokuflow IDE Cloud Run"
 
   depends_on = [google_project_service.apis]
 }

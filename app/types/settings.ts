@@ -909,7 +909,7 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
   selectedRagSetting: null,
   okfRoot: "Knowledge",
   systemPrompt: "",
-  rootFolderName: "gemihub",
+  rootFolderName: "kiokuflow",
   language: null,
   fontSize: 16,
   theme: "system",

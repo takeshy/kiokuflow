@@ -50,7 +50,7 @@ export default function LoginPage() {
       <section className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-7 shadow-xl shadow-blue-950/5 dark:border-gray-700 dark:bg-gray-900 sm:p-9">
         <Link to="/lp" className="mb-8 flex items-center justify-center gap-3">
           <img src="/icons/icon-192x192.png" alt="" className="h-11 w-11 rounded-xl" />
-          <span className="text-xl font-bold text-gray-900 dark:text-white">GemiHub</span>
+          <span className="text-xl font-bold text-gray-900 dark:text-white">kiokuflow</span>
         </Link>
         <h1 className="text-center text-2xl font-bold text-gray-900 dark:text-white">{s.title}</h1>
         {workspacePending && (

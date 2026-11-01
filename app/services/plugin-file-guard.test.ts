@@ -73,8 +73,6 @@ test("PluginAPI surface stays an explicit allowlist", () => {
     "gemini",
     "drive",
     "storage",
-    "calendar",
-    "gmail",
     "sheets",
   ];
   const declared = [...surface[0].matchAll(/^ {2}(\w+)[?:(]/gm)].map((m) => m[1]);

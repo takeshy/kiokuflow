@@ -7,16 +7,6 @@ const BASE_SCOPES = [
   "https://www.googleapis.com/auth/drive.file",
 ];
 
-const HUBWORK_SCOPES = [
-  "https://www.googleapis.com/auth/gmail.send",
-  "https://www.googleapis.com/auth/calendar.events.owned",
-];
-
-export function hasRequiredHubworkScopes(grantedScopes?: string): boolean {
-  if (!grantedScopes) return false;
-  return HUBWORK_SCOPES.every((scope) => grantedScopes.includes(scope));
-}
-
 function getOAuth2Client(request?: Request) {
   const url = request ? new URL(request.url) : null;
   const proto = request?.headers.get("x-forwarded-proto") || url?.protocol.replace(":", "");
@@ -36,7 +26,7 @@ function getOAuth2Client(request?: Request) {
  */
 export async function getAuthUrl(
   request: Request,
-  options?: { includeHubworkScopes?: boolean; returnTo?: string }
+  options?: { returnTo?: string }
 ): Promise<{ url: string; setCookieHeader: string }> {
   const state = crypto.randomUUID();
 
@@ -50,7 +40,6 @@ export async function getAuthUrl(
   const session = await getSession(request);
   session.set("oauthState", state);
   session.set("oauthCodeVerifier", codeVerifier);
-  session.set("oauthIncludeHubworkScopes", options?.includeHubworkScopes ? "1" : "0");
   if (options?.returnTo) {
     session.set("oauthReturnTo", options.returnTo);
   } else {
@@ -58,13 +47,12 @@ export async function getAuthUrl(
   }
   const setCookieHeader = await commitSession(session);
 
-  const scopes = options?.includeHubworkScopes
-    ? [...BASE_SCOPES, ...HUBWORK_SCOPES]
-    : BASE_SCOPES;
+  const scopes = BASE_SCOPES;
 
   const oauth2Client = getOAuth2Client(request);
   const url = oauth2Client.generateAuthUrl({
     access_type: "offline",
+    include_granted_scopes: false,
     scope: scopes,
     prompt: "consent",
     state,
@@ -74,7 +62,7 @@ export async function getAuthUrl(
   return { url, setCookieHeader };
 }
 
-export { HUBWORK_SCOPES };
+export { BASE_SCOPES };
 
 export async function exchangeCode(code: string, request: Request, codeVerifier: string): Promise<{
   accessToken: string;

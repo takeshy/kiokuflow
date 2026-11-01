@@ -34,7 +34,7 @@ export async function serveHubworkRootPage(
     mountCtx = null;
   }
   if (!mountCtx) {
-    return new Response("Account not configured. Owner must log in to GemiHub first.", { status: 503 });
+    return new Response("Account not configured. Owner must log in to kiokuflow first.", { status: 503 });
   }
 
   const result = await resolveHubworkPage(mountCtx, "index");

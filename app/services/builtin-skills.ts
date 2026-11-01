@@ -1,5 +1,5 @@
 /**
- * Built-in GemiHub skills, embedded in the app bundle.
+ * Built-in kiokuflow skills, embedded in the app bundle.
  *
  * These used to be provisioned into the user's Drive under `skills/` so the
  * normal skill loader could find them. That put four app-owned folders in
@@ -12,7 +12,7 @@
  *
  * The Markdown, Base, and Canvas skill documentation was initially adapted
  * from kepano/obsidian-skills under the MIT License. The Base guide is now an
- * independent description of GemiHub's compatibility layer. See
+ * independent description of kiokuflow's compatibility layer. See
  * THIRD_PARTY_NOTICES.md.
  */
 
@@ -59,19 +59,19 @@ function definition(
 const DEFINITIONS: BuiltinSkillDefinition[] = [
   definition(
     "markdown",
-    "Create and edit GemiHub Markdown notes using GFM, frontmatter, callouts, Mermaid diagrams, tables, task lists, and links.",
+    "Create and edit kiokuflow Markdown notes using GFM, frontmatter, callouts, Mermaid diagrams, tables, task lists, and links.",
     MARKDOWN_SKILL_MD,
     [MARKDOWN_REF_PREVIEW],
   ),
   definition(
     "canvas",
-    "Create and edit GemiHub .canvas files using JSON Canvas nodes, edges, groups, colors, and file/link references.",
+    "Create and edit kiokuflow .canvas files using JSON Canvas nodes, edges, groups, colors, and file/link references.",
     CANVAS_SKILL_MD,
     [CANVAS_REF_EXAMPLES],
   ),
   definition(
     "base",
-    "Author GemiHub .base files: filters, formulas, properties, and table/card views over the note collection.",
+    "Author kiokuflow .base files: filters, formulas, properties, and table/card views over the note collection.",
     BASE_SKILL_MD,
     [BASE_REF_FUNCTIONS, BASE_REF_VIEWS],
   ),
@@ -80,7 +80,7 @@ const DEFINITIONS: BuiltinSkillDefinition[] = [
   // to author the backing .base files.
   definition(
     "dashboard",
-    "Author GemiHub .dashboard files: widget grid, widget types, and the .base files that feed them.",
+    "Author kiokuflow .dashboard files: widget grid, widget types, and the .base files that feed them.",
     DASHBOARD_SKILL_MD,
     [BASE_SKILL_MD, BASE_REF_FUNCTIONS, BASE_REF_VIEWS],
   ),

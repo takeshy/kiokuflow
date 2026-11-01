@@ -90,7 +90,7 @@ Where:
 - `localChanged = locallyModifiedFileIds.has(fileId)` — the `editHistory` store tracks which files have been edited locally since the last sync
 - `remoteChanged = localMeta.md5Checksum !== remoteMeta.md5Checksum || localMeta.name !== remoteMeta.name` — remote meta diverges from local meta when another device has pushed changes (detects both content and name changes)
 
-No live Drive API listing is needed during the diff: the `drive.file` scope ensures only GemiHub-family clients can modify these files, so `_sync-meta.json` is treated as authoritative. `GET /api/sync` keeps it that way by reconciling the meta against one root listing before returning it: entries whose file is gone, trashed, or moved out of the root are removed (verified by id, so a partial listing cannot manufacture deletions), and root files missing from the meta are added (`addUntrackedFilesToSyncMeta`). The latter covers an external client (Desktop/Obsidian plugin) that uploaded files but crashed before writing the meta; such files used to stay invisible until the user ran "Detect untracked files". Tracked entries whose Drive md5 or name no longer matches the meta (another client wrote the file without updating the meta, or a meta write was lost) are refreshed to the Drive state (`refreshDriftedSyncMetaEntries`), so the change surfaces as a pull/conflict. Without this, Push's pre-upload revalidation saw the file as "changed on remote" on every attempt and reported `skipped N file(s)` forever while the diff showed nothing to pull. When Push skips files or deletions, it returns this reconciled meta as well.
+No live Drive API listing is needed during the diff: the `drive.file` scope ensures only kiokuflow-family clients can modify these files, so `_sync-meta.json` is treated as authoritative. `GET /api/sync` keeps it that way by reconciling the meta against one root listing before returning it: entries whose file is gone, trashed, or moved out of the root are removed (verified by id, so a partial listing cannot manufacture deletions), and root files missing from the meta are added (`addUntrackedFilesToSyncMeta`). The latter covers an external client (Desktop/Obsidian plugin) that uploaded files but crashed before writing the meta; such files used to stay invisible until the user ran "Detect untracked files". Tracked entries whose Drive md5 or name no longer matches the meta (another client wrote the file without updating the meta, or a meta write was lost) are refreshed to the Drive state (`refreshDriftedSyncMetaEntries`), so the change surfaces as a pull/conflict. Without this, Push's pre-upload revalidation saw the file as "changed on remote" on every attempt and reported `skipped N file(s)` forever while the diff showed nothing to pull. When Push skips files or deletions, it returns this reconciled meta as well.
 
 ---
 
@@ -300,7 +300,7 @@ Binary files round-trip through base64: the winning content is uploaded with a b
 
 ### Backup Naming
 
-Backups written as files — Drive `sync_conflicts/` (when the root folder is changed, see `migrateRootFolder`) and the plugins' local `GemiHub/conflict-backups/` folders — are named:
+Backups written as files — Drive `sync_conflicts/` (when the root folder is changed, see `migrateRootFolder`) and the plugins' local `kiokuflow/conflict-backups/` folders — are named:
 
 ```
 {encodeURIComponent(path)}_{YYYYMMDD_HHmmss_mmm}.{ext}   (UTC)
@@ -308,7 +308,7 @@ Backups written as files — Drive `sync_conflicts/` (when the root folder is ch
 
 Example: `notes/daily.md` → `sync_conflicts/notes%2Fdaily_20260207_143000_123.md`
 
-The format is shared by GemiHub web, obsidian-gemihub and gemihub-gdrive (`buildConflictBackupName` in `gemihub-sync-core/conflict`), so a backup written by any client restores to its original path in any other. `parseConflictBackupName` also reads the legacy formats — `notes_daily_20260207_143000.md` (GemiHub) and `notes_daily_20260207_143000_123.md` (Desktop); their `/` → `_` replacement cannot be reversed, so those restore under the flattened name. The Conflict Backups dialog and the `restoreConflict` action use the parser to propose the restore name.
+The format is shared by kiokuflow web, obsidian-gemihub and gemihub-gdrive (`buildConflictBackupName` in `gemihub-sync-core/conflict`), so a backup written by any client restores to its original path in any other. `parseConflictBackupName` also reads the legacy formats — `notes_daily_20260207_143000.md` (kiokuflow) and `notes_daily_20260207_143000_123.md` (Desktop); their `/` → `_` replacement cannot be reversed, so those restore under the flattened name. The Conflict Backups dialog and the `restoreConflict` action use the parser to propose the restore name.
 
 ---
 
@@ -442,7 +442,7 @@ When a conflict occurs, you choose Keep Local or Keep Remote; the other version 
 
 Do not clear the cache before restoring — it deletes the backups. If the browser-local copy is gone, Google Drive's version history for the file ("Manage versions") may still hold the overwritten revision.
 
-Backups in Drive `sync_conflicts/` (created when the root folder is changed, or by older GemiHub versions' conflict resolution) are listed in the same dialog under "Google Drive (sync_conflicts/)" (Drive mount only): select the backup, edit the restore name if needed, and click Restore — the backup is created as a new file in the root folder.
+Backups in Drive `sync_conflicts/` (created when the root folder is changed, or by older kiokuflow versions' conflict resolution) are listed in the same dialog under "Google Drive (sync_conflicts/)" (Drive mount only): select the backup, edit the restore name if needed, and click Restore — the backup is created as a new file in the root folder.
 
 ### Scenario 2: Recover a Deleted File
 
@@ -501,11 +501,11 @@ Excluded by folder structure — these are actual Google Drive subfolders create
 - `sync_conflicts/` — Conflict backup files (managed via Conflict Backups dialog)
 - `__TEMP__/` — Temporary sync files (managed via Temp Files dialog)
 - `plugins/` — Installed plugin files
-- `GemiHub/conflict-backups/` — Conflict backups kept inside an Obsidian vault by obsidian-gemihub
+- `kiokuflow/conflict-backups/` — Conflict backups kept inside an Obsidian vault by obsidian-gemihub
 
 Excluded at any depth: folders named `.git` or `node_modules` (tooling output, never user content).
 
-These rules come from `gemihub-sync-core/paths` and are identical in every client. Clients add only their own folders through `isSyncExcludedPath(path, options)`: GemiHub web strips the `gemihub/` managed root of project-mount keys (`managedRootPrefixes`), obsidian-gemihub adds the vault config dir, its `GemiHub/` workspace folder, `.trash/` and user exclude patterns, and gemihub-gdrive adds `.llm-hub` and user exclude patterns.
+These rules come from `gemihub-sync-core/paths` and are identical in every client. Clients add only their own folders through `isSyncExcludedPath(path, options)`: kiokuflow web strips the `kiokuflow/` managed root of project-mount keys (`managedRootPrefixes`), obsidian-gemihub adds the vault config dir, its `kiokuflow/` workspace folder, `.trash/` and user exclude patterns, and gemihub-gdrive adds `.llm-hub` and user exclude patterns.
 
 ---
 
@@ -528,7 +528,7 @@ Browser (IndexedDB)          Server                Google Drive
 
 ### Shared Sync Core (gemihub-sync-core)
 
-The Drive layout and sync protocol are shared with the other GemiHub clients — [obsidian-gemihub](https://github.com/takeshy/obsidian-gemihub) (Obsidian vault ↔ Drive) and gemihub-gdrive (GemiHub Desktop workspace ↔ Drive) — through the [gemihub-sync-core](https://github.com/takeshy/gemihub-sync-core) library. Every rule that must agree across clients lives there as runtime-agnostic TypeScript (browser, Node and Deno; Web Crypto only; no runtime dependencies):
+The Drive layout and sync protocol are shared with the other kiokuflow clients — [obsidian-gemihub](https://github.com/takeshy/obsidian-gemihub) (Obsidian vault ↔ Drive) and gemihub-gdrive (GemiHub Desktop workspace ↔ Drive) — through the [gemihub-sync-core](https://github.com/takeshy/gemihub-sync-core) library. Every rule that must agree across clients lives there as runtime-agnostic TypeScript (browser, Node and Deno; Web Crypto only; no runtime dependencies):
 
 | Entry point | Contents |
 |---|---|
@@ -539,7 +539,7 @@ The Drive layout and sync protocol are shared with the other GemiHub clients —
 | `gemihub-sync-core/conflict` | Conflict backup names (see [Backup Naming](#backup-naming)) |
 | `gemihub-sync-core/crypto` / `auth` / `hash` | Hybrid encryption, Migration Tool token and `_encrypted-auth.json`, token refresh messages, pure-JS MD5 (see [Encryption](../architecture/encryption.md)) |
 
-GemiHub keeps its existing module names as thin bindings: `sync-diff.ts` and `sync-push-guard.ts` re-export the protocol; `sync-client-utils.ts` re-exports paths/files (binding `managedRootPrefixes: ["gemihub/"]`); `google-drive.server.ts` runs the shared client over `fetchTransport` and keeps the server-only operations (export, resumable upload, Docs import, publishing); `sync-meta.server.ts` binds the store to `google-drive.server`'s functions so tests can replace them. What stays in GemiHub is environment-specific: IndexedDB caching, the Push/Pull UI and hooks, `/api/sync` actions, and project (GCS) mount sync.
+kiokuflow keeps its existing module names as thin bindings: `sync-diff.ts` and `sync-push-guard.ts` re-export the protocol; `sync-client-utils.ts` re-exports paths/files (binding `managedRootPrefixes: ["gemihub/"]`); `google-drive.server.ts` runs the shared client over `fetchTransport` and keeps the server-only operations (export, resumable upload, Docs import, publishing); `sync-meta.server.ts` binds the store to `google-drive.server`'s functions so tests can replace them. What stays in kiokuflow is environment-specific: IndexedDB caching, the Push/Pull UI and hooks, `/api/sync` actions, and project (GCS) mount sync.
 
 **Dependency and updates.** `package.json` pins an exact commit (`github:takeshy/gemihub-sync-core#<sha>`); npm builds it on install (`prepare`), so `dist/` is not committed and the Docker `dependencies-base` stage installs `git`. To move all clients to a new library commit, push it to the library's `main` and run from the library checkout:
 
@@ -547,7 +547,7 @@ GemiHub keeps its existing module names as thin bindings: `sync-diff.ts` and `sy
 npm run sync-plugins -- ../gemihub ../obsidian-gemihub ../gemihub-gdrive
 ```
 
-The script refuses uncommitted or unpushed library changes and then runs `npm install --save-exact git+https://…#<sha>` in each client; commit each client's `package.json` and `package-lock.json` afterwards. Tests for the shared rules live in the library (`npm test` there, including a GemiHub-written encryption fixture that pins the on-disk format).
+The script refuses uncommitted or unpushed library changes and then runs `npm install --save-exact git+https://…#<sha>` in each client; commit each client's `package.json` and `package-lock.json` afterwards. Tests for the shared rules live in the library (`npm test` there, including a kiokuflow-written encryption fixture that pins the on-disk format).
 
 ### Key Files
 

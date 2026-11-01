@@ -38,13 +38,13 @@ const STRINGS = {
     expiredBody: "Ask the administrator who invited you to send a new invitation email.",
     acceptedTitle: "You have already joined",
     acceptedBody: "This invitation link has already been used.",
-    openApp: "Open GemiHub",
+    openApp: "Open kiokuflow",
     invitedTitle: "You're invited to {org}",
     invitedBody: " invited you to the team's shared workspace.",
     roleAdmin: "Admin",
     roleMember: "Member",
     note: "This link verifies your email address. After joining, sign in with the Google account for the same address. Expires: ",
-    joinButton: "Join the team and open GemiHub",
+    joinButton: "Join the team and open kiokuflow",
   },
   ja: {
     tagline: "チームの共有ワークスペース",
@@ -52,13 +52,13 @@ const STRINGS = {
     expiredBody: "招待した管理者へ、新しい招待メールの送信を依頼してください。",
     acceptedTitle: "参加手続きは完了しています",
     acceptedBody: "この招待リンクはすでに使用されています。",
-    openApp: "GemiHubを開く",
+    openApp: "kiokuflowを開く",
     invitedTitle: "{org}へ招待されています",
     invitedBody: "さんから、チームの共有ワークスペースへの招待が届きました。",
     roleAdmin: "管理者",
     roleMember: "メンバー",
     note: "このメール内の専用リンクでメールアドレスを確認しています。参加後、同じメールアドレスのGoogleアカウントでログインしてください。有効期限：",
-    joinButton: "チームに参加してGemiHubを開く",
+    joinButton: "チームに参加してkiokuflowを開く",
   },
 } as const;
 
@@ -146,7 +146,7 @@ export default function InviteLanding() {
   const shell = (content: React.ReactNode) => (
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 via-white to-violet-50 px-5 py-10 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950">
       <section className="w-full max-w-lg rounded-2xl border border-gray-200 bg-white p-7 shadow-xl shadow-blue-950/5 dark:border-gray-700 dark:bg-gray-900 sm:p-9">
-        <div className="mb-6 flex items-center gap-3"><img src="/icons/icon-192x192.png" alt="" className="h-10 w-10 rounded-xl" /><div><p className="font-bold text-gray-900 dark:text-white">GemiHub</p><p className="text-xs text-gray-500">{s.tagline}</p></div></div>
+        <div className="mb-6 flex items-center gap-3"><img src="/icons/icon-192x192.png" alt="" className="h-10 w-10 rounded-xl" /><div><p className="font-bold text-gray-900 dark:text-white">kiokuflow</p><p className="text-xs text-gray-500">{s.tagline}</p></div></div>
         {content}
       </section>
     </main>

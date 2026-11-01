@@ -2,22 +2,10 @@ import { redirect } from "react-router";
 import type { Route } from "./+types/auth.google.callback";
 import {
   exchangeCode,
-  hasRequiredHubworkScopes,
-  HUBWORK_SCOPES,
-  refreshAccessToken,
 } from "~/services/google-auth.server";
 import { getSession, setTokens, commitSession, safeReturnTo } from "~/services/session.server";
 import { ensureRootFolder } from "~/services/google-drive.server";
 import { ensureSettingsFile } from "~/services/user-settings.server";
-
-async function getGrantedScopes(accessToken: string): Promise<string> {
-  const res = await fetch(
-    `https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${encodeURIComponent(accessToken)}`
-  );
-  if (!res.ok) return "";
-  const tokenInfo = await res.json();
-  return typeof tokenInfo.scope === "string" ? tokenInfo.scope : "";
-}
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
@@ -45,7 +33,6 @@ export async function loader({ request }: Route.LoaderArgs) {
   if (!codeVerifier) {
     throw new Response("Missing PKCE code verifier", { status: 400 });
   }
-  const requestedHubworkScopes = stateSession.get("oauthIncludeHubworkScopes") === "1";
 
   const tokens = await exchangeCode(code, request, codeVerifier);
 
@@ -72,12 +59,10 @@ export async function loader({ request }: Route.LoaderArgs) {
   // Read returnTo before setTokens (which creates a new session)
   const returnTo = safeReturnTo(stateSession.get("oauthReturnTo"));
 
-  const hasHubworkScopes = hasRequiredHubworkScopes(scope);
   try {
     const {
       getAccountByRootFolderId,
       getAccountByEmail,
-      getStoredRefreshToken,
       updateRefreshToken,
       updateAccount,
     } = await import("~/services/hubwork-accounts.server");
@@ -98,47 +83,8 @@ export async function loader({ request }: Route.LoaderArgs) {
         await updateAccount(hubworkAccount.id, updates);
       }
 
-      if (hasHubworkScopes && tokens.refreshToken) {
+      if (tokens.refreshToken) {
         await updateRefreshToken(hubworkAccount.id, tokens.refreshToken);
-      } else {
-        const storedRefreshToken = getStoredRefreshToken(hubworkAccount);
-        if (storedRefreshToken) {
-          try {
-            const refreshed = await refreshAccessToken(storedRefreshToken);
-            const storedScopes = await getGrantedScopes(refreshed.accessToken);
-            if (!hasRequiredHubworkScopes(storedScopes)) {
-              throw new Error("Stored refresh token is missing Hubwork scopes");
-            }
-            const session = await setTokens(request, {
-              accessToken: refreshed.accessToken,
-              refreshToken: storedRefreshToken,
-              expiryTime: refreshed.expiryTime,
-              rootFolderId: hubworkAccount.rootFolderId || rootFolderId,
-              email: hubworkAccount.email || email,
-              grantedScopes: storedScopes || HUBWORK_SCOPES.join(" "),
-            });
-            const updates: Record<string, string> = {};
-            if (!hubworkAccount.rootFolderId && rootFolderId) updates.rootFolderId = rootFolderId;
-            if (!hubworkAccount.email && email) updates.email = email;
-            if (Object.keys(updates).length > 0) {
-              updateAccount(hubworkAccount.id, updates).catch(() => {});
-            }
-            return redirect(returnTo, {
-              headers: {
-                "Set-Cookie": await commitSession(session),
-              },
-            });
-          } catch {
-            // Stored token was revoked/expired; fall through to scope upgrade.
-          }
-        }
-
-        if (!requestedHubworkScopes) {
-          const upgradeUrl = new URL("/auth/google", url.origin);
-          upgradeUrl.searchParams.set("hubwork", "1");
-          upgradeUrl.searchParams.set("returnTo", returnTo);
-          return redirect(`${upgradeUrl.pathname}${upgradeUrl.search}`);
-        }
       }
     }
   } catch {

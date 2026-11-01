@@ -1,10 +1,11 @@
+import { publicDefaultDomain } from "~/services/hubwork-accounts.server";
 import { readProviderDefaultModels } from "~/utils/provider-default-models";
 import { useState, useEffect } from "react";
 import { normalizeSecretFolder } from "~/dashboard/secret-manager";
 import { data, redirect, useLoaderData, useNavigate, useSearchParams } from "react-router";
 import type { Route } from "./+types/settings";
 import { requireAuth, getSession, commitSession, setGeminiApiKey, setTokens } from "~/services/session.server";
-import { getValidTokens, hasRequiredHubworkScopes } from "~/services/google-auth.server";
+import { getValidTokens } from "~/services/google-auth.server";
 import { getSettings, saveSettings } from "~/services/user-settings.server";
 import { resolveLanguage } from "~/i18n/resolve-language";
 import { rebuildSyncMeta } from "~/services/sync-meta.server";
@@ -91,8 +92,6 @@ export async function loader({ request }: Route.LoaderArgs) {
     hubworkLookupSucceeded = false;
     console.warn("[settings] Failed to load Hubwork account from Firestore:", describeError(error));
   }
-  const grantedScopes = validTokens.grantedScopes || "";
-  const hasHubworkScopes = hasRequiredHubworkScopes(grantedScopes);
 
   // Ensure session identity and refresh token for Hubwork accounts without downgrading stored scopes.
   if (hubworkLookupSucceeded) {
@@ -113,7 +112,7 @@ export async function loader({ request }: Route.LoaderArgs) {
         await updateAccount(personalAccount.id, updates).catch(() => {});
       }
 
-      if (validTokens.refreshToken && (hasHubworkScopes || kakerattaEnabled)) {
+      if (validTokens.refreshToken) {
         await updateRefreshToken(personalAccount.id, validTokens.refreshToken).catch(() => {});
       }
     }
@@ -129,7 +128,7 @@ export async function loader({ request }: Route.LoaderArgs) {
           plan: hubworkAccount.plan,
           currency: hubworkAccount.currency,
           accountSlug: hubworkAccount.accountSlug,
-          defaultDomain: hubworkAccount.defaultDomain,
+          defaultDomain: publicDefaultDomain(hubworkAccount),
           customDomain: hubworkAccount.customDomain || driveSettings.hubwork?.customDomain,
           billingStatus: hubworkAccount.billingStatus,
           accountStatus: hubworkAccount.accountStatus,
@@ -228,7 +227,6 @@ export async function loader({ request }: Route.LoaderArgs) {
       hasApiKey: !!validTokens.geminiApiKey,
       hasUnsupportedRagApiKey: false,
       maskedKey: validTokens.geminiApiKey ? maskApiKey(validTokens.geminiApiKey) : null,
-      hasHubworkScopes,
       rootFolderId: validTokens.rootFolderId,
       enterprise,
       hasOrganizations,
@@ -837,7 +835,7 @@ clientLoader.hydrate = true as const;
 // ---------------------------------------------------------------------------
 
 export default function Settings() {
-  const { settings, hasApiKey, hasUnsupportedRagApiKey, maskedKey, hasHubworkScopes, rootFolderId, enterprise, hasOrganizations, showEnterpriseTab, enterpriseError } = useLoaderData<typeof loader>();
+  const { settings, hasApiKey, hasUnsupportedRagApiKey, maskedKey, rootFolderId, enterprise, hasOrganizations, showEnterpriseTab, enterpriseError } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<SettingsTabId>("ai");
 
@@ -903,7 +901,6 @@ export default function Settings() {
           hasApiKey={hasApiKey}
           hasUnsupportedRagApiKey={hasUnsupportedRagApiKey}
           maskedKey={maskedKey}
-          hasHubworkScopes={hasHubworkScopes}
           rootFolderId={rootFolderId}
           activeTab={activeTab}
           onTabChange={setActiveTab}

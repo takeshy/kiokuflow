@@ -1,7 +1,7 @@
 ---
 type: Guide
 title: Kakeratta external agent
-description: Answer Kakeratta persona requests with GemiHub models, read-only file research, RAG and Web Search; Premium also runs while the browser is closed.
+description: Answer Kakeratta persona requests with kiokuflow models, read-only file research, RAG and Web Search; Premium also runs while the browser is closed.
 tags:
   - kakeratta
   - mcp
@@ -11,20 +11,20 @@ tags:
 
 Open **Settings → Integrations → Kakeratta**. In Kakeratta, create an MCP connection and assign
 the desired personas to its external agent. Copy the MCP URL and issued HTTP
-headers into GemiHub (normally `Authorization` with value `Bearer <key>`).
+headers into kiokuflow (normally `Authorization` with value `Bearer <key>`).
 Use **Load personas / test connection**, enable the integration, and save.
 
-The default profile selects an answer model, optional read-only GemiHub file
+The default profile selects an answer model, optional read-only kiokuflow file
 access, a saved RAG setting, and Web Search. A persona override replaces the
 whole default profile. Turn off the override to use the default again. Empty
-model selection uses GemiHub's selected model or the plan's default. Image
+model selection uses kiokuflow's selected model or the plan's default. Image
 models cannot answer these requests. Web Search requires a supported model.
 Personal Vertex AI does not support RAG: its selector is disabled and saving
 clears RAG selections in all profiles. Saving an unsupported combination through
 the API is rejected. If an older profile still selects RAG after changing the AI
 provider, polling rejects it before claiming any Kakeratta asks.
 
-File access is opt-in and covers the owner's personal GemiHub Drive root.
+File access is opt-in and covers the owner's personal kiokuflow Drive root.
 File IDs outside that root, settings/authentication/sync metadata files, and the
 configured Secrets folder cannot be read. File writes and skill/workflow
 execution are unavailable. Persona answers do not use other configured MCP servers. Kakeratta performs publication,
@@ -33,7 +33,7 @@ by the selected RAG setting independently of file access.
 
 ## Browser and Premium execution
 
-Free users check once when opening the main GemiHub screen, then every minute
+Free users check once when opening the main kiokuflow screen, then every minute
 while it stays open. Browser suspension can delay checks. Turning off periodic
 checks leaves only the initial check and also disables server polling.
 
@@ -58,7 +58,7 @@ the scheduler configuration when deploying this feature.
 ### Direct requests
 
 Posts addressed to `@agent`, `@エージェント` or `@外部エージェント`, and their
-follow-up replies, arrive in `list_asks.requests`. GemiHub claims them with
+follow-up replies, arrive in `list_asks.requests`. kiokuflow claims them with
 `claim_request` and posts the final response through `reply_request`. They are
 independent of persona planning and use **Direct requests to the agent** in
 Settings → Integrations → Kakeratta: a separate model, file access, RAG and Web Search profile.
@@ -77,7 +77,7 @@ Unselected or unapproved tools, file writes, and script/workflow execution remai
 unavailable. An unavailable operation is explained in the reply.
 
 Direct requests have no release API or built-in-model fallback. Before claiming,
-GemiHub saves a stable claim ID. It records the transcript, pending reply and
+kiokuflow saves a stable claim ID. It records the transcript, pending reply and
 effect intents durably in Firestore, with transactional ten-minute leases. In
 single-process self-hosted deployments without Firestore, records use private
 files under `data/kakeratta-requests` (override with `KAKERATTA_STATE_DIR`);
@@ -105,7 +105,7 @@ existing execution handles. Switching back creates another new namespace;
 old records do not resume. Stale replicas cannot rebind a connection while
 polling. Records from the earlier URL-only journal format are not resumed.
 
-If a reply response is lost, GemiHub checks the trigger's thread for a new
+If a reply response is lost, kiokuflow checks the trigger's thread for a new
 `agent` reply with the same normalized text, parent and matching attempt time,
 excluding posts already present when the request was claimed. A match confirms
 completion without another send. A definitive request-not-found or ownership
@@ -154,7 +154,7 @@ pinning preserve author, thread and synchronization metadata.
 With your own active Premium plan, enable **Timeline synchronization** in the
 Kakeratta settings and choose the Timeline name. Save the settings, then use
 **Synchronize now with saved settings**, or leave the minute-based check enabled.
-The Premium server also synchronizes while GemiHub is closed. The named Timeline
+The Premium server also synchronizes while kiokuflow is closed. The named Timeline
 uses `Dashboards/Timeline/<name>/YYYY-MM-DD.md` in your personal Drive; an
 organization membership does not grant access to this personal synchronization.
 The connected Kakeratta server must include the `sync_timeline` MCP tool.

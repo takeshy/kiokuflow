@@ -1,6 +1,6 @@
-# GemiHub ガイド
+# kiokuflow ガイド
 
-このプロジェクトへようこそ。GemiHubでは、Markdown文書、表、Canvas、ワークフローなどをプロジェクト内で管理し、AIと一緒に編集できます。
+このプロジェクトへようこそ。kiokuflowでは、Markdown文書、表、Canvas、ワークフローなどをプロジェクト内で管理し、AIと一緒に編集できます。
 
 ## はじめに
 

@@ -144,7 +144,7 @@ export function useStorageSync() {
   }, [mount, mountKey, refreshCounts]);
 
   // Keep the toolbar counts aligned with local edits and with the fresh list
-  // calculated when a sync dialog opens. This mirrors upstream GemiHub's
+  // calculated when a sync dialog opens. This mirrors upstream kiokuflow's
   // file-modified/sync-counts-corrected handling on the GCS diff engine.
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null;

@@ -106,7 +106,7 @@ export async function action({ request }: Route.ActionArgs) {
               const registration = await registerOAuthClient(
                 discovery.registrationUrl,
                 redirectUri,
-                "GemiHub"
+                "kiokuflow"
               );
               discovery.config.clientId = registration.clientId;
               if (registration.clientSecret) {

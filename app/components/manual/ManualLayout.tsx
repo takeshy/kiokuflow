@@ -48,7 +48,7 @@ export function ManualLayout({ lang, chapters, currentSlug, children }: ManualLa
             className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
             <ArrowLeft size={16} />
-            <span className="hidden sm:inline">GemiHub</span>
+            <span className="hidden sm:inline">kiokuflow</span>
           </a>
           <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             {lang === "ja" ? "マニュアル" : "Manual"}

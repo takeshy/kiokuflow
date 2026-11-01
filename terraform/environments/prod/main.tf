@@ -86,19 +86,22 @@ module "gemihub" {
   shared_vm_backends = var.shared_vm_backends
   shared_vm_hosts    = var.shared_vm_hosts
 
-  project_id                     = var.project_id
-  project_number                 = var.project_number
-  region                         = var.region
-  domain                         = var.domain
-  google_site_verification_token = var.google_site_verification_token
-  cpu_idle                       = false
-  hubwork_review_slugs           = var.hubwork_review_slugs
-  hubwork_stripe_allowed_slugs   = ["takeshy"]
-  manage_firestore_indexes       = var.manage_firestore_indexes
-  firestore_database_id          = var.firestore_database_id
-  super_admin_emails             = var.super_admin_emails
-  gcs_bucket_name                = var.gcs_bucket_name
-  default_tenant_region          = var.default_tenant_region
+  project_id                      = var.project_id
+  project_number                  = var.project_number
+  region                          = var.region
+  domain                          = var.domain
+  legacy_app_domain               = var.legacy_app_domain
+  manage_rebrand_dns              = var.manage_rebrand_dns
+  rebrand_site_verification_token = var.rebrand_site_verification_token
+  google_site_verification_token  = var.google_site_verification_token
+  cpu_idle                        = false
+  hubwork_review_slugs            = var.hubwork_review_slugs
+  hubwork_stripe_allowed_slugs    = ["takeshy"]
+  manage_firestore_indexes        = var.manage_firestore_indexes
+  firestore_database_id           = var.firestore_database_id
+  super_admin_emails              = var.super_admin_emails
+  gcs_bucket_name                 = var.gcs_bucket_name
+  default_tenant_region           = var.default_tenant_region
 }
 
 # --------------- Outputs ---------------
@@ -114,7 +117,7 @@ output "cloud_run_url" {
 }
 
 output "gemihub_okf_bucket" {
-  description = "Private Cloud Storage bucket for managed GemiHub OKF releases"
+  description = "Private Cloud Storage bucket for managed kiokuflow OKF releases"
   value       = module.gemihub.gemihub_okf_bucket
 }
 
@@ -124,7 +127,7 @@ output "tenant_data_bucket" {
 }
 
 output "nameservers" {
-  description = "Set these nameservers at your domain registrar"
+  description = "Cloud DNS nameservers, or empty for Cloudflare-managed new-domain DNS."
   value       = module.gemihub.nameservers
 }
 
@@ -138,4 +141,32 @@ variable "shared_vm_hosts" {
   description = "Additional shared VM hostname routes."
   type        = map(list(string))
   default     = {}
+}
+
+variable "legacy_app_domain" {
+  description = "Original primary domain to retain during migration."
+  type        = string
+  default     = null
+}
+
+variable "rebrand_site_verification_token" {
+  description = "Google site verification token for kiokuflow.net."
+  type        = string
+  default     = ""
+}
+
+output "legacy_nameservers" {
+  description = "Nameservers of the retained original domain."
+  value       = module.gemihub.legacy_nameservers
+}
+
+variable "manage_rebrand_dns" {
+  description = "Manage new-domain Cloud DNS records; false for Cloudflare Registrar. Existing legacy DNS stays managed."
+  type        = bool
+  default     = true
+}
+
+output "rebrand_dns_authorization" {
+  description = "CNAME to add in Cloudflare DNS with proxy disabled for Google-managed certificate issuance/renewal."
+  value       = module.gemihub.rebrand_dns_authorization
 }

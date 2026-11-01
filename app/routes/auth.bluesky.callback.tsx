@@ -26,10 +26,10 @@ export async function loader({ request }: Route.LoaderArgs) {
     // Log only the message: never expose provider URLs or callback parameters to the page.
     console.error("[bluesky] callback failed:", error instanceof Error ? error.message : error);
   }
-  // Tell the GemiHub tab the outcome, then close; the text stays for when the script cannot run.
+  // Tell the kiokuflow tab the outcome, then close; the text stays for when the script cannot run.
   const nonce = randomBytes(16).toString("base64");
   const message = JSON.stringify({ type: "gemihub:bluesky-callback", ok: success });
-  // A BroadcastChannel reaches the GemiHub tab even when the provider's pages cut window.opener.
+  // A BroadcastChannel reaches the kiokuflow tab even when the provider's pages cut window.opener.
   const script = `try { const channel = new BroadcastChannel("gemihub-bluesky"); channel.postMessage(${message}); channel.close(); window.close(); } catch {}`;
-  return new Response(`<!doctype html><html><meta charset="utf-8"><title>GemiHub · Bluesky</title><p>${success ? "Bluesky connected. You can close this window and return to GemiHub." : "Could not connect Bluesky. Close this window and try again from GemiHub."}</p><script nonce="${nonce}">${script}</script></html>`, { status: success ? 200 : 400, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "Referrer-Policy": "no-referrer", "Content-Security-Policy": `default-src 'none'; script-src 'nonce-${nonce}'; frame-ancestors 'none'` } });
+  return new Response(`<!doctype html><html><meta charset="utf-8"><title>kiokuflow · Bluesky</title><p>${success ? "Bluesky connected. You can close this window and return to kiokuflow." : "Could not connect Bluesky. Close this window and try again from kiokuflow."}</p><script nonce="${nonce}">${script}</script></html>`, { status: success ? 200 : 400, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "Referrer-Policy": "no-referrer", "Content-Security-Policy": `default-src 'none'; script-src 'nonce-${nonce}'; frame-ancestors 'none'` } });
 }

@@ -13,12 +13,12 @@ function FaqEn() {
       <div className={prose}>
         <h2>Where is my data stored?</h2>
         <p>
-          All data is stored in your own Google Drive, in a folder called <code>gemihub/</code>. GemiHub does not use any external database. Your files, chat history, workflows, and settings are all in your Drive.
+          Personal source files, chat history, workflows and settings are stored in your Google Drive. New accounts use <code>kiokuflow/</code>; existing accounts keep their original folder. Paid RAG indexes and account data use Firestore. Organization projects use managed Cloud Storage.
         </p>
 
         <h2>Do I need an API key?</h2>
         <p>
-          Yes, you need a Gemini API key for AI features (chat, workflow AI nodes, RAG search, image generation). You can get one for free from <a href="https://aistudio.google.com/apikey" className="text-blue-600 hover:underline dark:text-blue-400" target="_blank" rel="noopener noreferrer">Google AI Studio</a>.
+          Personal API mode uses your chosen provider’s key: Gemini, OpenAI, OpenRouter or OpenCode Go. Configure it under AI providers. Paid RAG uses a Gemini or OpenAI embedding key. Managed Vertex AI is also available without your own Gemini key. Gemini keys are available from <a href="https://aistudio.google.com/apikey" className="text-blue-600 hover:underline dark:text-blue-400" target="_blank" rel="noopener noreferrer">Google AI Studio</a>.
         </p>
 
         <h2>What happens if I lose my password?</h2>
@@ -26,7 +26,7 @@ function FaqEn() {
           If you set a password for encryption and forget it, encrypted data cannot be recovered. The password is used entirely on the client side and is not stored anywhere. Make sure to keep your password safe.
         </p>
 
-        <h2>Can I use GemiHub offline?</h2>
+        <h2>Can I use kiokuflow offline?</h2>
         <p>
           Yes. All files are cached in your browser&apos;s IndexedDB. You can view and edit files offline. AI features and sync require an internet connection. Once you&apos;re back online, use Push to Drive to sync your changes.
         </p>
@@ -36,9 +36,9 @@ function FaqEn() {
           When the same file is modified both locally and on Drive, a conflict dialog appears during sync. Choose either &quot;Keep Local&quot; or &quot;Keep Remote&quot; for each file. The overwritten version is automatically backed up.
         </p>
 
-        <h2>Can I self-host GemiHub?</h2>
+        <h2>Can I self-host kiokuflow?</h2>
         <p>
-          Yes. GemiHub can be self-hosted on any platform that supports Node.js. You need to set up Google OAuth credentials and configure the environment variables. See the README for deployment instructions.
+          Yes. kiokuflow can be self-hosted on any platform that supports Node.js. You need to set up Google OAuth credentials and configure the environment variables. See the README for deployment instructions.
         </p>
 
         <h2>What Gemini models are available?</h2>
@@ -77,12 +77,12 @@ function FaqJa() {
       <div className={prose}>
         <h2>データはどこに保存されますか？</h2>
         <p>
-          すべてのデータはあなた自身のGoogle Driveの<code>gemihub/</code>フォルダに保存されます。GemiHubは外部データベースを使用しません。ファイル、チャット履歴、ワークフロー、設定はすべてDriveにあります。
+          個人の元ファイル、チャット履歴、ワークフロー、設定はGoogle Driveに保存されます。新規アカウントは<code>kiokuflow/</code>、既存アカウントは従来のフォルダを使います。有料RAGの索引とアカウント情報はFirestore、組織プロジェクトはCloud Storageを使用します。
         </p>
 
         <h2>APIキーは必要ですか？</h2>
         <p>
-          はい、AI機能（チャット、ワークフローAIノード、RAG検索、画像生成）にはGemini APIキーが必要です。<a href="https://aistudio.google.com/apikey" className="text-blue-600 hover:underline dark:text-blue-400" target="_blank" rel="noopener noreferrer">Google AI Studio</a>から無料で取得できます。
+          個人APIではGemini・OpenAI・OpenRouter・OpenCode Goの選んだプロバイダーのキーをAIプロバイダー設定に登録します。有料RAGはGeminiまたはOpenAIのembeddingキーを使います。自分のGeminiキーを使わないマネージドVertex AIも利用できます。Geminiキーは<a href="https://aistudio.google.com/apikey" className="text-blue-600 hover:underline dark:text-blue-400" target="_blank" rel="noopener noreferrer">Google AI Studio</a>から無料で取得できます。
         </p>
 
         <h2>パスワードを忘れた場合はどうなりますか？</h2>
@@ -102,7 +102,7 @@ function FaqJa() {
 
         <h2>セルフホストできますか？</h2>
         <p>
-          はい。GemiHubはNode.jsをサポートする任意のプラットフォームでセルフホストできます。Google OAuth認証情報のセットアップと環境変数の設定が必要です。デプロイ手順はREADMEを参照してください。
+          はい。kiokuflowはNode.jsをサポートする任意のプラットフォームでセルフホストできます。Google OAuth認証情報のセットアップと環境変数の設定が必要です。デプロイ手順はREADMEを参照してください。
         </p>
 
         <h2>利用可能なGeminiモデルは？</h2>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   CalendarDays,
@@ -6,7 +6,6 @@ import {
   ChevronRight,
   Pencil,
   Plus,
-  RefreshCw,
   Trash2,
   X,
 } from "lucide-react";
@@ -15,8 +14,6 @@ import { useI18n } from "~/i18n/context";
 import { readFileLocal } from "~/services/drive-local";
 import {
   getCachedRemoteMeta,
-  getGoogleCalendarMonthCache,
-  setGoogleCalendarMonthCache,
 } from "~/services/indexeddb-cache";
 import {
   appendSystemTimeline,
@@ -37,16 +34,6 @@ interface CalendarItem {
   isEvent: boolean;
   createdAt: string;
   source: "local" | "google";
-  htmlLink?: string;
-}
-
-interface GoogleCalendarEvent {
-  id?: string;
-  summary?: string;
-  description?: string;
-  start?: string;
-  end?: string;
-  location?: string;
   htmlLink?: string;
 }
 
@@ -89,10 +76,6 @@ export default function CalendarWidget() {
   );
   const [selected, setSelected] = useState(localDateKey());
   const [items, setItems] = useState<CalendarItem[]>([]);
-  const [googleItems, setGoogleItems] = useState<CalendarItem[]>([]);
-  const [googleMonthKey, setGoogleMonthKey] = useState("");
-  const [googleFetchedAt, setGoogleFetchedAt] = useState<number | null>(null);
-  const [syncingGoogle, setSyncingGoogle] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [time, setTime] = useState("");
   const [content, setContent] = useState("");
@@ -102,42 +85,6 @@ export default function CalendarWidget() {
   const [editDate, setEditDate] = useState("");
   const [error, setError] = useState("");
   const [showDayModal, setShowDayModal] = useState(false);
-  const currentMonthKey = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}`;
-  const currentMonthKeyRef = useRef(currentMonthKey);
-  currentMonthKeyRef.current = currentMonthKey;
-
-  const googleEventsToItems = useCallback(
-    (events: GoogleCalendarEvent[]): CalendarItem[] =>
-      events.flatMap((event, index): CalendarItem[] => {
-        if (!event.start) return [];
-        const allDay = /^\d{4}-\d{2}-\d{2}$/.test(event.start);
-        const start = allDay
-          ? new Date(`${event.start}T12:00:00`)
-          : new Date(event.start);
-        if (Number.isNaN(start.getTime())) return [];
-        const details = [
-          event.summary || (ja ? "無題の予定" : "Untitled event"),
-        ];
-        if (event.location) details.push(event.location);
-        if (event.description) details.push(event.description);
-        return [
-          {
-            id: `google:${event.id || index}`,
-            date: allDay ? event.start! : localDateKey(start),
-            time: allDay
-              ? ""
-              : `${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`,
-            content: details.join("\n"),
-            isEvent: true,
-            createdAt: event.start,
-            source: "google",
-            htmlLink: event.htmlLink,
-          },
-        ];
-      }),
-    [ja],
-  );
-
   const load = useCallback(async () => {
     try {
       const meta = await getCachedRemoteMeta();
@@ -168,25 +115,6 @@ export default function CalendarWidget() {
     void load();
   }, [load]);
   useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      const cached = await getGoogleCalendarMonthCache(currentMonthKey);
-      if (cancelled) return;
-      if (cached) {
-        setGoogleItems(googleEventsToItems(cached.events));
-        setGoogleMonthKey(currentMonthKey);
-        setGoogleFetchedAt(cached.fetchedAt);
-      } else {
-        setGoogleItems([]);
-        setGoogleMonthKey("");
-        setGoogleFetchedAt(null);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [currentMonthKey, googleEventsToItems]);
-  useEffect(() => {
     const refresh = () => void load();
     window.addEventListener("file-modified", refresh);
     window.addEventListener("files-pulled", refresh);
@@ -208,13 +136,7 @@ export default function CalendarWidget() {
       return day;
     });
   }, [month]);
-  const visibleItems = useMemo(
-    () => [
-      ...items,
-      ...(googleMonthKey === currentMonthKey ? googleItems : []),
-    ],
-    [items, googleItems, googleMonthKey, currentMonthKey],
-  );
+  const visibleItems = items;
   const counts = useMemo(() => {
     const map = new Map<string, { events: number; activity: number }>();
     for (const item of visibleItems) {
@@ -233,55 +155,6 @@ export default function CalendarWidget() {
       ),
     );
   const locale = ja ? "ja-JP" : "en-US";
-
-  const reflectGoogleCalendar = async () => {
-    if (syncingGoogle) return;
-    setSyncingGoogle(true);
-    setError("");
-    try {
-      const first = new Date(month.getFullYear(), month.getMonth(), 1);
-      const next = new Date(month.getFullYear(), month.getMonth() + 1, 1);
-      const response = await fetch("/api/calendar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "list",
-          calendarId: "primary",
-          timeMin: first.toISOString(),
-          timeMax: next.toISOString(),
-          maxResults: 250,
-        }),
-      });
-      const payload = (await response.json()) as {
-        events?: GoogleCalendarEvent[];
-        error?: string;
-      };
-      if (!response.ok)
-        throw new Error(
-          payload.error ||
-            (ja
-              ? "Google Calendarの取得に失敗しました"
-              : "Failed to load Google Calendar"),
-        );
-      const events = payload.events ?? [];
-      const fetchedAt = Date.now();
-      const fetchedMonthKey = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}`;
-      await setGoogleCalendarMonthCache({
-        monthKey: fetchedMonthKey,
-        fetchedAt,
-        events,
-      });
-      if (currentMonthKeyRef.current === fetchedMonthKey) {
-        setGoogleItems(googleEventsToItems(events));
-        setGoogleMonthKey(fetchedMonthKey);
-        setGoogleFetchedAt(fetchedAt);
-      }
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : String(caught));
-    } finally {
-      setSyncingGoogle(false);
-    }
-  };
 
   const save = async () => {
     if (!content.trim() || saving || (editingId && !editDate)) return;
@@ -397,23 +270,6 @@ export default function CalendarWidget() {
               month: "long",
             }).format(month)}
           </span>
-          <button
-            type="button"
-            disabled={syncingGoogle}
-            onClick={() => void reflectGoogleCalendar()}
-            className="flex shrink-0 items-center gap-1 rounded border border-blue-300 px-2 py-1 text-[10px] font-medium text-blue-700 hover:bg-blue-50 disabled:opacity-50 dark:border-blue-700 dark:text-blue-300 dark:hover:bg-blue-950"
-            title={
-              ja
-                ? "開いている月のGoogle Calendar予定を反映"
-                : "Reflect Google Calendar events for the visible month"
-            }
-          >
-            <RefreshCw
-              size={12}
-              className={syncingGoogle ? "animate-spin" : ""}
-            />
-            {ja ? "Google予定" : "Google events"}
-          </button>
         </div>
         <button
           className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -424,17 +280,6 @@ export default function CalendarWidget() {
           <ChevronRight size={18} />
         </button>
       </div>
-      {googleFetchedAt && googleMonthKey === currentMonthKey ? (
-        <div className="-mt-2 text-center text-[10px] text-gray-400">
-          {ja ? "Google予定の最終更新" : "Google events updated"}:{" "}
-          {new Date(googleFetchedAt).toLocaleString(locale, {
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </div>
-      ) : null}
       <div className="grid grid-cols-7 gap-px overflow-hidden rounded border border-gray-200 bg-gray-200 text-center text-xs dark:border-gray-700 dark:bg-gray-700">
         {Array.from({ length: 7 }, (_, i) => (
           <div key={i} className="bg-gray-50 py-1 font-medium dark:bg-gray-900">
@@ -577,13 +422,11 @@ export default function CalendarWidget() {
                   {selectedItems.map((item) => (
                     <div
                       key={`${item.id}-${item.createdAt}`}
-                      className={`group rounded border-l-4 p-2 text-sm ${item.source === "google" ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30" : item.isEvent ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30" : "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30"}`}
+                      className={`group rounded border-l-4 p-2 text-sm ${item.isEvent ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30" : "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30"}`}
                     >
                       <div className="mb-1 flex items-center justify-between text-[10px] font-semibold uppercase text-gray-500">
                         <span>
-                          {item.source === "google"
-                            ? `${item.time || (ja ? "終日" : "all day")} · Google Calendar`
-                            : item.isEvent
+                          {item.isEvent
                               ? `${item.time || (ja ? "終日" : "all day")} · ${ja ? "予定" : "event"}`
                               : `${new Date(item.createdAt).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })} · ${ja ? "活動" : "activity"}`}
                         </span>

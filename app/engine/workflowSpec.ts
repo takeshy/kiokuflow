@@ -81,16 +81,16 @@ description: Use when the user asks for a weekly summary, digest, newsletter, me
 \`\`\`skill-capabilities
 workflows:
   - path: workflows/send-weekly-newsletter.yaml
-    description: Pull this week's metrics, compose the HTML newsletter, send via Gmail
+    description: Pull this week's metrics and preview the HTML report
 \`\`\`
 
 ## Overview
 
-Compiles the week's KPIs into a branded HTML newsletter and mails it to the configured list via Gmail.
+Compiles the week's KPIs into a branded HTML newsletter and saves a preview for the user.
 
 ## ⛔ The Iron Law
 
-**NO \`gmail-send\` UNTIL the user has approved the rendered HTML preview in chat.**
+Gmail and Google Calendar integrations are not available in kiokuflow. Never generate their workflow nodes or tools; save generated documents to Drive instead.
 
 (... other sections as needed ...)
 
@@ -118,7 +118,7 @@ Do NOT include \`\`\`yaml or \`\`\` markers.`;
   }
 
   return `
-# GemiHub Workflow Specification
+# kiokuflow Workflow Specification
 
 ${formatSection}
 
@@ -404,7 +404,7 @@ Form-data example with file upload:
 
 ${mcpSection}
 #### rag-sync
-Index a Drive file with the configured Gemini/OpenAI embedding model in Firestore. Requires a paid GemiHub plan.
+Index a Drive file with the configured Gemini/OpenAI embedding model in Firestore. Requires a paid kiokuflow plan.
 - **path** (required): File path on Drive
 - **ragSetting** (required): RAG setting name${ragSyncSection}
 - **saveTo** (optional): Variable for result JSON: \`{path, ragSetting, fileId, storeName, mode, syncedAt}\`
@@ -448,7 +448,7 @@ The script runs in one of two sandboxes depending on context: an \`isolated-vm\`
 **Available (use freely):**
 - Full ECMAScript standard library — \`Date\`, \`JSON\`, \`Math\`, \`RegExp\`, \`Map\`, \`Set\`, \`Promise\`, \`Array\`, \`String\`, \`Number\`, etc.
 - \`Intl.DateTimeFormat\`, \`Intl.NumberFormat\`, \`Intl.Collator\`, \`Date.prototype.toLocaleString\` — locale-aware formatting.
-- \`utils\` — GemiHub helper namespace injected into both runtimes. Use these instead of runtime-specific globals (\`crypto.*\`, Node \`require\`, etc.) so the same script works everywhere.
+- \`utils\` — kiokuflow helper namespace injected into both runtimes. Use these instead of runtime-specific globals (\`crypto.*\`, Node \`require\`, etc.) so the same script works everywhere.
   - \`utils.randomUUID()\` — returns an RFC 4122 v4 UUID string. Use for row IDs, event IDs, idempotency keys. **Prefer this over \`Math.random()\`-based IDs** — it's collision-safe and identical on client/server.
 
 **NOT available** — referencing any of these throws \`ReferenceError\`: \`crypto\` (use \`utils.randomUUID()\` instead), \`fetch\` / \`XMLHttpRequest\` (use an \`http\` node), \`setTimeout\` / \`setInterval\` beyond node completion, \`window\` / \`document\` / DOM, \`localStorage\` / \`IndexedDB\`, \`process\` / \`require\` / \`import()\`.
@@ -487,7 +487,7 @@ code: |
   var data = JSON.parse("{{jsonStr:json}}");  # becomes: JSON.parse("[{\\"url\\":\\"...\\"}]")
 \`\`\`
 
-- If the variable is a **JSON string that should land as a bare JS literal** (array / object from \`calendar-list\`, \`sheet-read\`, a prior \`script\`, etc.) use \`{{var}}\` — NO \`:json\`, NO surrounding quotes. GemiHub stores every variable as a JSON-serialized string, and JSON is a valid JS literal, so raw interpolation works:
+- If the variable is a **JSON string that should land as a bare JS literal** (array / object from \`calendar-list\`, \`sheet-read\`, a prior \`script\`, etc.) use \`{{var}}\` — NO \`:json\`, NO surrounding quotes. kiokuflow stores every variable as a JSON-serialized string, and JSON is a valid JS literal, so raw interpolation works:
 \`\`\`yaml
 code: |
   const events = {{events}} || [];      # becomes: const events = [{"id":"abc","start":"..."}] || [];
@@ -523,10 +523,10 @@ Example — Base64 encode:
   saveTo: encoded
 \`\`\`
 
-### GemiHub Commands
+### kiokuflow Commands
 
 #### gemihub-command
-Execute GemiHub file operations (encrypt, publish, rename, etc.).
+Execute kiokuflow file operations (encrypt, publish, rename, etc.).
 - **command** (required): Command name: "encrypt", "publish", "unpublish", "duplicate", "convert-to-pdf", "convert-to-html", "rename"
 - **path** (required): File path, Drive file ID, or \`{{variable}}\`
 - **text** (optional): Additional text argument (description for "encrypt", new name for "rename", custom name for "duplicate")
@@ -854,7 +854,7 @@ Workflows under \`web/api/*.yaml\` are exposed as HTTP endpoints. They use a top
 
 #### trigger
 Top-level workflow block declaring the HTTP endpoint behavior. NOT a node — appears at the workflow root, not under \`nodes:\`.
-- **requireAuth** (optional): Account type the caller must be authenticated as (e.g. \`accounts\`, \`members\`). Caller invokes \`gemihub.auth.require("<type>")\` first. When set, every authenticated-user variable is under the \`auth.*\` namespace (\`auth.email\`, \`auth.type\`, plus one entry per non-email column of the identity sheet row such as \`auth.name\`).
+- **requireAuth** (optional): Account type the caller must be authenticated as (e.g. \`accounts\`, \`members\`). Caller invokes \`kiokuflow.auth.require("<type>")\` first. When set, every authenticated-user variable is under the \`auth.*\` namespace (\`auth.email\`, \`auth.type\`, plus one entry per non-email column of the identity sheet row such as \`auth.name\`).
 - **idempotencyKeyField** (optional, POST only): Body field used to dedup repeat submissions.
 - **honeypotField** (optional, POST only): Body field that should always be empty; non-empty submissions are silently treated as success.
 - **successRedirect** (optional, POST only): URL to 302 to after success (form submissions).
@@ -881,8 +881,8 @@ nodes:
 These variables are auto-populated for workflows reached via HTTP. **The \`request.\` prefix is mandatory** — bare \`{{query.X}}\` or \`{{body.X}}\` will silently resolve to empty string and break downstream nodes.
 
 - \`{{request.method}}\` — "GET", "POST", etc.
-- \`{{request.query.<name>}}\` — URL query parameter (use this for **GET** endpoints called via \`gemihub.get("path?key=v")\` or \`gemihub.get("path", {key: "v"})\`)
-- \`{{request.body.<name>}}\` — JSON body field or form field (use this for **POST** endpoints called via \`gemihub.post("path", {key: "v"})\`)
+- \`{{request.query.<name>}}\` — URL query parameter (use this for **GET** endpoints called via \`kiokuflow.get("path?key=v")\` or \`kiokuflow.get("path", {key: "v"})\`)
+- \`{{request.body.<name>}}\` — JSON body field or form field (use this for **POST** endpoints called via \`kiokuflow.post("path", {key: "v"})\`)
 - \`{{request.params.<name>}}\` — URL path parameter (rare)
 - For file uploads, additionally: \`{{request.body.<name>_name}}\`, \`{{request.body.<name>_type}}\`, \`{{request.body.<name>_size}}\` (the value itself is base64)
 - Authenticated user — only when \`requireAuth\` is set and the caller is authenticated. Everything is under \`auth.*\`:
@@ -904,7 +904,7 @@ Set these at the end of the workflow to control the HTTP response. Both are opti
 3. **Forgetting \`__response\`** — If you don't set \`__response\`, the endpoint returns \`{}\` regardless of what the workflow computed.
 4. **Using \`{{var:json}}\` for \`__response\`** — Always \`value: "{{var}}"\`, never \`"{{var:json}}"\`. \`{{var}}\` already produces a JSON string from an object/array, and the handler calls \`JSON.parse\` on it. \`:json\` escapes that string a second time, yielding invalid JSON — the parse fails, the raw escaped string is returned, and the client sees a double-stringified value. \`:json\` is only for embedding inside a JSON string literal (e.g. \`value: '{"msg": "{{text:json}}"}'\`).
 
-### Hubwork (Sheets/Gmail/Calendar — paid plan only)
+### Hubwork (Sheets — paid plan only)
 
 The nodes below require the paid plan with Hubwork enabled and the corresponding Google API permissions granted. They will fail at runtime on the free plan.
 
@@ -942,47 +942,6 @@ Delete rows matching a filter.
 - **filter** (required): Single-quoted JSON string to match rows (e.g. \`filter: '{"id": "{{id}}"}'\`)
 - **saveTo** (optional): Variable for deleted row count
 
-#### gmail-send
-Send an email via Gmail API.
-- **to** (required): Recipient email address
-- **subject** (required): Email subject
-- **body** (optional): HTML email body. Format dates/timestamps in a \`script\` node first and reference \`{{<saveTo>.displayField}}\` — NEVER embed raw \`{{request.body.start}}\` ISO values (\`2025-04-02T10:30:00.000Z\`) directly, because the recipient sees a machine timestamp.
-- **saveTo** (optional): Variable for message ID
-
-#### calendar-list
-List events from Google Calendar.
-- **calendarId** (optional): Calendar ID (default: "primary")
-- **timeMin** (optional): RFC3339 lower bound (e.g. "2026-04-14T00:00:00Z")
-- **timeMax** (optional): RFC3339 upper bound
-- **maxResults** (optional): Max events to return (default: 50, capped at 250)
-- **query** (optional): Free-text search query
-- **saveTo** (required): Variable for result (JSON array of \`{id, summary, description, start, end, location, status, htmlLink}\`)
-
-#### calendar-create
-Create a new event on Google Calendar.
-- **calendarId** (optional): Calendar ID (default: "primary")
-- **summary** (required): Event title
-- **start** (required): Start time — RFC3339 dateTime, or \`YYYY-MM-DD\` for an all-day event
-- **end** (required): End time — same format as start
-- **description** (optional): Event description
-- **location** (optional): Event location
-- **saveTo** (optional): Variable for the created event ID
-
-#### calendar-update
-Update an existing event. Only fields you provide are patched.
-- **calendarId** (optional): Calendar ID (default: "primary")
-- **eventId** (required): Event ID to update
-- **summary** (optional): New title
-- **description** (optional): New description
-- **start** (optional): New start (RFC3339 or \`YYYY-MM-DD\` for all-day)
-- **end** (optional): New end (same format as start)
-- **location** (optional): New location
-- **saveTo** (optional): Variable for the updated event ID
-
-#### calendar-delete
-Delete an event from Google Calendar.
-- **calendarId** (optional): Calendar ID (default: "primary")
-- **eventId** (required): Event ID to delete
 
 `;
 }

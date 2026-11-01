@@ -1,4 +1,4 @@
-# GemiHub Canvas Examples
+# kiokuflow Canvas Examples
 
 ## Simple Concept Map
 

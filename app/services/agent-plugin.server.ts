@@ -226,7 +226,7 @@ function githubHeaders(): Record<string, string> {
   const token = (process.env.AGENT_PLUGINS_GITHUB_TOKEN || process.env.GITHUB_TOKEN)?.trim();
   return {
     Accept: "application/vnd.github+json",
-    "User-Agent": "GemiHub-Agent-Plugins",
+    "User-Agent": "kiokuflow-Agent-Plugins",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 }

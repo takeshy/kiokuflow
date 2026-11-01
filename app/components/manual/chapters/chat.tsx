@@ -15,7 +15,7 @@ function ChatEn() {
       </figure>
       <div className={prose}>
         <p>
-          The Chat panel supports Google Gemini and OpenAI, with streaming responses, automatic tool use, file attachments, and custom slash commands. On My Drive, set or verify its password in Settings → General, then save your OpenAI API key in Settings → AI providers → OpenAI and select OpenAI as the active provider to use its models in chat.
+          The Chat panel supports Gemini, OpenAI, OpenRouter and OpenCode Go, with streaming responses, automatic tool use, file attachments, and custom slash commands. On My Drive, set or verify its password in Settings → General, then save your OpenAI API key in Settings → AI providers → OpenAI and select OpenAI as the active provider to use its models in chat.
         </p>
         <p>
           Switch the right sidebar between normal and wide layouts with one click. Save as note exports compact Markdown named <code>YYYYMMDD-HHmmss_Chat title.md</code>; saving the same chat again updates that file. Automatic history keeps 100 chats by default, or unlimited when set to 0.
@@ -31,7 +31,7 @@ function ChatEn() {
 
         <h2>Model Selection</h2>
         <p>
-          Select a model from the dropdown. Gemini availability depends on your API plan (Free / Paid). When OpenAI is selected in Settings &gt; AI providers, configured accounts offer GPT-6.1 Sol, GPT-6.1 Terra, GPT-6 Luna, and other models. Supported reasoning summaries appear in a collapsible section. OpenAI API usage is billed to your account; RAG uses Firestore and Gemini/OpenAI embeddings for paid GemiHub users. Audio/video attachments require Gemini. OpenRouter and OpenCode Go offer the models enabled in AI provider settings.
+          Select a model from the dropdown. Gemini availability depends on your API plan (Free / Paid). When OpenAI is selected in Settings &gt; AI providers, configured accounts offer GPT-6.1 Sol, GPT-6.1 Terra, GPT-6 Luna, and other models. Supported reasoning summaries appear in a collapsible section. OpenAI API usage is billed to your account; RAG uses Firestore and Gemini/OpenAI embeddings for paid kiokuflow users. Audio/video attachments require Gemini. OpenRouter and OpenCode Go offer the models enabled in AI provider settings.
         </p>
 
         <p>In Settings &gt; AI providers &gt; OpenAI, choose <strong>Fetch model information</strong>, select multiple chat models, and save. Chat and workflow selectors show only your enabled models. Chat offers only enabled models from the active provider selected above the settings tabs. Saving a provider change switches chat to its default model when the previous model is unavailable. Slash-command model overrides must also use an offered model. Each provider keeps its own default model, even when another provider is active. Saving model selections with an unlocked API key requires no extra encryption-password entry.</p>
@@ -61,9 +61,7 @@ function ChatEn() {
         </p>
 
         <h3>Web Search Mode</h3>
-        <figure className="my-4 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-          <img src="/images/rag_web_search_selector.png" alt="RAG and Web Search selector" className="w-full" loading="lazy" />
-        </figure>
+
         <p>
           Web Search uses the selected provider's search service. Drive, MCP and RAG availability depends on the model and provider. OpenCode Go can use a separately configured web-search MCP tool.
         </p>
@@ -74,9 +72,7 @@ function ChatEn() {
         </p>
 
         <h3>Drive Tools &amp; MCP</h3>
-        <figure className="my-4 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-          <img src="/images/drive_tool_mcp_selector.png" alt="Drive tool and MCP selector" className="w-full" loading="lazy" />
-        </figure>
+
         <p>
           Configure Drive tool mode and select which MCP servers to enable for the conversation. These settings control which tools are available to the AI during function calling.
         </p>
@@ -120,7 +116,7 @@ function ChatJa() {
       </figure>
       <div className={prose}>
         <p>
-          チャットパネルはGoogle GeminiとOpenAIに対応し、ストリーミング応答、自動ツール使用、ファイル添付、カスタムスラッシュコマンドを利用できます。マイドライブで「設定 → 一般」でパスワードを設定・確認し、「設定 → AIプロバイダー → OpenAI」でAPIキーを保存し、使用するプロバイダーにOpenAIを選ぶと、チャットでOpenAIのモデルを使用できます。
+          チャットパネルはGemini・OpenAI・OpenRouter・OpenCode Goに対応し、ストリーミング応答、自動ツール使用、ファイル添付、カスタムスラッシュコマンドを利用できます。マイドライブで「設定 → 一般」でパスワードを設定・確認し、「設定 → AIプロバイダー → OpenAI」でAPIキーを保存し、使用するプロバイダーにOpenAIを選ぶと、チャットでOpenAIのモデルを使用できます。
         </p>
         <p>
           右サイドバーは通常幅と拡張幅をワンクリックで切り替えられます。「ノートとして保存」は <code>YYYYMMDD-HHmmss_チャットタイトル.md</code> 形式のコンパクトなMarkdownを出力し、同じチャットの再保存時は上書きします。自動履歴は初期値100件、0で無制限です。
@@ -136,7 +132,7 @@ function ChatJa() {
 
         <h2>モデル選択</h2>
         <p>
-          ドロップダウンからモデルを選択します。GeminiのモデルはAPIプラン（無料/有料）に応じて表示され、設定で使用するプロバイダーにOpenAIを選ぶとGPT-6.1 Sol、GPT-6.1 Terra、GPT-6 Lunaなども選択できます。対応モデルの推論要約は折りたたんで表示されます。OpenAIのAPI利用料がかかります。RAGはGemiHubの有料ユーザー向けにFirestoreとGemini／OpenAIのembeddingモデルを使用します。音声・動画の添付にはGeminiを使用してください。OpenRouterとOpenCode GoではAIプロバイダー設定で有効にしたモデルを選べます。OpenAIでも「モデル情報を取得」から使うモデルを複数選択して保存できます。チャットとワークフローには選択したモデルだけを表示します。チャットでは、設定のタブ上部で選んだプロバイダーの有効なモデルだけを選択できます。プロバイダーを切り替えて保存すると、以前のモデルが選択肢にない場合は新しいプロバイダーのデフォルトモデルに切り替わります。スラッシュコマンドのモデル指定も選択可能なモデルに限られます。各プロバイダーのデフォルトモデルは、別のプロバイダーを使用中でも保存されます。解除済みAPIキーでモデル選択だけを変更する場合、暗号化パスワードの再入力は不要です。
+          ドロップダウンからモデルを選択します。GeminiのモデルはAPIプラン（無料/有料）に応じて表示され、設定で使用するプロバイダーにOpenAIを選ぶとGPT-6.1 Sol、GPT-6.1 Terra、GPT-6 Lunaなども選択できます。対応モデルの推論要約は折りたたんで表示されます。OpenAIのAPI利用料がかかります。RAGはkiokuflowの有料ユーザー向けにFirestoreとGemini／OpenAIのembeddingモデルを使用します。音声・動画の添付にはGeminiを使用してください。OpenRouterとOpenCode GoではAIプロバイダー設定で有効にしたモデルを選べます。OpenAIでも「モデル情報を取得」から使うモデルを複数選択して保存できます。チャットとワークフローには選択したモデルだけを表示します。チャットでは、設定のタブ上部で選んだプロバイダーの有効なモデルだけを選択できます。プロバイダーを切り替えて保存すると、以前のモデルが選択肢にない場合は新しいプロバイダーのデフォルトモデルに切り替わります。スラッシュコマンドのモデル指定も選択可能なモデルに限られます。各プロバイダーのデフォルトモデルは、別のプロバイダーを使用中でも保存されます。解除済みAPIキーでモデル選択だけを変更する場合、暗号化パスワードの再入力は不要です。
         </p>
 
         <h2>Live音声会話</h2>
@@ -164,9 +160,7 @@ function ChatJa() {
         </p>
 
         <h3>Web検索モード</h3>
-        <figure className="my-4 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-          <img src="/images/rag_web_search_selector.png" alt="RAGとWeb検索セレクター" className="w-full" loading="lazy" />
-        </figure>
+
         <p>
           Web検索は選択したプロバイダーの検索機能を使います。GeminiはGoogle検索、OpenAIは組み込みWeb検索、OpenRouterはWebプラグインを利用します。Drive・MCP・RAGの併用可否はモデルとプロバイダーによって異なります。OpenCode Goでは別途設定したWeb検索用MCPツールを利用できます。
         </p>
@@ -177,9 +171,7 @@ function ChatJa() {
         </p>
 
         <h3>Driveツール・MCP</h3>
-        <figure className="my-4 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-          <img src="/images/drive_tool_mcp_selector.png" alt="DriveツールとMCPセレクター" className="w-full" loading="lazy" />
-        </figure>
+
         <p>
           Driveツールモードの設定や、会話で有効にするMCPサーバーの選択ができます。これらの設定により、ファンクションコール時にAIが利用できるツールを制御します。
         </p>

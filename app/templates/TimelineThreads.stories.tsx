@@ -19,7 +19,7 @@ function ThreadScene() {
     const content = [
       buildEntryBlock({ id: "root", createdAt: "2026-10-11T10:00:00.000Z", metadata: { "author-name": "あなた" }, body: "夕食に、きのこを使った料理を作りたい。" }),
       buildEntryBlock({ id: "chef", createdAt: "2026-10-12T00:00:00.000Z", metadata: { speaker: "gourmet", "author-name": "料理担当", "root-id": "root", "reply-to": "root" }, body: "きのこのクリームパスタはいかがでしょう。香りを出すため、先にきのこを炒めます。" }),
-      buildEntryBlock({ id: "conflict", createdAt: "2026-10-12T00:01:00.000Z", metadata: { speaker: "user", "author-name": "あなた", "root-id": "root", "reply-to": "root", "conflict-of": "root", "conflict-operation": "edit", "local-only": "true" }, body: "GemiHub 側で変更したメモ：和風のきのこ料理も試したい。" }),
+      buildEntryBlock({ id: "conflict", createdAt: "2026-10-12T00:01:00.000Z", metadata: { speaker: "user", "author-name": "あなた", "root-id": "root", "reply-to": "root", "conflict-of": "root", "conflict-operation": "edit", "local-only": "true" }, body: "kiokuflow 側で変更したメモ：和風のきのこ料理も試したい。" }),
     ].join("\n\n---\n\n");
     void (async () => {
       await setCachedFile({ fileId: "thread-demo", fileName: name, content, md5Checksum: "fixture", modifiedTime: "2026-10-12T00:01:00.000Z", cachedAt: Date.now() });

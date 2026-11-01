@@ -11,7 +11,7 @@ export function requireCompatibleProvider(value: unknown): CompatibleProvider {
 export function compatibleHeaders(provider: CompatibleProvider, key: string, sessionId: string): Record<string, string> {
   return {
     Authorization: `Bearer ${key}`, "Content-Type": "application/json",
-    ...(provider === "opencodego" ? { "User-Agent": "gemihub/1.0", "x-opencode-session": sessionId } : { "X-Title": "GemiHub" }),
+    ...(provider === "opencodego" ? { "User-Agent": "gemihub/1.0", "x-opencode-session": sessionId } : { "X-Title": "kiokuflow" }),
   };
 }
 

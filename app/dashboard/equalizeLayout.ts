@@ -1,6 +1,6 @@
 // Equalize (整列) layout: tiles all widgets evenly into up to 3 columns
 // (horizontal) or 3 rows (vertical), ported from mdwys buildEqualizedWidgets.
-// GemiHub's grid has fixed-height auto rows and a scrolling canvas, so the
+// kiokuflow's grid has fixed-height auto rows and a scrolling canvas, so the
 // caller passes targetRows (how many grid rows fit one screen) and the tiles
 // divide that height instead of mdwys's viewport-fitted 1-unit rows.
 

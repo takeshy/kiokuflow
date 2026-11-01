@@ -73,7 +73,7 @@ Icons on the right side of the FILES sidebar header:
 ## Public Links
 
 **Publish** grants Drive's `anyone with the link` reader permission and hands
-back a link served by GemiHub itself:
+back a link served by kiokuflow itself:
 
 ```
 /public/file/{fileId}/{fileName}?s={signature}
@@ -82,7 +82,7 @@ back a link served by GemiHub itself:
 The route (`public.file.$fileId.$fileName.tsx`) is unauthenticated — that is the
 point of publishing, and anyone holding the link opens it without signing in.
 The `s` parameter is not viewer authentication; it is an HMAC over the file id
-(`public-link.server.ts`, keyed by `SESSION_SECRET`) proving GemiHub minted the
+(`public-link.server.ts`, keyed by `SESSION_SECRET`) proving kiokuflow minted the
 link for a file its owner published. Without it the route would proxy ANY Drive
 file id, which lets a third party serve their own HTML or JS from this app's
 origin and reach the IDE's IndexedDB cache and same-origin APIs.
@@ -107,7 +107,7 @@ Rotating `SESSION_SECRET` invalidates every published link.
 
 ## Trash
 
-File deletion uses a soft-delete approach. Deleted files are moved to the `gemihub/trash/` folder on Google Drive, and their entries are removed from `_sync-meta.json`.
+File deletion uses a soft-delete approach. Deleted files are moved to the `kiokuflow/trash/` folder on Google Drive, and their entries are removed from `_sync-meta.json`.
 
 ### Deletion Flow
 

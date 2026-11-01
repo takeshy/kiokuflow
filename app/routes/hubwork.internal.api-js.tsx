@@ -1,6 +1,6 @@
 import type { Route } from "./+types/hubwork.internal.api-js";
 
-const SCRIPT = `window.gemihub = {
+const SCRIPT = `window.kiokuflow = window.gemihub = {
   async get(path, params) {
     const url = new URL('/__gemihub/api/' + path, location.origin);
     if (params) for (const [k, v] of Object.entries(params))

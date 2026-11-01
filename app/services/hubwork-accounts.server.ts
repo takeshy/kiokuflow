@@ -84,7 +84,12 @@ function deriveSlugFromEmail(email: string): string {
   return email.split("@")[0].toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
 }
 
-export const HUBWORK_DOMAIN = process.env.GEMIHUB_MAIN_DOMAIN || "gemihub.net";
+export const HUBWORK_DOMAIN = process.env.KIOKUFLOW_MAIN_DOMAIN || process.env.GEMIHUB_MAIN_DOMAIN || "kiokuflow.net";
+
+/** Public links use the new platform domain; stored legacy aliases remain routable. */
+export function publicDefaultDomain(account: Pick<HubworkAccount, "accountSlug" | "defaultDomain">): string | undefined {
+  return account.accountSlug ? `${account.accountSlug}.${HUBWORK_DOMAIN}` : account.defaultDomain;
+}
 
 /** Encrypt an OAuth refresh token for storage on a HubworkAccount. */
 export function encryptOAuthRefreshToken(refreshToken: string): string {
@@ -526,11 +531,11 @@ export async function getTokensForAccount(
 
   const promise = (async (): Promise<ResolvedAccountTokens> => {
     if (!account.encryptedRefreshToken) {
-      throw new Error(`Account ${account.id} has no refresh token. Owner must log in to GemiHub first.`);
+      throw new Error(`Account ${account.id} has no refresh token. Owner must log in to kiokuflow first.`);
     }
     const refreshToken = getStoredRefreshToken(account);
     if (!refreshToken) {
-      throw new Error(`Account ${account.id} has no refresh token. Owner must log in to GemiHub first.`);
+      throw new Error(`Account ${account.id} has no refresh token. Owner must log in to kiokuflow first.`);
     }
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,

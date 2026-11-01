@@ -41,7 +41,7 @@
       try {
         const params = new URLSearchParams(window.location.search);
         const redirect = params.get("redirect") || "/";
-        await gemihub.auth.login("ACCOUNT_TYPE", document.getElementById("email").value, redirect);
+        await kiokuflow.auth.login("ACCOUNT_TYPE", document.getElementById("email").value, redirect);
         msg.textContent = "Login link sent. Please check your email.";
         msg.className = "mt-4 text-center text-sm text-green-600";
       } catch {
@@ -61,7 +61,7 @@ Replace `ACCOUNT_TYPE` with the actual account type name (e.g., "partner", "tale
 
 ## Register Page Template
 
-Self-registration flow: user lands on the page UNAUTHENTICATED, fills in their email plus any profile fields the site requires (name, phone, etc.), and submits. `gemihub.post("register", body)` hands the submission to a workflow that writes the row and sends a confirmation email. Register pages MUST NOT call `gemihub.auth.require()` / `gemihub.auth.me()` — the user has no session yet; any auth check will redirect to /login and blank the page.
+Self-registration flow: user lands on the page UNAUTHENTICATED, fills in their email plus any profile fields the site requires (name, phone, etc.), and submits. `kiokuflow.post("register", body)` hands the submission to a workflow that writes the row and sends a confirmation email. Register pages MUST NOT call `kiokuflow.auth.require()` / `kiokuflow.auth.me()` — the user has no session yet; any auth check will redirect to /login and blank the page.
 
 ```html
 <!DOCTYPE html>
@@ -98,7 +98,7 @@ Self-registration flow: user lands on the page UNAUTHENTICATED, fills in their e
   </div>
   <script src="/__gemihub/api.js"></script>
   <script>
-    // NO gemihub.auth.require() / gemihub.auth.me() — this page is for
+    // NO kiokuflow.auth.require() / kiokuflow.auth.me() — this page is for
     // brand-new visitors. An auth check here redirects to /login and blanks
     // the page (IDE preview sets me() to null on register pages so this
     // mistake shows up as an obvious /login redirect).
@@ -115,7 +115,7 @@ Self-registration flow: user lands on the page UNAUTHENTICATED, fills in their e
           name: document.getElementById("name").value,
           // Add the other profile fields here
         };
-        await gemihub.post("register", body);
+        await kiokuflow.post("register", body);
         msg.textContent = "Confirmation email sent. Please check your inbox to complete registration.";
         msg.className = "mt-4 text-center text-sm text-green-600";
         document.getElementById("register-form").classList.add("hidden");
@@ -132,7 +132,7 @@ Self-registration flow: user lands on the page UNAUTHENTICATED, fills in their e
 </html>
 ```
 
-The endpoint path MUST be literally `register` (or `register/<sub-path>`) so the IDE preview can detect the page via its POST target and stub out `gemihub.auth.me()`. A workflow at `web/api/register.yaml` handles the submission — see the **API Workflow Template (Public Register)** section below.
+The endpoint path MUST be literally `register` (or `register/<sub-path>`) so the IDE preview can detect the page via its POST target and stub out `kiokuflow.auth.me()`. A workflow at `web/api/register.yaml` handles the submission — see the **API Workflow Template (Public Register)** section below.
 
 ## Protected Page Template
 
@@ -164,16 +164,16 @@ The endpoint path MUST be literally `register` (or `register/<sub-path>`) so the
   <script src="/__gemihub/api.js"></script>
   <script>
     (async () => {
-      const user = await gemihub.auth.require("ACCOUNT_TYPE", "/login/ACCOUNT_TYPE");
+      const user = await kiokuflow.auth.require("ACCOUNT_TYPE", "/login/ACCOUNT_TYPE");
       if (!user) return;
       document.getElementById("user-name").textContent = user.email;
       document.getElementById("logout-btn").addEventListener("click", async () => {
-        await gemihub.auth.logout("ACCOUNT_TYPE");
+        await kiokuflow.auth.logout("ACCOUNT_TYPE");
         window.location.href = "/login/ACCOUNT_TYPE";
       });
-      // Fetch data via gemihub.get() — NEVER use raw fetch() for API calls
-      // gemihub.get("tickets") calls /__gemihub/api/tickets internally
-      const tickets = await gemihub.get("tickets");
+      // Fetch data via kiokuflow.get() — NEVER use raw fetch() for API calls
+      // kiokuflow.get("tickets") calls /__gemihub/api/tickets internally
+      const tickets = await kiokuflow.get("tickets");
       // Render data...
       document.getElementById("loading").classList.add("hidden");
       document.getElementById("content").classList.remove("hidden");
@@ -383,7 +383,7 @@ Use this instead of a `sheet-read` whenever the only filter is "records for the 
 
 ## Public Contact Form Page Template (`web/contact.html`)
 
-問い合わせフォーム。公開ページで **未ログインのまま送信できる** (`gemihub.auth.require()` を使わない)。送信先の workflow は `web/api/contact.yaml` で、`inquiries` シートに行を追加 + 運営者に通知メール + 任意で自動返信メールを送る (下の **API Workflow Template (Public Contact Form)** 参照)。返信は **IDE の admin プレビュー** で `admin/inquiries.html` (一覧 + インライン詳細 + 返信フォームを 1 ページに統合) から行う (詳細は `references/admin-patterns.md`)。
+問い合わせフォーム。公開ページで **未ログインのまま送信できる** (`kiokuflow.auth.require()` を使わない)。送信先の workflow は `web/api/contact.yaml` で、`inquiries` シートに行を追加 + 運営者に通知メール + 任意で自動返信メールを送る (下の **API Workflow Template (Public Contact Form)** 参照)。返信は **IDE の admin プレビュー** で `admin/inquiries.html` (一覧 + インライン詳細 + 返信フォームを 1 ページに統合) から行う (詳細は `references/admin-patterns.md`)。
 
 ```html
 <!DOCTYPE html>
@@ -433,7 +433,7 @@ Use this instead of a `sheet-read` whenever the only filter is "records for the 
   </div>
   <script src="/__gemihub/api.js"></script>
   <script>
-    // NO gemihub.auth.require() — 公開フォーム。訪問者はログインしていなくてよい。
+    // NO kiokuflow.auth.require() — 公開フォーム。訪問者はログインしていなくてよい。
     // submissionId はフォーム初期化時に一意に採番する (crypto.randomUUID が使えない旧ブラウザは Math.random にフォールバック)。
     // 同じフォームインスタンスで再送信されたら同じ id が送られるので workflow 側で重複判定される。
     document.getElementById("submissionId").value =
@@ -448,7 +448,7 @@ Use this instead of a `sheet-read` whenever the only filter is "records for the 
       btn.textContent = "送信中...";
       box.classList.add("hidden");
       try {
-        await gemihub.post("contact", {
+        await kiokuflow.post("contact", {
           name:    document.getElementById("name").value,
           email:   document.getElementById("email").value,
           subject: document.getElementById("subject").value,
@@ -478,7 +478,7 @@ Use this instead of a `sheet-read` whenever the only filter is "records for the 
 
 `notify_owner` の `to:` は **サイト運営者の固定メールアドレス**。スキルを使ってこのテンプレを展開する際は、ユーザーに「運営者通知を受け取るメールアドレス」を聞いてから埋めること (デフォルトで他人のアドレスを書かない)。
 
-**重要:** ハニーポット / idempotency は workflow ノードで実装する。`trigger.honeypotField` / `trigger.idempotencyKeyField` オプションは **form POST (urlencoded / multipart)** でしか動かず、`gemihub.post()` が送る JSON リクエストには効かない。したがって JS 経由で叩く公開 API では `trigger:` にこの 2 つを書かず、下記のように `script` + `if` + `sheet-read` で同等の処理を手組みする。
+**重要:** ハニーポット / idempotency は workflow ノードで実装する。`trigger.honeypotField` / `trigger.idempotencyKeyField` オプションは **form POST (urlencoded / multipart)** でしか動かず、`kiokuflow.post()` が送る JSON リクエストには効かない。したがって JS 経由で叩く公開 API では `trigger:` にこの 2 つを書かず、下記のように `script` + `if` + `sheet-read` で同等の処理を手組みする。
 
 ```yaml
 # web/api/contact.yaml — PUBLIC endpoint (no requireAuth)
@@ -643,7 +643,7 @@ Replace `ACCOUNT_TYPE` with the actual type name (e.g., `"partner"`, `"customer"
 
 ### API mock file (`web/__gemihub/api/{path}.json`)
 
-**Only for GET endpoints.** Mocks are read by the IDE preview when the page calls `gemihub.get(...)`. Endpoints invoked via `gemihub.post(...)` (or an HTML `<form action>` POST) do NOT need a mock — they are no-ops in preview and the page either shows a static success state or never renders any field from the response. If a POST endpoint truly returns data the page reads, create a mock; otherwise skip it.
+**Only for GET endpoints.** Mocks are read by the IDE preview when the page calls `kiokuflow.get(...)`. Endpoints invoked via `kiokuflow.post(...)` (or an HTML `<form action>` POST) do NOT need a mock — they are no-ops in preview and the page either shows a static success state or never renders any field from the response. If a POST endpoint truly returns data the page reads, create a mock; otherwise skip it.
 
 For a GET endpoint at `web/api/tickets/list.yaml`, create `web/__gemihub/api/tickets/list.json`:
 

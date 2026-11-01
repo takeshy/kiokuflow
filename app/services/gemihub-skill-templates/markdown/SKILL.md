@@ -1,13 +1,13 @@
 ---
 name: markdown
-description: Create and edit GemiHub Markdown notes using GFM, frontmatter, callouts, Mermaid diagrams, tables, task lists, and links.
+description: Create and edit kiokuflow Markdown notes using GFM, frontmatter, callouts, Mermaid diagrams, tables, task lists, and links.
 ---
 
-# GemiHub Markdown Skill
+# kiokuflow Markdown Skill
 
-Create and edit Markdown files for GemiHub. Use this skill when working with `.md` or `.markdown` files, notes, frontmatter, callouts, Mermaid diagrams, tables, task lists, or Markdown preview behavior.
+Create and edit Markdown files for kiokuflow. Use this skill when working with `.md` or `.markdown` files, notes, frontmatter, callouts, Mermaid diagrams, tables, task lists, or Markdown preview behavior.
 
-GemiHub supports standard Markdown and GitHub Flavored Markdown. Keep files portable and readable as plain text.
+kiokuflow supports standard Markdown and GitHub Flavored Markdown. Keep files portable and readable as plain text.
 
 ## Editing Rules
 
@@ -21,7 +21,7 @@ GemiHub supports standard Markdown and GitHub Flavored Markdown. Keep files port
 
 ## Frontmatter
 
-GemiHub recognizes YAML frontmatter at the top of a Markdown file.
+kiokuflow recognizes YAML frontmatter at the top of a Markdown file.
 
 ```yaml
 ---
@@ -77,7 +77,7 @@ Aliases:
 
 ## Mermaid Diagrams
 
-GemiHub preview renders fenced Mermaid blocks.
+kiokuflow preview renders fenced Mermaid blocks.
 
 ```mermaid
 flowchart TD

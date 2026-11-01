@@ -50,7 +50,7 @@ test("provider endpoints reject locked keys, org mounts, unknown providers and c
   }
 });
 
-test("a public Go catalog cannot validate a rejected API key; routing headers identify GemiHub", async t => {
+test("a public Go catalog cannot validate a rejected API key; routing headers identify kiokuflow", async t => {
   t.mock.method(globalThis, "fetch", async (input: unknown, init?: RequestInit) => {
     const headers = new Headers(init?.headers);
     assert.equal(headers.get("x-opencode-session"), "test-conversation");

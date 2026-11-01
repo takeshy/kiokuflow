@@ -1,3 +1,4 @@
+import { PUBLIC_DOMAIN, LEGACY_DOMAINS, SERVICE_NAME } from "~/config/branding";
 import {
   isRouteErrorResponse,
   Links,
@@ -14,8 +15,16 @@ import { resolveLanguage } from "~/i18n/resolve-language";
 import type { Language } from "~/types/settings";
 import "./app.css";
 
+export const meta: Route.MetaFunction = () => [
+  { title: SERVICE_NAME },
+  { name: "application-name", content: SERVICE_NAME },
+  { name: "apple-mobile-web-app-title", content: SERVICE_NAME },
+];
+
 export const links: Route.LinksFunction = () => [
   { rel: "icon", type: "image/x-icon", href: "/favicon.ico" },
+  { rel: "manifest", href: "/icons/manifest.json" },
+  { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png" },
   { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32x32.png" },
   { rel: "icon", type: "image/png", sizes: "16x16", href: "/favicon-16x16.png" },
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -63,7 +72,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             __html: [
               // Register SW only on main app domains (skip hubwork custom domains).
               'var _h=location.hostname;',
-              'var _isMain=_h==="localhost"||_h==="gemihub.net"||_h==="www.gemihub.net";',
+              `var _isMain=${JSON.stringify(['localhost', '127.0.0.1', ...[PUBLIC_DOMAIN, ...LEGACY_DOMAINS].flatMap(domain => [domain, `www.${domain}`])])}.indexOf(_h)!==-1;`,
               'if(_isMain&&"serviceWorker"in navigator){',
               // Was this page already being served by a service worker? If so, a
               // later controllerchange means an UPDATED worker took over while

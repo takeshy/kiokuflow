@@ -2,7 +2,7 @@ import { setCachedFile, type LocalSyncMeta, type CachedRemoteMeta } from "~/serv
 
 import { isSyncExcludedPath as isCoreSyncExcludedPath } from "gemihub-sync-core/paths";
 
-// Path / file type rules are shared with the other GemiHub clients through
+// Path / file type rules are shared with the other kiokuflow clients through
 // gemihub-sync-core.
 export {
   SYNC_EXCLUDED_FILE_NAMES,

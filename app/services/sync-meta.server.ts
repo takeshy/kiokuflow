@@ -3,7 +3,7 @@
 //
 // Reading, duplicate consolidation, reconciliation and writing of
 // `_sync-meta.json` are shared with Obsidian and Desktop through
-// gemihub-sync-core; this module binds them to GemiHub's Drive functions and
+// gemihub-sync-core; this module binds them to kiokuflow's Drive functions and
 // keeps the existing function names.
 
 import {

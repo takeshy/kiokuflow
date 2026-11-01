@@ -36,7 +36,7 @@ Spreadsheet に以下のシートを作成:
 
 ### 3. Deploy
 
-全ファイルを GemiHub の `web/` フォルダに配置して Push。
+全ファイルを kiokuflow の `web/` フォルダに配置して Push。
 
 ## Flow
 
@@ -44,7 +44,7 @@ Spreadsheet に以下のシートを作成:
 2. メールアドレスを入力 → マジックリンクが送信される
 3. メール内のリンクをクリック → `__hubwork_partner` Cookie が発行される
 4. `/partner/tickets` にリダイレクト
-5. `gemihub.auth.require("partner")` で認証チェック (未認証なら `/login/partner` に戻る)
-6. `gemihub.get("partner/tickets")` で Workflow API を呼び出し
+5. `kiokuflow.auth.require("partner")` で認証チェック (未認証なら `/login/partner` に戻る)
+6. `kiokuflow.get("partner/tickets")` で Workflow API を呼び出し
 7. Workflow が `Tickets` シートから `partner_email` でフィルタして返却
 8. HTML で一覧を描画

@@ -760,7 +760,7 @@ export function GeneralTab({
                 <Label htmlFor="ragFeatureEnabled">{t("settings.general.enableRag")}</Label>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {ragBlockedByVertex
-                    ? (language === "ja" ? "RAGは有料プラン限定です。" : "RAG requires an active paid GemiHub plan.")
+                    ? (language === "ja" ? "RAGは有料プラン限定です。" : "RAG requires an active paid kiokuflow plan.")
                     : t("settings.general.enableRagDescription")}
                 </p>
               </div>

@@ -37,14 +37,14 @@ emails/
 
 ### 3. Deploy
 
-`web/` と `emails/` 以下を丸ごと GemiHub の rootDir に配置して Push。
+`web/` と `emails/` 以下を丸ごと kiokuflow の rootDir に配置して Push。
 
 ## Flow
 
 ### 新規登録
 
 1. Partner が `/register/partner` にアクセス
-2. 氏名・会社名・メールを入力して送信 → `gemihub.auth.register("partner", email, { name, company })`
+2. 氏名・会社名・メールを入力して送信 → `kiokuflow.auth.register("partner", email, { name, company })`
 3. Firestore に `hubwork-pending-registrations/{token}` が保存される（10 分 TTL）
 4. `emails/partner/register.md` テンプレートで登録確認メール送信（`{{registerLink}}` 変数に検証 URL が差し込まれる）
 5. Partner がメール内のリンクをクリック → `/__gemihub/auth/register/verify/:token`

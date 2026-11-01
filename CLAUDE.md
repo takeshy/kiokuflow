@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-GemiHub is a web application that integrates Google Gemini AI with Google Drive, with support for self-hosting. It provides visual workflow building, AI chat with streaming/function calling, Drive file management with a WYSIWYG editor, and offline-first caching with push/pull sync.
+kiokuflow is a web application that connects Gemini, OpenAI, OpenRouter and OpenCode Go with Google Drive, with support for self-hosting. It provides visual workflow building, AI chat with streaming/function calling, Drive file management with a WYSIWYG editor, and offline-first caching with push/pull sync.
 
 ## Documentation
 
@@ -42,7 +42,7 @@ npm run precommit    # Run typecheck + lint + build (what the pre-commit git hoo
 
 **Pre-commit hook**: a pre-commit hook at `.githooks/pre-commit` runs typecheck + lint + build and blocks the commit on failure. Enable once per clone with `git config core.hooksPath .githooks`. The build step is included because React Router's server/client code-splitting produces errors (e.g. ".server module referenced by client") that only surface during the vite bundle pass, not during tsc.
 
-Tests use Node's built-in `node:test` runner via `tsx`. Run `npm run test` for all tests, `npm run test:sync-diff` for the GemiHub-side sync tests (client utils, GCS storage diff), or `npm run test:parser` for parser tests. Tests for the shared sync protocol live in gemihub-sync-core. To run a single test file: `npx tsx --test path/to/file.test.ts`.
+Tests use Node's built-in `node:test` runner via `tsx`. Run `npm run test` for all tests, `npm run test:sync-diff` for the kiokuflow-side sync tests (client utils, GCS storage diff), or `npm run test:parser` for parser tests. Tests for the shared sync protocol live in gemihub-sync-core. To run a single test file: `npx tsx --test path/to/file.test.ts`.
 
 ## Environment
 
@@ -60,9 +60,9 @@ Requires Node.js 24+. Copy `.env.example` to `.env` and fill in `GOOGLE_CLIENT_I
 - Sync: Drive push/pull in `useSync.ts` (inert while a project is selected); project sync in `useStorageSync.ts`; `useSyncUI` selects per mount.
 - `DriveShelf.tsx` shows My Drive above the project FileTree; files move between mounts via `/api/storage/move-between-mounts`.
 
-**AI providers:** default is `genai-key` (the user's own Gemini API key, browser-side — unchanged). Inside an org project, chat and AI routes run on the tenant's **Vertex AI** (no API key needed): AI server routes dispatch on an explicit `projectId` to handlers under `app/services/ai/` (`gemini-vertex.server.ts` engine; `chat-stream-client.ts` is the client SSE orchestrator; `storage-tools.server.ts` keeps the `*_drive_*` tool protocol names). RAG: Drive mount → Gemini File Search; project mount → Firestore vector search (`ragChunks`, needs a composite vector index). One model registry: `app/services/ai/models.ts`.
+**AI providers:** default is `genai-key` (the user's own Gemini API key, browser-side — unchanged). Inside an org project, chat and AI routes run on the tenant's **Vertex AI** (no API key needed): AI server routes dispatch on an explicit `projectId` to handlers under `app/services/ai/` (`gemini-vertex.server.ts` engine; `chat-stream-client.ts` is the client SSE orchestrator; `storage-tools.server.ts` keeps the `*_drive_*` tool protocol names). RAG: paid Drive mount → Gemini/OpenAI embeddings in Firestore; project mount → Firestore vector search (`ragChunks`, needs a composite vector index). One model registry: `app/services/ai/models.ts`.
 
-**Shared sync core:** the Drive sync protocol and everything that must agree with the other GemiHub clients (obsidian-gemihub, gemihub-gdrive) lives in the `gemihub-sync-core` library (GitHub dependency pinned to a commit): `_sync-meta.json` diff/reconciliation/storage, Drive REST client, exclusion rules, text/binary/MIME table, conflict backup names, encryption, Migration Tool token / `_encrypted-auth.json`, MD5. GemiHub modules (`sync-diff.ts`, `sync-push-guard.ts`, `sync-client-utils.ts`, `sync-meta.server.ts`, `google-drive.server.ts`, `crypto-core.ts`) are thin bindings that keep the existing names — change shared rules in the library, then update all clients with its `npm run sync-plugins -- ../gemihub ../obsidian-gemihub ../gemihub-gdrive`. See `docs/features/sync.md` "Shared Sync Core".
+**Shared sync core:** the Drive sync protocol and everything that must agree with the other kiokuflow clients (obsidian-gemihub, gemihub-gdrive) lives in the `gemihub-sync-core` library (GitHub dependency pinned to a commit): `_sync-meta.json` diff/reconciliation/storage, Drive REST client, exclusion rules, text/binary/MIME table, conflict backup names, encryption, Migration Tool token / `_encrypted-auth.json`, MD5. kiokuflow modules (`sync-diff.ts`, `sync-push-guard.ts`, `sync-client-utils.ts`, `sync-meta.server.ts`, `google-drive.server.ts`, `crypto-core.ts`) are thin bindings that keep the existing names — change shared rules in the library, then update all clients with its `npm run sync-plugins -- ../gemihub ../obsidian-gemihub ../gemihub-gdrive`. See `docs/features/sync.md` "Shared Sync Core".
 
 **Path alias:** `~/*` maps to `./app/*` (configured in tsconfig.json).
 

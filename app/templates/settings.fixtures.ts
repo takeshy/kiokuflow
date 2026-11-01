@@ -14,7 +14,7 @@ export const settingsFixture: UserSettings = {
     gemihub: {
       storeId: "sample-store",
       storeIds: ["sample-store"],
-      storeName: "GemiHub documents",
+      storeName: "kiokuflow documents",
       isExternal: false,
       targetFolders: ["Knowledge"],
       excludePatterns: ["Archive/.*"],
@@ -77,7 +77,7 @@ export const settingsFixture: UserSettings = {
     accountStatus: "enabled",
     accountId: "acct_storybook",
     accountSlug: "acme-design",
-    defaultDomain: "acme-design.gemihub.net",
+    defaultDomain: "acme-design.kiokuflow.net",
     customDomain: "docs.example.com",
     domainStatus: "active",
     skillVersion: "1.0.0",

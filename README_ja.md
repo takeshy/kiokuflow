@@ -1,14 +1,16 @@
-# GemiHub
+# kiokuflow
+
+[サービス名・ドメインの移行手順](docs/architecture/rebranding.md)
 
 **ドキュメントを読み、線を引き、選んだ AI に聞く — すべてあなた自身の Google Drive の中で。**
 
 Drive の PDF・EPUB・Markdown を開き、気になった一節をハイライトして、その場にメモを貼る。ハイライトもメモも、ダッシュボードもチャット履歴もワークフローも、すべて *あなたの* Drive にある普通のファイルです。だから AI はそのすべてを読めるし、あなたはいつでも全部を持って出ていけます。有料RAGの検索用抜粋とembeddingはFirestoreに保存します。セルフホスト可能。
 
-**[gemihub.net で今すぐ試す →](https://gemihub.net)** · [English README](./README.md)
+**[kiokuflow.net で今すぐ試す →](https://kiokuflow.net)** · [English README](./README.md)
 
-![GemiHub](./public/images/cap.png)
+![kiokuflow](./public/images/cap.png)
 
-## GemiHub でできること
+## kiokuflow でできること
 
 ### 読んだドキュメントと、そこに書いたメモを一体に
 
@@ -21,7 +23,6 @@ PDF・EPUB・Markdown・テキスト・画像を、メインビューアでも�
 
 組み込みの pdf.js ビューア（テキスト選択・ページナビ・ズーム）とクライアントサイド EPUB リーダー（フォントサイズ・ページ幅調整）により、メモを付けたいドキュメントをそのまま快適に読めます。
 
-![ドキュメントメモ](./public/images/memo.png)
 
 ### 自分のファイルで組み立てるダッシュボード
 
@@ -37,9 +38,9 @@ Gemini・OpenAI・OpenRouter・OpenCode Goを選んでストリーミングチ�
 
 ### あなたのデータは、あなたの管理下に
 
-チャット履歴・ワークフロー・設定・編集履歴は、すべてあなた自身の Google Drive の `gemihub/` フォルダに保存されます。有料RAGではFirestoreに検索用インデックスを保存し、元のファイルから再構築できます。任意でハイブリッド RSA + AES 暗号化を有効にでき、単体で動く Python 復号スクリプトも同梱しているので、GemiHub なしでも自分のデータを読めます。
+チャット履歴・ワークフロー・設定・編集履歴は、すべてあなた自身の Google Drive の `kiokuflow/` フォルダに保存されます。有料RAGではFirestoreに検索用インデックスを保存し、元のファイルから再構築できます。任意でハイブリッド RSA + AES 暗号化を有効にでき、単体で動く Python 復号スクリプトも同梱しているので、kiokuflow なしでも自分のデータを読めます。
 
-GemiHub はオフラインファーストです。ファイルは IndexedDB にキャッシュされて即座に開き、ネットがなくても編集でき、同期は Push/Pull で自分のタイミングで行えます。MD5 による競合検出、差分表示付きの解決ダイアログ、選ばなかった方の自動バックアップ付き。同じ `_sync-meta.json` 形式を [Obsidian プラグイン](https://github.com/takeshy/obsidian-gemihub)も扱うため、Vault と GemiHub で同じ Drive フォルダを共有できます。
+kiokuflow はオフラインファーストです。ファイルは IndexedDB にキャッシュされて即座に開き、ネットがなくても編集でき、同期は Push/Pull で自分のタイミングで行えます。MD5 による競合検出、差分表示付きの解決ダイアログ、選ばなかった方の自動バックアップ付き。同じ `_sync-meta.json` 形式を [Obsidian プラグイン](https://github.com/takeshy/obsidian-gemihub)も扱うため、Vault と kiokuflow で同じ Drive フォルダを共有できます。
 
 ![Push/Pull 同期](./public/images/push_pull.png)
 
@@ -57,7 +58,7 @@ GemiHub はオフラインファーストです。ファイルは IndexedDB に�
 
 **編集** — WYSIWYG Markdown エディタ（wysimark-lite）· Obsidian 互換 JSON Canvas · ファイルとワークフローの差分ベース編集履歴 · ドキュメントの公開 URL 発行 · ファイル・チャット履歴・ワークフローログの暗号化
 
-**自動化** — ブラウザ上で動く 25 種のノード（有料プランでは Gmail・Google カレンダー・Sheets ノードを追加）、YAML インポート/エクスポート、SSE によるリアルタイム実行を備えたビジュアルワークフローエディタ · 自然言語からのワークフロー生成（ストリーミング差分プレビュー付き）
+**自動化** — ブラウザ上で動く 25 種のノード（対象の有料プランではSheetsノードを追加）、YAML インポート/エクスポート、SSE によるリアルタイム実行を備えたビジュアルワークフローエディタ · 自然言語からのワークフロー生成（ストリーミング差分プレビュー付き）
 
 **チーム** — Cloud Storage と Vertex AI 上の組織プロジェクト。メンバーロール、メンバー別 AI 予算、プロジェクト単位のダッシュボードとワークフロー
 
@@ -68,28 +69,25 @@ GemiHub はオフラインファーストです。ファイルは IndexedDB に�
 
 **ダッシュボードのウィジェット** — カンバン、ワークフロー出力、タイムライン、Base ビュー設定、編集操作。
 
-![カンバンボード](./public/images/dashboard_kanban.png)
-![ワークフローウィジェット](./public/images/dashboard_workflow.png)
-![タイムラインウィジェット](./public/images/timeline_edit.png)
-![Base ウィジェット設定](./public/images/base_setting.png)
-![ダッシュボード編集](./public/images/dashboard_edit.png)
+
+
+
+
 
 **Secret Manager** — RSA + AES で暗号化した値を、Drive フォルダ内の自己完結した `.encrypted` ファイルとして管理。復号前でも名前や可視メタデータで検索できます。
 
-![Secret Manager ウィジェット](./public/images/secret_manager.png)
-![シークレット新規作成](./public/images/secret_manager_new.png)
+
 
 **ナレッジとスキル** — チャットでの OKF バンドル利用、AI によるバンドル作成、ワンクリック導入の外部スキル。
 
-![チャットでの OKF バンドル](./public/images/okf_sample.png)
-![AI による OKF バンドル作成](./public/images/okf_skill.png)
+
+
 ![外部スキル](./public/images/external_skills.png)
 
 **ワークフロー** — ノード編集、実行ログ、AI 生成。
 
-![ワークフローノード編集](./public/images/edit_workflow.png)
+
 ![ワークフロー実行](./public/images/workflow_execution.png)
-![AI ワークフロー生成](./public/images/ai_generate_workflow.png)
 
 **組織** — 共有プロジェクト、メンバー管理、プロジェクトダッシュボード。
 
@@ -99,20 +97,19 @@ GemiHub はオフラインファーストです。ファイルは IndexedDB に�
 
 **ファイル** — 公開・履歴・暗号化・ダウンロードを備えた右クリックメニュー、Canvas 編集。
 
-![ファイル管理](./public/images/publish_web.png)
-![Canvas エディタ](./public/images/canvas.png)
+
 
 </details>
 
 ## はじめかた
 
-いちばん手軽なのはホスティング版です。**[gemihub.net](https://gemihub.net)** に Google でサインインし、**設定 → 一般**で最初に暗号化用の鍵を作成し（パスワードは秘密鍵の解除用で、APIキーの保存には不要です）、一番左の**AIプロバイダー**で利用するAPIキーを登録します。使用するプロバイダーは設定タブ上部で選択します。KakerattaとBlueskyは**外部連携**、コマンドとショートカットは同じ設定タブにまとまっています。
+いちばん手軽なのはホスティング版です。**[kiokuflow.net](https://kiokuflow.net)** に Google でサインインし、**設定 → 一般**で最初に暗号化用の鍵を作成し（パスワードは秘密鍵の解除用で、APIキーの保存には不要です）、一番左の**AIプロバイダー**で利用するAPIキーを登録します。使用するプロバイダーは設定タブ上部で選択します。KakerattaとBlueskyは**外部連携**、コマンドとショートカットは同じ設定タブにまとまっています。
 
 自分で動かす場合:
 
 ```bash
-git clone <repository-url>
-cd gemihub
+git clone https://github.com/takeshy/kiokuflow.git
+cd kiokuflow
 npm install
 cp .env.example .env   # OAuth 認証情報と SESSION_SECRET を記入
 npm run dev            # http://localhost:8132
@@ -122,23 +119,22 @@ npm run dev            # http://localhost:8132
 
 ## プラン
 
-GemiHub は MIT ライセンスで、自分のAIプロバイダーのキーで基本機能を無料で使えます。プロバイダーのAPI利用料は別途かかり、Firestore RAGにはGemiHubの有効な有料プランが必要です。ホスティング版には有料プランが 3 つあります（詳細は [docs/architecture/premium.md](docs/architecture/premium.md)）。
+kiokuflow は MIT ライセンスで、自分のAIプロバイダーのキーで基本機能を無料で使えます。プロバイダーのAPI利用料は別途かかり、Firestore RAGにはkiokuflowの有効な有料プランが必要です。ホスティング版には有料プランが 3 つあります（詳細は [docs/architecture/premium.md](docs/architecture/premium.md)）。
 
 | | 無料 | Lite — 月額 ¥300（約 $2） | Pro — 月額 ¥3,000（約 $20） | Business — 月額 ¥7,500（約 $50）／組織単位 |
 |---|---|---|---|---|
 | 基本の読書・編集・ダッシュボード・チャット | ✓ | ✓ | ✓ | ✓ |
 | アップロード上限 | 1ファイル20 MB | 1ファイル5 GB | 1ファイル5 GB | 1ファイル5 GB |
-| Gmail 送信・Google カレンダーのワークフローノード | — | ✓ | ✓ | ✓ |
 | PDF 生成・外部同期トークン・一時編集 URL | — | ✓ | ✓ | ✓ |
 | Firestore embedding RAG・RAGごとのTop K・任意のJev判定 | — | ✓ | ✓ | ✓ |
 | Interactions API チャット | — | ✓ | ✓ | ✓ |
-| [Kakeratta の担当への回答](docs/integrations/kakeratta.md) | GemiHub の画面を開いている間 | 画面を閉じても動作 | 画面を閉じても動作 | 画面を閉じても動作（個人 Drive） |
+| [Kakeratta の担当への回答](docs/integrations/kakeratta.md) | kiokuflow の画面を開いている間 | 画面を閉じても動作 | 画面を閉じても動作 | 画面を閉じても動作（個人 Drive） |
 | [Kakeratta と Timeline 同期](docs/integrations/kakeratta.md) | — | 投稿・スレッド・担当名 | 投稿・スレッド・担当名 | 個人 Drive |
-| スケジュール実行 + `web/` からのページ配信（`{slug}.gemihub.net`） | — | — | ✓（自分のDriveから配信） | ✓（CDN・カスタムドメイン・ワークフローAPIも） |
+| スケジュール実行 + `web/` からのページ配信（`{slug}.kiokuflow.net`） | — | — | ✓（自分のDriveから配信） | ✓（CDN・カスタムドメイン・ワークフローAPIも） |
 | Google Sheets ワークフローノード | — | — | — | ✓ |
 | Cloud Storage + Vertex AI の共有組織 | — | — | — | 100 GB・月 $30 の AI 利用枠込み |
 
-Gemini API キーを自分で用意したくない場合は、設定で**パーソナル Vertex AI** を有効にすると、GemiHub の Vertex 接続でチャットが動きます。料金は $10（¥1,500）単位で前払いする残高から消費され、有効期限はなく、どのプランでも利用できます。Business の月 $30 の AI 利用枠も同じ方法で追加購入できます。
+Gemini API キーを自分で用意したくない場合は、設定で**パーソナル Vertex AI** を有効にすると、kiokuflow の Vertex 接続でチャットが動きます。料金は $10（¥1,500）単位で前払いする残高から消費され、有効期限はなく、どのプランでも利用できます。Business の月 $30 の AI 利用枠も同じ方法で追加購入できます。
 
 Businessの共有プロジェクトはCloud Storageにファイル、Firestoreにメタデータを保存し、チャットはVertex AIで動きます。個人の元ファイルはDriveに残り、有料RAGの抜粋とembeddingはFirestoreに保存します。質問と必要な内容は、選択したAI・embeddingプロバイダーと、有効時にはJevまたはOpenRouterへ送信します（[docs/architecture/mounts.md](docs/architecture/mounts.md)）。
 
@@ -182,11 +178,11 @@ Businessの共有プロジェクトはCloud Storageにファイル、Firestore�
 
 ## 謝辞
 
-GemiHub 組み込みの Markdown / Base / Canvas Agent Skills は、[kepano/obsidian-skills](https://github.com/kepano/obsidian-skills) を参考に作成を始めました。対応するファイル形式のサポートは、公開されている形式・挙動の説明をもとに独自に実装したもので、Obsidian のソースコードは含んでいません。Base は独立した標準仕様ではなく互換フォーマットとして扱っています。Canvas はオープン仕様である [JSON Canvas](https://jsoncanvas.org/) に準拠しています。
+kiokuflow 組み込みの Markdown / Base / Canvas Agent Skills は、[kepano/obsidian-skills](https://github.com/kepano/obsidian-skills) を参考に作成を始めました。対応するファイル形式のサポートは、公開されている形式・挙動の説明をもとに独自に実装したもので、Obsidian のソースコードは含んでいません。Base は独立した標準仕様ではなく互換フォーマットとして扱っています。Canvas はオープン仕様である [JSON Canvas](https://jsoncanvas.org/) に準拠しています。
 
 WYSIWYG Markdown エディタには [takeshy/wysimark-lite](https://github.com/takeshy/wysimark-lite)（[portive/wysimark](https://github.com/portive/wysimark) の軽量フォーク）を使用しています。Steph Ango 氏（@kepano）、Wysimark の作者・コントリビューター、JSON Canvas のメンテナの皆さまに感謝します。著作権とライセンスの詳細は [Third-Party Notices](THIRD_PARTY_NOTICES.md) を参照してください。
 
-GemiHub は独立したプロジェクトであり、Obsidian と提携・承認・後援関係にはありません。
+kiokuflow は独立したプロジェクトであり、Obsidian と提携・承認・後援関係にはありません。
 
 ## ライセンス
 
@@ -200,3 +196,5 @@ MCP ツールは初期状態では実行ごとに承認が必要です。承認�
 ## 本番環境
 
 本番は `geminihub-486523` の4GiB共有 Compute Engine VM `shared-apps` で、Kakeratta・Geo MCP と同居します。既存の HTTPS ロードバランサ、OAuth、セッション秘密値、Firestore・ストレージを使い続けます。`cloudbuild.yaml` は IAP 経由で VM を更新します。旧 Cloud Run は復旧用に最小インスタンス0で保持します。運用・復旧手順は `../kakeratta/infra/shared-vm/README.md` を参照してください。
+
+Googleログインは非機密の `drive.file` のみを要求します。Google Calendar・Gmail連携と通知メールは削除しました。ローカルの予定・メモは引き続き利用できます。Googleの同意画面にアプリ名・ロゴを表示するブランド審査は別です。

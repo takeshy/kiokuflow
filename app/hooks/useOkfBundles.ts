@@ -86,7 +86,7 @@ export function useOkfBundles(okfRoot: string) {
       .then(setGemihubUpdate)
       .catch((error) => {
         checkedBundleRef.current = "";
-        console.warn("Failed to check GemiHub OKF update", error);
+        console.warn("Failed to check kiokuflow OKF update", error);
       });
   }, [activeOkfBundleIds, okfBundles, okfRoot]);
 

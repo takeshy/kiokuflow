@@ -1,3 +1,4 @@
+import { ragSettingDisplayName } from "~/config/branding";
 import type { ReactNode } from "react";
 import { BookOpen, Database, FolderOpen, Globe, Plug, SearchX } from "lucide-react";
 import { useI18n } from "~/i18n/context";
@@ -83,7 +84,7 @@ export function TimelineAiPanel({
           <Chip on={search === "web"} icon={<Globe size={12} />} onClick={() => onChange({ search: "web" })}>{t("dashboard.timelineAiReplySearchWeb")}</Chip>
         )}
         {choices.ragSettings.map((name) => (
-          <Chip key={name} on={search === `rag:${name}`} icon={<Database size={12} />} onClick={() => onChange({ search: `rag:${name}` })}>{name}</Chip>
+          <Chip key={name} on={search === `rag:${name}`} icon={<Database size={12} />} onClick={() => onChange({ search: `rag:${name}` })}>{ragSettingDisplayName(name)}</Chip>
         ))}
       </Row>
 

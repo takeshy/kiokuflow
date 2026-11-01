@@ -1,3 +1,4 @@
+import { ragSettingDisplayName } from "~/config/branding";
 import { resolveRagTopK } from "~/services/rag-search-options";
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { ArrowLeft, Search, Loader2, FileCode, FileText, FileJson, File } from "lucide-react";
@@ -11,7 +12,7 @@ import type { ApiPlan, RagSetting } from "~/types/settings";
 
 export interface SearchPanelProps {
   apiPlan: ApiPlan;
-  /** GemiHub subscription entitlement; independent of Gemini's API tier. */
+  /** kiokuflow subscription entitlement; independent of Gemini's API tier. */
   ragAvailable?: boolean;
   ragStoreIds: string[];
   ragSettingName?: string;
@@ -152,7 +153,7 @@ export function SearchPanel({ ragAvailable = false, ragStoreIds, ragSettingName 
           resetSearch(); setSearchRagName(event.target.value);
           setJevEnabled(ragSettings[event.target.value]?.jevRagFilterEnabled !== false);
           setUntilMatch(ragSettings[event.target.value]?.searchUntilMatch === true);
-        }} className="mt-1 w-full rounded border border-gray-300 bg-white p-1 dark:border-gray-700 dark:bg-gray-900">{Object.keys(ragSettings).map(name => <option key={name} value={name} disabled={!project && !ragSettings[name].storeId}>{name}</option>)}</select></label>}
+        }} className="mt-1 w-full rounded border border-gray-300 bg-white p-1 dark:border-gray-700 dark:bg-gray-900">{Object.keys(ragSettings).map(name => <option key={name} value={name} disabled={!project && !ragSettings[name].storeId}>{ragSettingDisplayName(name)}</option>)}</select></label>}
         <p>Top K: {batchTopK}</p>
         {jevAvailable && <>
           <label className="flex items-center gap-2"><input type="checkbox" checked={jevEnabled} onChange={event => { resetSearch(); setJevEnabled(event.target.checked); }} />{language === "ja" ? "Jevで一致を判定する" : "Check relevance with Jev"}</label>

@@ -30,7 +30,6 @@ function SettingsScreen({ initialTab, organization = false, language = "ja", ope
             settings={provider ? { ...settingsFixture, selectedModel: `${provider}:example-model`, compatibleProviders: { [provider]: { encryptedApiKey: "storybook-key", salt: "storybook-salt", availableModels: [{ id: "example-model", name: "Example model" }], enabledModels: ["example-model"] } } } : openai ? { ...settingsFixture, selectedModel: "gpt-6.1-sol", openai: { encryptedApiKey: "storybook-key", salt: "storybook-salt" } } : settingsFixture}
             hasApiKey
             maskedKey="AIza***demo"
-            hasHubworkScopes
             rootFolderId="storybook-root"
             activeTab={activeTab}
             onTabChange={setActiveTab}
@@ -67,7 +66,6 @@ const meta = {
     settings: settingsFixture,
     hasApiKey: true,
     maskedKey: "AIza***demo",
-    hasHubworkScopes: true,
     rootFolderId: "storybook-root",
     activeTab: "general",
     onTabChange: () => undefined,

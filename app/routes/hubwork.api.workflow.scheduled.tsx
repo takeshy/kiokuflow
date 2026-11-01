@@ -6,11 +6,9 @@ import { mountContextForHubworkAccount } from "~/services/storage/account-mount.
 import { listObjectsForSync, readObject } from "~/services/storage/provider.server";
 import {
   personalVertexRunForSchedule,
-  personalVertexExhaustedEmail,
   selectScheduledAccounts,
   shouldNotifyPersonalVertexExhausted,
 } from "~/services/hubwork-scheduled.server";
-import { sendHtmlEmail } from "~/services/hubwork-mail-send.server";
 import { parseWorkflowYaml } from "~/engine/parser";
 import { executeWorkflow } from "~/engine/executor";
 import type { WorkflowInput, ServiceContext } from "~/engine/types";
@@ -50,8 +48,6 @@ export async function action({ request }: Route.ActionArgs) {
     return Response.json({ executed: 0, kakeratta: await kakerattaRun, message: "No active accounts eligible for scheduled execution" });
   }
 
-  const requestUrl = new URL(request.url);
-  const settingsUrl = `${request.headers.get("x-forwarded-proto") || requestUrl.protocol.replace(":", "")}://${requestUrl.host}/settings`;
 
   const now = new Date();
   const allResults: { accountId: string; workflowPath: string; status: string; error?: string }[] = [];
@@ -137,8 +133,6 @@ export async function action({ request }: Route.ActionArgs) {
         serviceContext.hubworkSheetsClient = google.sheets({ version: "v4", auth: oauth2Client });
         serviceContext.hubworkSpreadsheetId = hubworkSpreadsheetId;
       }
-      serviceContext.hubworkGmailClient = google.gmail({ version: "v1", auth: oauth2Client });
-      serviceContext.hubworkCalendarClient = google.calendar({ version: "v3", auth: oauth2Client });
 
       for (const { schedule, isRetry } of toExecute) {
         try {
@@ -210,11 +204,7 @@ export async function action({ request }: Route.ActionArgs) {
           const runtime = runtimes[schedule.id];
 
           if (shouldNotifyPersonalVertexExhausted(error, runtime?.lastError)) {
-            try {
-              await sendHtmlEmail(serviceContext.hubworkGmailClient!, personalVertexExhaustedEmail(account.email, settingsUrl));
-            } catch (mailError) {
-              console.warn(`[hubwork-scheduled] Failed to send balance-exhausted notification for account ${account.id}:`, mailError);
-            }
+            console.warn(`[hubwork-scheduled] Personal Vertex balance exhausted for account ${account.id}`);
           }
 
           // Increment retryCount for deferred retry on next tick

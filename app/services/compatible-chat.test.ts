@@ -59,7 +59,7 @@ test("Go uses its own key and fixed destination, bare model ID, and stable conve
   assert.equal(executed, 1);
   assert.equal(result.at(-1)?.type, "done");
   assert.equal(headers[0].get("Authorization"), "Bearer synthetic-go-key");
-  assert.equal(headers[0].get("User-Agent"), "gemihub/1.0");
+  assert.equal(headers[0].get("User-Agent"), "kiokuflow/1.0");
   assert.equal(headers[0].get("x-opencode-session"), headers[1].get("x-opencode-session"));
   assert.match(headers[0].get("x-opencode-session") || "", /^gemihub-[a-f0-9]{64}$/);
   assert.equal(bodies[0].model, "glm-5.3");

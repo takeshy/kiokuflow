@@ -1,4 +1,4 @@
-# GemiHub Base View Reference
+# kiokuflow Base View Reference
 
 ## Supported Layouts
 
@@ -12,7 +12,7 @@ Other view types are retained in the YAML but render using the table fallback.
 
 ## Common View Keys
 
-| Key | GemiHub behavior |
+| Key | kiokuflow behavior |
 |-----|------------------|
 | `name` | Unique label used by editors and dashboard widgets |
 | `filters` | Additional scope combined with global filters |
@@ -24,7 +24,7 @@ Other view types are retained in the YAML but render using the table fallback.
 
 ## Sorting Is Separate from Display Order
 
-GemiHub does not overload `order` as a sort instruction:
+kiokuflow does not overload `order` as a sort instruction:
 
 ```yaml
 views:
@@ -68,7 +68,7 @@ views:
       - note.topic
 ```
 
-GemiHub accepts workspace paths, wiki-style embeds or links, HTTP(S) URLs, and image data URIs. Prefer workspace-relative paths for portable files.
+kiokuflow accepts workspace paths, wiki-style embeds or links, HTTP(S) URLs, and image data URIs. Prefer workspace-relative paths for portable files.
 
 ## Summaries
 

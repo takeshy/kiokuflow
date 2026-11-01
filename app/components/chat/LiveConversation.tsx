@@ -1,3 +1,4 @@
+import { ragSettingDisplayName } from "~/config/branding";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Mic, MicOff, PhoneOff, X } from "lucide-react";
@@ -111,7 +112,7 @@ export function LiveConversation({ provider, systemPrompt, messages, fileContext
       <label className="mb-3 text-sm"><input type="checkbox" checked={includeContext} disabled={state !== "idle"} onChange={(event) => setIncludeContext(event.target.checked)} className="mr-2" />{ja ? "現在のチャットを会話の背景として使う" : "Use the current chat as conversation context"}</label>
       <label className="mt-3 mb-2 flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={fileAccess} disabled={state !== "idle"} onChange={event => setFileAccess(event.target.checked)} />{ja ? "ファイルを参照・検索する" : "Read and search files"}</label>
       {fileAccess && <p className="mb-2 text-xs text-gray-500">{fileContext.currentFile ? (ja ? `現在のファイル：${fileContext.currentFile.name}` : `Current file: ${fileContext.currentFile.name}`) : (ja ? "ファイル名や内容を話しかけて検索できます。" : "Ask to find a file by its name or content.")}</p>}
-      {fileAccess && ragSettings && Object.values(ragSettings).some(setting => setting.storeId) && <label className="mb-3 block text-sm">RAG<select value={ragName} disabled={state !== "idle"} onChange={event => setRagName(event.target.value)} className="mt-1 min-h-11 w-full rounded border bg-transparent p-1"><option value="">{ja ? "使用しない" : "Do not use"}</option>{Object.entries(ragSettings).filter(([, setting]) => setting.storeId).map(([name]) => <option key={name} value={name}>{name}</option>)}</select></label>}
+      {fileAccess && ragSettings && Object.values(ragSettings).some(setting => setting.storeId) && <label className="mb-3 block text-sm">RAG<select value={ragName} disabled={state !== "idle"} onChange={event => setRagName(event.target.value)} className="mt-1 min-h-11 w-full rounded border bg-transparent p-1"><option value="">{ja ? "使用しない" : "Do not use"}</option>{Object.entries(ragSettings).filter(([, setting]) => setting.storeId).map(([name]) => <option key={name} value={name}>{ragSettingDisplayName(name)}</option>)}</select></label>}
       <p className="mb-3 text-xs text-gray-500">{ja ? "ファイルは読み取り専用です。終了時に会話をチャット履歴へ保存します。" : "Files are read-only. The conversation is saved to chat history when you finish."}</p>
       <p role="status" className="mb-3 text-sm">{state === "connecting" ? (ja ? "接続中…" : "Connecting…") : state === "connected" ? (ja ? "会話中" : "Connected") : (ja ? "停止中" : "Stopped")}</p>
       {error && <p role="alert" className="mb-3 text-sm text-red-600">{error}</p>}

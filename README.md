@@ -1,14 +1,16 @@
-# GemiHub
+# kiokuflow
+
+[Brand and domain migration](docs/architecture/rebranding.md)
 
 **Read your documents, mark them up, and ask your chosen AI about them — all inside your own Google Drive.**
 
 Open a PDF, EPUB, or Markdown note from your Drive, highlight a passage, and pin a memo to it. Highlights, memos, dashboards, chat history, and workflows are all plain files in *your* Drive — so the AI can read every one of them, and you can walk away with everything at any time. Paid RAG stores searchable excerpts and embeddings in Firestore. Self-hostable.
 
-**[Try GemiHub at gemihub.net →](https://gemihub.net)** · [日本語版 README](./README_ja.md)
+**[Try kiokuflow at kiokuflow.net →](https://kiokuflow.net)** · [日本語版 README](./README_ja.md)
 
-![GemiHub](./public/images/cap.png)
+![kiokuflow](./public/images/cap.png)
 
-## Why GemiHub?
+## Why kiokuflow?
 
 ### Documents you read, with the notes you took
 
@@ -19,9 +21,8 @@ Open a PDF, EPUB, Markdown, text, or image file — in the main viewer or in a d
 - **A real timeline** — WYSIWYG or raw Markdown composer, pin/edit/delete, wiki links that open in the IDE, and a collapsible rail so highlights stay visible while you read.
 - **Plain Markdown storage** — memos are ordinary files under `Dashboards/Memos/` in your Drive. Portable, searchable, syncable — and because they are just files, chat and RAG can use them too.
 
-A built-in pdf.js viewer (selectable text, page navigation, zoom) and a client-side EPUB reader (font size, page width) make GemiHub a comfortable place to actually read what you annotate.
+A built-in pdf.js viewer (selectable text, page navigation, zoom) and a client-side EPUB reader (font size, page width) make kiokuflow a comfortable place to actually read what you annotate.
 
-![Document Memos](./public/images/memo.png)
 
 ### A dashboard assembled from your own files
 
@@ -37,9 +38,9 @@ Choose Gemini, OpenAI, OpenRouter, or OpenCode Go for streaming chat, with tools
 
 ### Your data, your control
 
-Personal chat history, workflows, settings and edit history live in a `gemihub/` folder in your own Google Drive. Paid RAG adds a Firestore search index that can be rebuilt from the source files. Optional hybrid RSA + AES encryption protects sensitive files, and a standalone Python decryption script ships with the repo so you can always read your own data without GemiHub.
+Personal chat history, workflows, settings and edit history live in a `kiokuflow/` folder in your own Google Drive. Paid RAG adds a Firestore search index that can be rebuilt from the source files. Optional hybrid RSA + AES encryption protects sensitive files, and a standalone Python decryption script ships with the repo so you can always read your own data without kiokuflow.
 
-GemiHub is offline-first: files are cached in IndexedDB and load instantly, edits work with no connection, and Push/Pull syncs on your terms — with MD5 conflict detection, a diff-based resolution dialog, and a backup of whatever you did not keep. The same `_sync-meta.json` format is spoken by the [Obsidian plugin](https://github.com/takeshy/obsidian-gemihub), so a vault and GemiHub can share one Drive folder.
+kiokuflow is offline-first: files are cached in IndexedDB and load instantly, edits work with no connection, and Push/Pull syncs on your terms — with MD5 conflict detection, a diff-based resolution dialog, and a backup of whatever you did not keep. The same `_sync-meta.json` format is spoken by the [Obsidian plugin](https://github.com/takeshy/obsidian-gemihub), so a vault and kiokuflow can share one Drive folder.
 
 ![Push/Pull Sync](./public/images/push_pull_en.png)
 
@@ -57,7 +58,7 @@ GemiHub is offline-first: files are cached in IndexedDB and load instantly, edit
 
 **Editing** — WYSIWYG Markdown editor (wysimark-lite) · Obsidian-compatible JSON Canvas · unified-diff edit history for files and workflows · publish any document to a public URL · encrypted files, chat history, and workflow logs
 
-**Automation** — Visual workflow editor with 25 node types that run in the browser (plus Gmail, Calendar, and Sheets nodes on paid plans), YAML import/export, and real-time SSE execution · AI workflow generation from natural language with streaming diff preview
+**Automation** — Visual workflow editor with 25 node types that run in the browser (plus Sheets nodes on eligible paid plans), YAML import/export, and real-time SSE execution · AI workflow generation from natural language with streaming diff preview
 
 **Teams** — Organization projects on managed Cloud Storage and Vertex AI, with member roles, per-member AI budgets, and project-scoped dashboards and workflows
 
@@ -68,28 +69,25 @@ GemiHub is offline-first: files are cached in IndexedDB and load instantly, edit
 
 **Dashboard widgets** — kanban boards, workflow output, the timeline microblog, and Base view settings.
 
-![Dashboard Kanban Board](./public/images/dashboard_kanban.png)
-![Dashboard Workflow Widget](./public/images/dashboard_workflow.png)
-![Timeline Widget](./public/images/timeline_edit.png)
-![Base Widget Settings](./public/images/base_setting.png)
-![Dashboard Editing](./public/images/dashboard_edit.png)
+
+
+
+
 
 **Secret Manager** — RSA + AES encrypted values as self-contained `.encrypted` files in a Drive folder, searchable by name and visible metadata before unlocking.
 
-![Secret Manager Widget](./public/images/secret_manager.png)
-![New Secret Dialog](./public/images/secret_manager_new.png)
+
 
 **Knowledge & skills** — OKF bundles in chat, AI-authored bundles, and one-click external skills.
 
-![OKF Knowledge Bundle in Chat](./public/images/okf_sample.png)
-![AI Authoring an OKF Bundle](./public/images/okf_skill.png)
+
+
 ![External Skills](./public/images/external_skills.png)
 
 **Workflows** — node editing, live execution logs, and AI generation.
 
-![Edit Workflow Node](./public/images/edit_workflow.png)
+
 ![Workflow Execution](./public/images/workflow_execution_en.png)
-![AI Workflow Generation](./public/images/ai_generate_workflow.png)
 
 **Organizations** — shared projects with member management and project dashboards.
 
@@ -99,20 +97,21 @@ GemiHub is offline-first: files are cached in IndexedDB and load instantly, edit
 
 **Files** — context menu with publishing, history, encryption, and downloads; canvas editing.
 
-![File Management](./public/images/publish_web.png)
-![Canvas Editor](./public/images/canvas.png)
+
 
 </details>
 
+Google sign-in requests only the non-sensitive `drive.file` scope. Built-in Google Calendar/Gmail integrations and notification emails have been removed. Local calendar notes remain available. Displaying an app name/logo on Google’s consent screen has separate brand-verification requirements.
+
 ## Getting Started
 
-The fastest path is the hosted app: **[gemihub.net](https://gemihub.net)** — sign in with Google, create encryption keys once in **Settings > General** (the common password unlocks the private key; saving API keys needs no password), and register your chosen API key in the leftmost **AI providers** tab. Choose the active provider above its configuration tabs. Kakeratta and Bluesky share **Integrations**; commands and shortcuts share one settings tab.
+The fastest path is the hosted app: **[kiokuflow.net](https://kiokuflow.net)** — sign in with Google, create encryption keys once in **Settings > General** (the common password unlocks the private key; saving API keys needs no password), and register your chosen API key in the leftmost **AI providers** tab. Choose the active provider above its configuration tabs. Kakeratta and Bluesky share **Integrations**; commands and shortcuts share one settings tab.
 
 To run it yourself:
 
 ```bash
-git clone <repository-url>
-cd gemihub
+git clone https://github.com/takeshy/kiokuflow.git
+cd kiokuflow
 npm install
 cp .env.example .env   # fill in OAuth credentials and SESSION_SECRET
 npm run dev            # http://localhost:8132
@@ -122,23 +121,22 @@ You need Node.js 24+, a Google Cloud OAuth client, and credentials for your chos
 
 ## Plans
 
-GemiHub is MIT-licensed and offers free core features with your own AI-provider key; provider API usage is billed separately. Firestore RAG requires an active paid GemiHub plan. The hosted service adds three paid plans; see [docs/architecture/premium.md](docs/architecture/premium.md) for details.
+kiokuflow is MIT-licensed and offers free core features with your own AI-provider key; provider API usage is billed separately. Firestore RAG requires an active paid kiokuflow plan. The hosted service adds three paid plans; see [docs/architecture/premium.md](docs/architecture/premium.md) for details.
 
 | | Free | Lite — ¥300/month (≈$2) | Pro — ¥3,000/month (≈$20) | Business — ¥7,500/month (≈$50), per organization |
 |---|---|---|---|---|
 | Core reading, editing, dashboard and chat | ✓ | ✓ | ✓ | ✓ |
 | Upload limit | 20 MB/file | 5 GB/file | 5 GB/file | 5 GB/file |
-| Gmail send and Google Calendar workflow nodes | — | ✓ | ✓ | ✓ |
 | PDF generation, external sync token, temp edit URL | — | ✓ | ✓ | ✓ |
 | Firestore embedding RAG, per-index Top K and optional Jev | — | ✓ | ✓ | ✓ |
 | Interactions API chat | — | ✓ | ✓ | ✓ |
-| [Kakeratta persona answers](docs/integrations/kakeratta.md) | While GemiHub is open | Also while closed | Also while closed | Also while closed (personal Drive) |
+| [Kakeratta persona answers](docs/integrations/kakeratta.md) | While kiokuflow is open | Also while closed | Also while closed | Also while closed (personal Drive) |
 | [Kakeratta Timeline synchronization](docs/integrations/kakeratta.md) | — | Posts, threads and author names | Posts, threads and author names | Personal Drive |
-| Scheduled workflows + page hosting from `web/` (`{slug}.gemihub.net`) | — | — | ✓, served from your own Drive | ✓, plus CDN, custom domains, workflow APIs |
+| Scheduled workflows + page hosting from `web/` (`{slug}.kiokuflow.net`) | — | — | ✓, served from your own Drive | ✓, plus CDN, custom domains, workflow APIs |
 | Google Sheets workflow nodes | — | — | — | ✓ |
 | Shared organization on Cloud Storage + Vertex AI | — | — | — | 100 GB, $30/month AI budget included |
 
-Don't want to manage a Gemini API key? Turn on **personal Vertex AI** in Settings and chat runs on GemiHub's Vertex connection against a prepaid balance you top up in $10 (¥1,500) units — no expiry, available on any plan. A Business organization's included $30/month AI budget can be topped up the same way.
+Don't want to manage a Gemini API key? Turn on **personal Vertex AI** in Settings and chat runs on kiokuflow's Vertex connection against a prepaid balance you top up in $10 (¥1,500) units — no expiry, available on any plan. A Business organization's included $30/month AI budget can be topped up the same way.
 
 Business shared projects store files in managed Cloud Storage with Firestore metadata and use Vertex AI for chat. Personal source files stay in Drive; paid RAG stores excerpts and embeddings in Firestore. Queries and relevant content are sent to the selected AI/embedding provider and, when enabled, Jev or OpenRouter. See [docs/architecture/mounts.md](docs/architecture/mounts.md).
 
@@ -182,11 +180,11 @@ Documentation lives in [`docs/`](./docs/) as an OKF bundle — [docs/index.md](.
 
 ## Acknowledgments
 
-GemiHub's built-in Markdown, Base, and Canvas Agent Skills were initially informed by [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills). The corresponding file-format support was independently implemented from publicly described formats and behavior and does not incorporate Obsidian source code. Base is described as a compatibility format rather than an independently standardized open format; Canvas follows the open [JSON Canvas specification](https://jsoncanvas.org/).
+kiokuflow's built-in Markdown, Base, and Canvas Agent Skills were initially informed by [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills). The corresponding file-format support was independently implemented from publicly described formats and behavior and does not incorporate Obsidian source code. Base is described as a compatibility format rather than an independently standardized open format; Canvas follows the open [JSON Canvas specification](https://jsoncanvas.org/).
 
 The WYSIWYG Markdown editor uses [takeshy/wysimark-lite](https://github.com/takeshy/wysimark-lite), a lightweight fork of [portive/wysimark](https://github.com/portive/wysimark). We are grateful to Steph Ango (@kepano), the Wysimark authors and contributors, and the maintainers of JSON Canvas. See [Third-Party Notices](THIRD_PARTY_NOTICES.md) for copyright and license details.
 
-GemiHub is an independent project and is not affiliated with, endorsed by, or sponsored by Obsidian.
+kiokuflow is an independent project and is not affiliated with, endorsed by, or sponsored by Obsidian.
 
 ## License
 

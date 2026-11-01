@@ -1,3 +1,4 @@
+import { ragSettingDisplayName } from "~/config/branding";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
@@ -192,7 +193,7 @@ export function NodeEditorModal({
                   {def.defaultValue === undefined && <option value="">—</option>}
                   {def.options.map((opt) => (
                     <option key={opt} value={opt}>
-                      {opt}
+                      {def.key === "ragSetting" ? ragSettingDisplayName(opt) : opt}
                     </option>
                   ))}
                 </select>

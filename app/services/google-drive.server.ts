@@ -1,4 +1,5 @@
 import type { SessionTokens } from "./session.server";
+import { DEFAULT_DRIVE_FOLDER, LEGACY_DRIVE_FOLDER } from "~/config/branding";
 import {
   createDriveClient,
   DriveApiError,
@@ -12,12 +13,12 @@ import {
 
 // The Drive REST client (requests, retries, pagination, multipart, errors) is
 // shared with Obsidian and Desktop through gemihub-sync-core; this module keeps
-// GemiHub's server-only operations (export, resumable upload, Docs import,
+// kiokuflow's server-only operations (export, resumable upload, Docs import,
 // publishing) and the existing function names.
 
 export { DriveApiError, type DriveFile };
 
-const ROOT_FOLDER_NAME = process.env.ROOT_FOLDER_NAME || "gemihub";
+const ROOT_FOLDER_NAME = process.env.ROOT_FOLDER_NAME || DEFAULT_DRIVE_FOLDER;
 const HISTORY_FOLDER = "history";
 
 // Google occasionally returns 502/504 from Drive uploads and metadata writes.
@@ -54,8 +55,15 @@ function driveRequest(
 }
 
 // Find or create the root app folder
-export function ensureRootFolder(accessToken: string, folderName?: string): Promise<string> {
-  return drive.ensureRootFolder(accessToken, folderName || ROOT_FOLDER_NAME);
+export async function ensureRootFolder(accessToken: string, folderName?: string): Promise<string> {
+  const name = folderName || ROOT_FOLDER_NAME;
+  if (folderName || process.env.ROOT_FOLDER_NAME || name !== DEFAULT_DRIVE_FOLDER) return drive.ensureRootFolder(accessToken, name);
+  // Reuse the original Drive folder by ID, so subscriptions, encryption and
+  // external sync continue to refer to the same workspace after rebranding.
+  const current = await drive.findFolderByName(accessToken, DEFAULT_DRIVE_FOLDER);
+  if (current) return current.id;
+  const legacy = await drive.findFolderByName(accessToken, LEGACY_DRIVE_FOLDER);
+  return legacy?.id || drive.ensureRootFolder(accessToken, DEFAULT_DRIVE_FOLDER);
 }
 
 // Ensure a subfolder exists (concurrent calls for the same folder share one request)

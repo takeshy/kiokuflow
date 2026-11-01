@@ -455,46 +455,8 @@ function buildToolDispatcher(
       }
     }
 
-    // Gmail tools — route via server API.
-    if (name === GMAIL_SEND_TOOL_NAME) {
-      try {
-        const res = await fetch("/api/gmail", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "send", ...args }),
-          signal: abortSignal,
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) return { error: (data as { error?: string }).error || "Gmail operation failed" };
-        return data;
-      } catch (err) {
-        if (abortSignal?.aborted) throw err;
-        return { error: err instanceof Error ? err.message : "Gmail operation failed" };
-      }
-    }
-
-    // Calendar tools — route via server API
-    if (CALENDAR_TOOL_NAMES.has(name)) {
-      const actionMap: Record<string, string> = {
-        calendar_list_events: "list",
-        calendar_create_event: "create",
-        calendar_update_event: "update",
-        calendar_delete_event: "delete",
-      };
-      try {
-        const res = await fetch("/api/calendar", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: actionMap[name], ...args }),
-          signal: abortSignal,
-        });
-        const data = await res.json();
-        if (!res.ok) return { error: (data as { error?: string }).error || "Calendar operation failed" };
-        return data;
-      } catch (err) {
-        if (abortSignal?.aborted) throw err;
-        return { error: err instanceof Error ? err.message : "Calendar operation failed" };
-      }
+    if (name === GMAIL_SEND_TOOL_NAME || CALENDAR_TOOL_NAMES.has(name)) {
+      return { error: "Google Calendar and Gmail integrations have been removed from kiokuflow." };
     }
 
     // MCP tools — route via server proxy
@@ -612,7 +574,7 @@ export async function* executeChatStream(
   extraToolDefinitions.push({
     name: "get_workflow_spec",
     description:
-      "Return the authoritative GemiHub workflow specification (variable syntax, condition syntax, all node types, trigger block, request.* / __response variables, etc.). Call this WHENEVER you touch a workflow YAML file — creating, modifying, reviewing, or DEBUGGING. When investigating why a workflow does not work, ALWAYS call this FIRST before guessing at the cause: most workflow bugs are wrong parameter names, missing `request.` prefix on input variables, or missing `__response`. Call with no arguments to get the full spec; pass `nodeTypes` only if you already know exactly which sections you need.",
+      "Return the authoritative kiokuflow workflow specification (variable syntax, condition syntax, all node types, trigger block, request.* / __response variables, etc.). Call this WHENEVER you touch a workflow YAML file — creating, modifying, reviewing, or DEBUGGING. When investigating why a workflow does not work, ALWAYS call this FIRST before guessing at the cause: most workflow bugs are wrong parameter names, missing `request.` prefix on input variables, or missing `__response`. Call with no arguments to get the full spec; pass `nodeTypes` only if you already know exactly which sections you need.",
     parameters: {
       type: "object",
       properties: {
@@ -620,7 +582,7 @@ export async function* executeChatStream(
           type: "array",
           items: { type: "string" },
           description:
-            "Optional. Filter to specific sections (node type names like 'command', 'drive-file', 'calendar-list', or the special name 'trigger'). Omit to receive the entire spec — recommended when debugging an unfamiliar workflow.",
+            "Optional. Filter to specific sections (node type names like 'command', 'drive-file', 'sheet-read', or the special name 'trigger'). Omit to receive the entire spec — recommended when debugging an unfamiliar workflow.",
         },
       },
     },

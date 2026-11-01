@@ -263,7 +263,5 @@ export interface ServiceContext {
   onDriveFileDeleted?: (data: { fileId: string; fileName: string }) => void;
   // Hubwork (paid feature) - optional Google API clients
   hubworkSheetsClient?: import("googleapis").sheets_v4.Sheets;
-  hubworkGmailClient?: import("googleapis").gmail_v1.Gmail;
-  hubworkCalendarClient?: import("googleapis").calendar_v3.Calendar;
   hubworkSpreadsheetId?: string;
 }

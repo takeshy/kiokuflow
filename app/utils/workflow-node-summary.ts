@@ -89,7 +89,7 @@ export function getNodeTypeLabel(type: WorkflowNodeType): string {
     "rag-sync": "RAG Sync",
     script: "Script",
     sleep: "Sleep",
-    "gemihub-command": "GemiHub Command",
+    "gemihub-command": "kiokuflow Command",
     "sheet-read": "Sheet Read",
     "sheet-write": "Sheet Write",
     "sheet-update": "Sheet Update",

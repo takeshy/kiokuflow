@@ -21,7 +21,7 @@ function OrganizationEn() {
         <h2>Two Workspaces</h2>
         <ul>
           <li><strong>My Drive</strong> — the default for everyone. Files live in your Google Drive, and AI runs on your own Gemini API key in the browser.</li>
-          <li><strong>Organization</strong> — files live in GemiHub&apos;s managed cloud storage, and AI runs on the organization&apos;s Vertex AI, so members need no API key of their own.</li>
+          <li><strong>Organization</strong> — files live in kiokuflow&apos;s managed cloud storage, and AI runs on the organization&apos;s Vertex AI, so members need no API key of their own.</li>
         </ul>
         <p>
           Switch between <strong>My Drive</strong> and each organization with the single workspace selector in the IDE header. File tree, chat, sync, and RAG follow that selection.
@@ -44,7 +44,7 @@ function OrganizationEn() {
 
         <h2>Members &amp; Roles</h2>
         <p>
-          Administrators manage people in <strong>Settings &gt; Organization &gt; Members</strong>. Adding someone by email takes effect immediately — they sign in with their Google account and receive a notification email sent from the administrator&apos;s own Gmail.
+          Administrators manage people in <strong>Settings &gt; Organization &gt; Members</strong>. Adding someone by email takes effect immediately — they sign in with their Google account and can open the workspace immediately. Notifications are not sent by email.
         </p>
         <img src="/images/organization_settings_en.png" alt="Organization member management settings" className="w-full" loading="lazy" />
         <ul>
@@ -109,7 +109,7 @@ function OrganizationJa() {
         <h2>2つのワークスペース</h2>
         <ul>
           <li><strong>My Drive</strong> — 全ユーザーの既定。ファイルは自分のGoogle Driveに保存され、AIは自分のGemini APIキーでブラウザ上から実行されます。</li>
-          <li><strong>組織</strong> — ファイルはGemiHubのマネージドクラウドストレージに保存され、AIは組織のVertex AIで動作するため、メンバー個人のAPIキーは不要です。</li>
+          <li><strong>組織</strong> — ファイルはkiokuflowのマネージドクラウドストレージに保存され、AIは組織のVertex AIで動作するため、メンバー個人のAPIキーは不要です。</li>
         </ul>
         <p>
           IDEヘッダーの1つのワークスペースセレクタで、<strong>My Drive</strong>と各組織を切り替えます。ファイルツリー・チャット・同期・RAGは選択先に連動します。
@@ -132,7 +132,7 @@ function OrganizationJa() {
 
         <h2>メンバーと権限</h2>
         <p>
-          管理者は<strong>設定 &gt; 組織 &gt; メンバー</strong>で人を管理します。メールアドレスで追加するとその場で有効になり、本人はGoogleアカウントでサインインします。通知メールは管理者自身のGmailから送信されます。
+          管理者は<strong>設定 &gt; 組織 &gt; メンバー</strong>で人を管理します。メールアドレスで追加するとその場で有効になり、本人はGoogleアカウントでサインインします。通知メールは送信しません。
         </p>
         <img src="/images/organization_settings.png" alt="組織メンバーの管理設定" className="w-full" loading="lazy" />
         <ul>

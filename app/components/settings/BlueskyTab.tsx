@@ -59,8 +59,8 @@ export function BlueskyTab() {
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Bluesky</h2>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
             {ja
-              ? "接続すると Timeline の投稿に Bluesky ボタンが表示されます。会話から投稿を選び、それぞれテキストか画像（Timeline での見た目のまま）で公開できます。接続は Bluesky の認可画面で行い、パスワードを GemiHub に入力することはありません。"
-              : "Once connected, Timeline posts show a Bluesky button. Pick posts of a conversation and publish each as text or as an image of how it looks in the Timeline. You authorize on Bluesky's own screen; your password is never entered in GemiHub."}
+              ? "接続すると Timeline の投稿に Bluesky ボタンが表示されます。会話から投稿を選び、それぞれテキストか画像（Timeline での見た目のまま）で公開できます。接続は Bluesky の認可画面で行い、パスワードを kiokuflow に入力することはありません。"
+              : "Once connected, Timeline posts show a Bluesky button. Pick posts of a conversation and publish each as text or as an image of how it looks in the Timeline. You authorize on Bluesky's own screen; your password is never entered in kiokuflow."}
           </p>
         </div>
       </div>

@@ -2,7 +2,7 @@
 
 ## Background / Problem
 
-GemiHub's Push/Pull confirmation UI (`SyncDiffDialog`) renders **one row per changed file**, with no grouping. Widgets like `kanban` and `base` store each "entry"/"card"/"row" as a **separate Markdown file** in a folder (see `app/dashboard/data-widget/folder-source.ts`, `app/dashboard/data-widget/KanbanWidget.tsx`). This is intentional and shared with the rest of the app's file-centric architecture (IndexedDB caching, editHistory, RAG indexing all operate per-file) — it is **not** being changed by this spec.
+kiokuflow's Push/Pull confirmation UI (`SyncDiffDialog`) renders **one row per changed file**, with no grouping. Widgets like `kanban` and `base` store each "entry"/"card"/"row" as a **separate Markdown file** in a folder (see `app/dashboard/data-widget/folder-source.ts`, `app/dashboard/data-widget/KanbanWidget.tsx`). This is intentional and shared with the rest of the app's file-centric architecture (IndexedDB caching, editHistory, RAG indexing all operate per-file) — it is **not** being changed by this spec.
 
 The pain point: when a user edits several cards on one kanban/base board (e.g. drags 8 cards to a new column), Push shows 8 separate rows in the confirmation dialog, one per card file. This is noisy and doesn't read as "one board changed" — it reads as 8 unrelated file changes.
 
@@ -25,7 +25,7 @@ Purely visual: when 2+ changed files share the same parent folder, collapse them
   - `diffStates: Record<string, DiffState>` keyed by file id — per-file diff fetch/expand state. **Unaffected by this change.**
   - `ignoredIds: Set<string>` — Pull-only per-file ignore toggle. **Unaffected.**
   - Per-file row currently renders: type icon, filename (truncated, `title=` tooltip), optional "Open" button (push only), optional "Ignore" toggle (pull, `modified` only), "Diff" toggle + expandable diff panel.
-- `app/components/ide/SyncStatusBar.tsx:58-142` (`openDiffDialog`) — builds the `files` array passed into the dialog. Confirms `f.name` is always the **full Drive-relative path** (e.g. `cached.fileName || remoteFiles[id]?.name || id`), not a basename — GemiHub stores all files flat under one Drive root folder and uses `/`-delimited `name` strings as a path convention (see `app/services/google-drive.server.ts` — basename is extracted via `name.slice(lastIndexOf("/") + 1)` elsewhere in the codebase, e.g. for tree display).
+- `app/components/ide/SyncStatusBar.tsx:58-142` (`openDiffDialog`) — builds the `files` array passed into the dialog. Confirms `f.name` is always the **full Drive-relative path** (e.g. `cached.fileName || remoteFiles[id]?.name || id`), not a basename — kiokuflow stores all files flat under one Drive root folder and uses `/`-delimited `name` strings as a path convention (see `app/services/google-drive.server.ts` — basename is extracted via `name.slice(lastIndexOf("/") + 1)` elsewhere in the codebase, e.g. for tree display).
 - No `parentFolderId` field exists on `FileSyncMeta` (`app/services/sync-diff.ts:7-21`) or `LocalSyncMeta` entries (`app/services/indexeddb-cache.ts:25-29`) — folder membership must be derived from `name` via string splitting, not looked up.
 
 ## Design

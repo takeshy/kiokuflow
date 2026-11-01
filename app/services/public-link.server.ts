@@ -8,7 +8,7 @@
  *
  * The signature is not viewer authentication — it travels in the URL, so
  * anyone holding the link can still open it without signing in. It only proves
- * that GemiHub minted the link for a file its owner published, which is what
+ * that kiokuflow minted the link for a file its owner published, which is what
  * pins the route to "files in someone's sync meta" instead of "any file id".
  */
 import crypto from "node:crypto";

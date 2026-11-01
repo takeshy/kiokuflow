@@ -28,13 +28,13 @@ test("renderEmailTemplate converts markdown and interpolates link variable", () 
       markdown: "# Welcome {{name}}\n\n[Login]({{{magicLink}}})",
     },
     {
-      siteName: "acme.gemihub.net",
+      siteName: "acme.kiokuflow.net",
       name: "Alice",
-      magicLink: "https://acme.gemihub.net/__gemihub/auth/verify/abc?redirect=/",
+      magicLink: "https://acme.kiokuflow.net/__gemihub/auth/verify/abc?redirect=/",
     },
   );
 
-  assert.equal(result.subject, "Login to acme.gemihub.net");
+  assert.equal(result.subject, "Login to acme.kiokuflow.net");
   assert.match(result.html, /<h1[^>]*>Welcome Alice<\/h1>/);
   assert.match(
     result.html,

@@ -1,5 +1,7 @@
 import { SHOW_ADVANCED_PLANS, SHOW_WEBPAGE_BUILDER } from "~/config/feature-visibility";
-import { LogIn, MessageSquare, MessagesSquare, Search, Puzzle, GitBranch, Shield, User, HardDrive, Lock, ServerCog, Github, Globe, Zap, BookOpen, RefreshCw, CreditCard, Mail, FileSpreadsheet, Calendar, Server, Upload, FileText, PenTool, Check, X, Calculator, Music, LayoutDashboard, GitCompare, Highlighter, KeyRound, Building2, UserCog, Sparkles, Database, Copy, Clock } from "lucide-react";
+import { PUBLIC_ORIGIN, SERVICE_NAME } from "~/config/branding";
+import type { MetaFunction } from "react-router";
+import { LogIn, MessageSquare, MessagesSquare, Search, Puzzle, GitBranch, Shield, User, HardDrive, Lock, ServerCog, Github, Globe, Zap, BookOpen, RefreshCw, CreditCard, FileSpreadsheet, Server, Upload, FileText, PenTool, Check, X, Calculator, Music, LayoutDashboard, GitCompare, Highlighter, KeyRound, Building2, UserCog, Sparkles, Database, Copy, Clock } from "lucide-react";
 import type { ComponentType } from "react";
 import { useEffect } from "react";
 import { useLocation } from "react-router";
@@ -11,6 +13,21 @@ export function headers() {
     "Cache-Control": "public, s-maxage=300, stale-while-revalidate=86400, max-age=3600",
   };
 }
+
+export const meta: MetaFunction = ({ location }) => {
+  const strings = location.pathname.endsWith("/ja") ? ja : en;
+  const url = `${PUBLIC_ORIGIN}/lp${location.pathname.endsWith("/ja") ? "/ja" : ""}`;
+  return [
+    { title: `${SERVICE_NAME} — ${strings.tagline}` },
+    { name: "application-name", content: SERVICE_NAME },
+    { name: "description", content: strings.description },
+    { property: "og:site_name", content: SERVICE_NAME },
+    { property: "og:title", content: `${SERVICE_NAME} — ${strings.tagline}` },
+    { property: "og:description", content: strings.description },
+    { property: "og:url", content: url },
+    { tagName: "link", rel: "canonical", href: url },
+  ];
+};
 
 interface Feature {
   icon: ComponentType<{ size?: number; className?: string }>;
@@ -35,7 +52,7 @@ interface PluginShowcase {
   name: string;
   repo: string;
   description: string;
-  image: string;
+  image?: string;
 }
 
 interface LpStrings {
@@ -78,10 +95,6 @@ interface LpStrings {
   premiumFeatureRag: string;
   premiumFeatureInteractions: string;
   premiumFeatureInteractionsDesc: string;
-  premiumFeatureGmail: string;
-  premiumFeatureGmailDesc: string;
-  premiumFeatureCalendar: string;
-  premiumFeatureCalendarDesc: string;
   premiumFeaturePdf: string;
   premiumFeaturePdfDesc: string;
   premiumFeatureObsidianToken: string;
@@ -119,7 +132,7 @@ interface LpStrings {
 
 const en: LpStrings = {
   tagline: "AI That Acts, Not Just Answers",
-  description: "GemiHub is an AI workspace for Gemini, OpenAI, OpenRouter, and OpenCode Go that reads your files, finds what you need, and gets things done. Read PDFs, EPUBs, and notes with quote-anchored memos, connect external tools, search across your documents by meaning, and automate repetitive tasks — with personal source files kept in your own Google Drive.",
+  description: "kiokuflow is an AI workspace for Gemini, OpenAI, OpenRouter, and OpenCode Go that reads your files, finds what you need, and gets things done. Read PDFs, EPUBs, and notes with quote-anchored memos, connect external tools, search across your documents by meaning, and automate repetitive tasks — with personal source files kept in your own Google Drive.",
   signIn: "Sign in with Google",
   features: [
     { icon: Highlighter, title: "Read & Memo", description: "Open PDFs, EPUBs, Markdown, and images, select a passage, and attach a memo right where you read. Quotes are highlighted and jump both ways. Notes are saved as plain Markdown in your Drive." },
@@ -137,35 +150,25 @@ const en: LpStrings = {
   ],
   screenshotsTitle: "See It in Action",
   screenshots: [
-    { src: "/images/memo.png", alt: "Read, Highlight & Memo", description: "Read PDFs and EPUBs in the built-in viewers, select a passage, and add a memo. Quote-anchored highlights link both ways between the document and its memo timeline." },
+    { src: "/images/cap.png", alt: "AI Chat & File Management", description: "Write notes in a rich editor and let AI proofread or summarize them. Choose Gemini, OpenAI, OpenRouter, or OpenCode Go for chat, with model-dependent tools, attachments and web search. Gemini also supports image generation." },
     { src: "/images/dashboard.png", alt: "Personal Dashboard", description: "Create a home screen with file viewers (Markdown, PDF, EPUB, images) with per-document memos, memo lists, cards, tables, kanban boards, workflow output, and web embeds. Dashboards are saved as plain .dashboard files in Drive." },
-    { src: "/images/dashboard_edit.png", alt: "Dashboard Editing", description: "Toggle edit mode to add widgets, drag and resize panels, configure sources, undo or redo layout changes, and switch between rendered and raw YAML views." },
-    { src: "/images/dashboard_workflow.png", alt: "Workflow Widgets", description: "Run a workflow from a dashboard and render the result as cards, a table, Markdown, or HTML. Optional auto-refresh keeps generated reports current." },
-    { src: "/images/dashboard_kanban.png", alt: "Kanban Boards", description: "Turn Markdown files in a folder into a kanban board. Create cards from the board header or drag cards between columns to update frontmatter in Drive." },
     { src: "/images/organization_general.png", alt: "Organization Projects", description: "Switch between My Drive and shared organization projects while keeping the active workspace visible." },
     { src: "/images/organization_settings.png", alt: "Organization Management", description: "Manage members, roles, per-member AI budgets, projects, and storage from one settings screen." },
     { src: "/images/organization_sync.png", alt: "Organization Project Sync", description: "Sync project files through managed Cloud Storage with project-aware status and controls." },
     { src: "/images/organization_dashboard.png", alt: "Shared Project Dashboard", description: "Use dashboards inside a shared project with the active organization and project always in view." },
     { src: "/images/organization_workflow.png", alt: "Organization Workflows", description: "Build and run workflows scoped to the active project with organization-managed Vertex AI." },
-    { src: "/images/secret_manager.png", alt: "Secret Manager", description: "Create, browse, unlock, copy, and update RSA + AES encrypted values from a dashboard widget. Organize secrets into folders and search by name, description, or visible metadata without ever exposing the encrypted value." },
-    { src: "/images/cap.png", alt: "AI Chat & File Management", description: "Write notes in a rich editor and let AI proofread or summarize them. Choose Gemini, OpenAI, OpenRouter, or OpenCode Go for chat, with model-dependent tools, attachments and web search. Gemini also supports image generation." },
-    { src: "/images/chat_mcp_apps.png", alt: "MCP Apps", description: "Connect external apps via MCP (Model Context Protocol). The AI discovers available tools automatically and uses them in your conversation — calendars, databases, and more." },
     { src: "/images/external_skills.png", alt: "External Skills", description: "Install Agent Skills from the official catalog with one click — like OKF Authoring, which teaches the AI to turn your notes into knowledge bundles." },
     { src: "/images/visual_workflow.png", alt: "Workflow Builder", description: "Build automation with a drag-and-drop editor. Connect AI prompts, Drive operations, and web requests into a single flow." },
-    { src: "/images/ai_generate_workflow.png", alt: "AI Workflow Generation", description: "Describe what you want in plain language and AI creates the workflow for you, with a live preview." },
     { src: "/images/rag_search.png", alt: "Smart File Search", description: "Paid RAG indexes synced documents in Firestore using Gemini or OpenAI embeddings. Set Top K per index and optionally use Jev, directly or via OpenRouter, to check candidates until a match is found." },
-    { src: "/images/okf_sample.png", alt: "OKF Knowledge Bundles", description: "Keep curated Markdown knowledge bundles (OKF) in Drive and switch them on per chat — the AI answers with your domain knowledge always in context." },
-    { src: "/images/canvas.png", alt: "Obsidian-Compatible Canvas", description: "Open .canvas files with text cards, groups, file previews, web pages, and curved links. Edit mode lets you arrange cards and connections." },
-    { src: "/images/publish_web.png", alt: "One-Click Publishing", description: "Turn any Drive file into a public web page. Share via URL with no hosting required." },
     { src: "/images/pull_diff_en.png", alt: "Push/Pull Sync", description: "Personal source files live in your Google Drive. Push and pull changes with automatic conflict handling and diff previews." },
   ],
   dataUsageTitle: "How We Handle Your Data",
-  dataUsageIntro: "GemiHub uses your Google account to sign in. Here's what we access and why:",
+  dataUsageIntro: "kiokuflow uses your Google account to sign in. Here's what we access and why:",
   dataCards: [
     { icon: User, title: "Google Account", description: "Your Google account identifies you for sign-in, subscription access, and organization membership." },
-    { icon: HardDrive, title: "Google Drive", description: "Chat history, workflows, and settings are stored in a dedicated \"gemihub\" folder on your Drive. Files outside the app are never accessed." },
+    { icon: HardDrive, title: "Google Drive", description: "Chat history, workflows, and settings are stored in a dedicated \"kiokuflow\" folder on your Drive. Files outside the app are never accessed." },
     { icon: Lock, title: "AI Connections You Choose", description: "Queries and relevant content are sent to your chosen AI and embedding providers. Optional Jev filtering sends candidate excerpts or images to Jev or OpenRouter." },
-    { icon: ServerCog, title: "Fully Portable", description: "Personal source files remain in Drive. Self-host GemiHub and rebuild RAG indexes from those files when needed." },
+    { icon: ServerCog, title: "Fully Portable", description: "Personal source files remain in Drive. Self-host kiokuflow and rebuild RAG indexes from those files when needed." },
   ],
   pluginShowcaseTitle: "Plugin Showcase",
   pluginShowcases: [
@@ -188,7 +191,6 @@ const en: LpStrings = {
       name: "Audio Score",
       repo: "takeshy/hub-audio-score",
       description: "Convert audio files into sheet music with ML-based pitch detection. Source separation, MIDI export, score playback, and AI chord analysis.",
-      image: "/images/audio-score.png",
     },
   ],
   pluginShowcaseInstall: "Install from Settings > Plugins with:",
@@ -204,7 +206,7 @@ const en: LpStrings = {
   footerManual: "Manual",
   footerContact: "Contact",
   premiumTitle: "Premium Plans",
-  premiumIntro: "GemiHub is useful on the free plan by default. Premium adds features that need heavier server-side processing, such as embedding RAG, streaming files over 20 MB, Gmail integration, or temporary upload/edit URLs. AI, embedding and Jev API usage is billed separately by the selected provider.",
+  premiumIntro: "kiokuflow is useful on the free plan by default. Premium adds features that need heavier server-side processing, such as embedding RAG, streaming files over 20 MB, temporary upload/edit URLs. AI, embedding and Jev API usage is billed separately by the selected provider.",
   premiumFree: "Free",
   premiumLite: "Lite",
   premiumPro: "Pro",
@@ -219,14 +221,10 @@ const en: LpStrings = {
   premiumFeatureRag: "Firestore RAG + optional Jev filtering",
   premiumFeatureInteractions: "Interactions API Chat",
   premiumFeatureInteractionsDesc: "Multi-round AI chat with server-side proxy — supports function calling, RAG, and web search simultaneously in a single conversation.",
-  premiumFeatureGmail: "Gmail Send",
-  premiumFeatureGmailDesc: "Send emails from workflows using a Gmail Send node. Automate notifications, reports, and customer emails.",
-  premiumFeatureCalendar: "Google Calendar Nodes",
-  premiumFeatureCalendarDesc: "List, create, update, and delete Google Calendar events from workflows. Automate scheduling and calendar-driven reminders.",
   premiumFeaturePdf: "PDF Generation",
   premiumFeaturePdfDesc: "Generate PDF files from Markdown or HTML within workflows. Perfect for invoices, reports, and certificates.",
   premiumFeatureObsidianToken: "Obsidian Sync Token",
-  premiumFeatureObsidianTokenDesc: "Issue an external sync token to sync your GemiHub files with Obsidian. Edit in either app — changes sync both ways through Google Drive.",
+  premiumFeatureObsidianTokenDesc: "Issue an external sync token to sync your kiokuflow files with Obsidian. Edit in either app — changes sync both ways through Google Drive.",
   premiumFeatureTempUrl: "Temporary Upload URL",
   premiumFeatureTempUrlDesc: "Generate a temporary URL to upload or edit files from any external editor or tool. Work in your favorite environment and push changes back.",
   premiumFeatureSheets: "Google Sheets CRUD",
@@ -237,7 +235,7 @@ const en: LpStrings = {
   premiumFeatureAiBillingSchedule: "AI Billing for Scheduled Runs",
   premiumFeatureAiBillingScheduleDesc: "Scheduled Gemini steps use your registered key or prepaid personal Vertex AI balance. Interactive chats and workflows can also use OpenAI, OpenRouter, or OpenCode Go.",
   premiumFeatureDomain: "Custom Domains & Auto SSL",
-  premiumFeatureDomainDesc: "Use your own domain with automatic SSL certificate provisioning. Every account also gets a built-in subdomain (yourname.gemihub.net).",
+  premiumFeatureDomainDesc: "Use your own domain with automatic SSL certificate provisioning. Every account also gets a built-in subdomain (yourname.kiokuflow.net).",
   premiumFeatureSchedule: "Scheduled Workflows",
   premiumFeatureScheduleDesc: "Run workflows on a cron schedule — daily reports, periodic syncs, automated data processing. Supports retry, timeout, and concurrency control.",
   premiumFeatureServerExec: "Server-Side Execution",
@@ -267,7 +265,7 @@ const en: LpStrings = {
 
 const ja: LpStrings = {
   tagline: "答えるだけじゃない、動く AI",
-  description: "GemiHubは、Gemini・OpenAI・OpenRouter・OpenCode Goを選んで使えるAIワークスペースです。ファイルを読み、必要な情報を探し、作業までこなします。PDF や EPUB を読みながら引用付きメモを残し、外部ツールとの連携、ドキュメント横断の意味検索、繰り返し作業の自動化まで。個人の元ファイルは、あなたのGoogle Driveに保存します。",
+  description: "kiokuflowは、Gemini・OpenAI・OpenRouter・OpenCode Goを選んで使えるAIワークスペースです。ファイルを読み、必要な情報を探し、作業までこなします。PDF や EPUB を読みながら引用付きメモを残し、外部ツールとの連携、ドキュメント横断の意味検索、繰り返し作業の自動化まで。個人の元ファイルは、あなたのGoogle Driveに保存します。",
   signIn: "Googleでサインイン",
   features: [
     { icon: Highlighter, title: "読んで、線を引いて、メモ", description: "PDF・EPUB・Markdown・画像を開いて文章を選択するだけで、その場に引用付きメモを添付。引用はハイライトされ、本文⇄メモを双方向ジャンプ。メモはプレーンな Markdown として Drive に保存されます。" },
@@ -285,33 +283,23 @@ const ja: LpStrings = {
   ],
   screenshotsTitle: "動作イメージ",
   screenshots: [
-    { src: "/images/memo.png", alt: "読んで、線を引いて、メモ", description: "内蔵ビューアで PDF や EPUB を読みながら、選択した文章にメモを追加。引用アンカー付きハイライトで、本文とメモを相互にジャンプできます。" },
+    { src: "/images/cap.png", alt: "AIチャット＆ファイル管理", description: "エディターでメモを書いて、AI に校正や要約をおまかせ。チャットはGemini・OpenAI・OpenRouter・OpenCode Goを選択でき、モデルに応じてWeb検索や外部ツールと連携。Geminiの画像生成にも対応します。" },
     { src: "/images/dashboard.png", alt: "パーソナルダッシュボード", description: "ファイルビューア（Markdown・PDF・EPUB・画像、ドキュメントメモ付き）、メモ一覧、カード、テーブル、カンバン、ワークフロー出力、Web埋め込みを組み合わせたホーム画面を作成できます。" },
-    { src: "/images/dashboard_edit.png", alt: "ダッシュボード編集", description: "編集モードでウィジェットを追加し、ドラッグ・リサイズ・設定変更。Undo/Redo と Raw YAML 表示にも対応します。" },
-    { src: "/images/dashboard_workflow.png", alt: "ワークフローウィジェット", description: "ダッシュボードからワークフローを実行し、結果をカード、テーブル、Markdown、HTMLとして表示。自動更新も設定できます。" },
-    { src: "/images/dashboard_kanban.png", alt: "カンバンボード", description: "フォルダ内のMarkdownをカンバン化。ヘッダーからカードを作成し、ドラッグでステータス列を移動するとfrontmatterも更新されます。" },
     { src: "/images/organization_general.png", alt: "組織プロジェクト", description: "My Drive と共有の組織プロジェクトを切り替え、現在のワークスペースを常に確認できます。" },
     { src: "/images/organization_settings.png", alt: "組織管理", description: "メンバー、権限、メンバーごとの AI 予算、プロジェクト、ストレージをひとつの設定画面で管理できます。" },
     { src: "/images/organization_sync.png", alt: "組織プロジェクトの同期", description: "プロジェクトに対応した状態表示と操作で、Cloud Storage 上の共有ファイルを同期できます。" },
     { src: "/images/organization_dashboard.png", alt: "共有プロジェクトのダッシュボード", description: "利用中の組織とプロジェクトを確認しながら、共有プロジェクト内でダッシュボードを使えます。" },
     { src: "/images/organization_workflow.png", alt: "組織のワークフロー", description: "組織管理の Vertex AI を使い、現在のプロジェクトに属するワークフローを作成・実行できます。" },
-    { src: "/images/secret_manager.png", alt: "Secret Manager", description: "ダッシュボードウィジェットから RSA + AES 暗号化された値を作成・管理。フォルダで整理でき、名前・説明・公開メタデータで検索。暗号化された値そのものは公開しません。" },
-    { src: "/images/cap.png", alt: "AIチャット＆ファイル管理", description: "エディターでメモを書いて、AI に校正や要約をおまかせ。チャットはGemini・OpenAI・OpenRouter・OpenCode Goを選択でき、モデルに応じてWeb検索や外部ツールと連携。Geminiの画像生成にも対応します。" },
-    { src: "/images/chat_mcp_apps.png", alt: "MCP Apps", description: "MCP（Model Context Protocol）で外部アプリと連携。AI が利用可能なツールを自動で検出し、会話の中でカレンダーやデータベースなどを操作します。" },
     { src: "/images/external_skills.png", alt: "External Skills", description: "公式カタログから Agent Skills をワンクリックでインストール。ノートをナレッジバンドルに変換する OKF Authoring などが使えます。" },
     { src: "/images/visual_workflow.png", alt: "ワークフロービルダー", description: "ドラッグ＆ドロップで自動化を構築。AI への指示、Drive 操作、Web リクエストをひとつの流れに。" },
-    { src: "/images/ai_generate_workflow.png", alt: "AIワークフロー生成", description: "やりたいことを言葉で伝えるだけで AI がワークフローを作成。リアルタイムでプレビューも確認できます。" },
     { src: "/images/rag_search.png", alt: "かしこいファイル検索", description: "有料RAGはGemini／OpenAIのembeddingで同期済み資料をFirestoreに登録。RAGごとのTop Kと、Jevによる「一致するまで検索」に対応します。Jevは直接キーまたはOpenRouterで利用できます。" },
-    { src: "/images/okf_sample.png", alt: "OKFナレッジバンドル", description: "Drive に置いた Markdown のナレッジバンドル（OKF）をチャットごとにオン/オフ。AI があなたのドメイン知識を常に踏まえて回答します。" },
-    { src: "/images/canvas.png", alt: "Obsidian互換Canvas", description: ".canvas ファイルを表示・編集。テキストカード、グループ、ファイルプレビュー、Webページ、曲線リンクに対応します。" },
-    { src: "/images/publish_web.png", alt: "ワンクリック公開", description: "DriveのファイルをそのままWebページに。ホスティング不要でURLを共有。" },
     { src: "/images/pull_diff.png", alt: "Push/Pull同期", description: "個人の元ファイルはGoogle Driveに保存。変更の同期も、差分確認やコンフリクト解決もかんたん。" },
   ],
   dataUsageTitle: "データの取り扱いについて",
-  dataUsageIntro: "GemiHubはGoogleアカウントでサインインします。アクセスするデータとその理由は以下のとおりです：",
+  dataUsageIntro: "kiokuflowはGoogleアカウントでサインインします。アクセスするデータとその理由は以下のとおりです：",
   dataCards: [
     { icon: User, title: "Googleアカウント", description: "Googleアカウントはサインイン、契約プランの確認、組織へのアクセスに利用します。" },
-    { icon: HardDrive, title: "Google Drive", description: "チャット履歴・ワークフロー・設定はDrive内の専用フォルダ「gemihub」に保存。アプリ外のファイルにはアクセスできません。" },
+    { icon: HardDrive, title: "Google Drive", description: "チャット履歴・ワークフロー・設定はDrive内の専用フォルダ「kiokuflow」に保存。アプリ外のファイルにはアクセスできません。" },
     { icon: Lock, title: "選択したAIと連携", description: "質問と必要な内容を選択したAI・embeddingプロバイダーへ送信します。Jev判定を有効にすると、候補の本文・画像をJevまたはOpenRouterへ送信します。" },
     { icon: ServerCog, title: "完全なポータビリティ", description: "個人の元ファイルはDriveに残ります。セルフホストして利用でき、RAGインデックスは元ファイルから再構築できます。" },
   ],
@@ -336,7 +324,6 @@ const ja: LpStrings = {
       name: "Audio Score",
       repo: "takeshy/hub-audio-score",
       description: "音声ファイルをML音程検出で楽譜化。ソース分離、MIDI書き出し、スコア再生、AIによる自動コード解析に対応。",
-      image: "/images/audio-score.png",
     },
   ],
   pluginShowcaseInstall: "Settings > Plugins からインストール:",
@@ -352,7 +339,7 @@ const ja: LpStrings = {
   footerManual: "マニュアル",
   footerContact: "お問い合わせ",
   premiumTitle: "有料プラン",
-  premiumIntro: "GemiHub は基本的に無料プランで便利に使えます。プレミアムプランでは、embeddingによるRAG検索、1ファイルが20MBを超えるストリーミング、Gmail 連携、一時アップロード URL など、サーバー側の処理負担がかかる機能を利用できます。AI・embedding・JevのAPI利用料は、選択したプロバイダーで別途かかります。",
+  premiumIntro: "kiokuflow は基本的に無料プランで便利に使えます。プレミアムプランでは、embeddingによるRAG検索、1ファイルが20MBを超えるストリーミング、一時アップロード URL など、サーバー側の処理負担がかかる機能を利用できます。AI・embedding・JevのAPI利用料は、選択したプロバイダーで別途かかります。",
   premiumFree: "Free",
   premiumLite: "Lite",
   premiumPro: "Pro",
@@ -367,14 +354,10 @@ const ja: LpStrings = {
   premiumFeatureRag: "Firestore RAG・任意のJev判定",
   premiumFeatureInteractions: "Interactions API チャット",
   premiumFeatureInteractionsDesc: "サーバー経由のマルチラウンド AI チャット。ファンクションコール・RAG・Web検索を1つの会話で同時に利用可能。",
-  premiumFeatureGmail: "Gmail 送信",
-  premiumFeatureGmailDesc: "ワークフローから Gmail 送信ノードでメールを自動送信。通知、レポート、顧客メールの自動化に。",
-  premiumFeatureCalendar: "Google カレンダー ノード",
-  premiumFeatureCalendarDesc: "ワークフローから Google カレンダーの予定を取得・作成・更新・削除。スケジュール調整やリマインドの自動化に。",
   premiumFeaturePdf: "PDF 生成",
   premiumFeaturePdfDesc: "Markdown や HTML からワークフロー内で PDF を生成。請求書、レポート、証明書の作成に最適。",
   premiumFeatureObsidianToken: "Obsidian 連携トークン",
-  premiumFeatureObsidianTokenDesc: "連携トークンを発行して GemiHub のファイルを Obsidian と同期。どちらで編集しても Google Drive 経由で双方向同期。",
+  premiumFeatureObsidianTokenDesc: "連携トークンを発行して kiokuflow のファイルを Obsidian と同期。どちらで編集しても Google Drive 経由で双方向同期。",
   premiumFeatureTempUrl: "一時アップロード URL",
   premiumFeatureTempUrlDesc: "一時的な URL を発行して、外部エディタやツールからファイルをアップロード・編集。お気に入りの環境で作業して変更を反映。",
   premiumFeatureSheets: "Google Sheets CRUD",
@@ -385,7 +368,7 @@ const ja: LpStrings = {
   premiumFeatureAiBillingSchedule: "スケジュール実行のAI課金",
   premiumFeatureAiBillingScheduleDesc: "スケジュール実行のGemini処理は、登録済みキーまたは個人のVertex AI残高で動作。画面から実行するチャット・ワークフローはOpenAI・OpenRouter・OpenCode Goも利用できます。",
   premiumFeatureDomain: "カスタムドメイン & 自動SSL",
-  premiumFeatureDomainDesc: "独自ドメインを自動 SSL 証明書付きで利用可能。全アカウントにビルトインサブドメイン（yourname.gemihub.net）も付属。",
+  premiumFeatureDomainDesc: "独自ドメインを自動 SSL 証明書付きで利用可能。全アカウントにビルトインサブドメイン（yourname.kiokuflow.net）も付属。",
   premiumFeatureSchedule: "スケジュール実行",
   premiumFeatureScheduleDesc: "ワークフローを cron スケジュールで自動実行。日次レポート、定期同期、データ処理の自動化。リトライ・タイムアウト・同時実行制御に対応。",
   premiumFeatureServerExec: "サーバーサイド実行",
@@ -446,13 +429,13 @@ export default function LandingPage() {
         <div>
           <img
             src="/icons/icon-192x192.png"
-            alt="GemiHub"
+            alt="kiokuflow"
             width={80}
             height={80}
             className="mx-auto mb-6 rounded-2xl shadow-lg ring-1 ring-white/50 dark:ring-gray-800"
           />
           <h1 className="mb-4 text-4xl font-bold tracking-tight text-gray-900 dark:text-gray-50 sm:text-5xl">
-            GemiHub
+            kiokuflow
           </h1>
           <p className="mx-auto mb-3 max-w-2xl text-xl font-bold text-purple-700 dark:text-purple-400 sm:text-2xl">
             {s.tagline}
@@ -586,8 +569,6 @@ export default function LandingPage() {
               { label: s.premiumFeatureUpload, free: s.premiumFeatureUploadFree, lite: s.premiumFeatureUploadPaid, pro: s.premiumFeatureUploadPaid, business: s.premiumFeatureUploadPaid },
               { label: s.premiumFeatureRag, free: false, lite: true, pro: true, business: true },
               { label: s.premiumFeatureInteractions, free: false, lite: true, pro: true, business: true },
-              { label: s.premiumFeatureGmail, free: false, lite: true, pro: true, business: true },
-              { label: s.premiumFeatureCalendar, free: false, lite: true, pro: true, business: true },
               { label: s.premiumFeaturePdf, free: false, lite: true, pro: true, business: true },
               { label: s.premiumFeatureObsidianToken, free: false, lite: true, pro: true, business: true },
               { label: s.premiumFeatureTempUrl, free: false, lite: true, pro: true, business: true },
@@ -632,8 +613,6 @@ export default function LandingPage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[
               { icon: MessageSquare, title: s.premiumFeatureInteractions, desc: s.premiumFeatureInteractionsDesc },
-              { icon: Mail, title: s.premiumFeatureGmail, desc: s.premiumFeatureGmailDesc },
-              { icon: Calendar, title: s.premiumFeatureCalendar, desc: s.premiumFeatureCalendarDesc },
               { icon: FileText, title: s.premiumFeaturePdf, desc: s.premiumFeaturePdfDesc },
               { icon: RefreshCw, title: s.premiumFeatureObsidianToken, desc: s.premiumFeatureObsidianTokenDesc },
               { icon: Upload, title: s.premiumFeatureTempUrl, desc: s.premiumFeatureTempUrlDesc },
@@ -737,12 +716,12 @@ export default function LandingPage() {
                 key={repo}
                 className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl dark:border-gray-800 dark:bg-gray-900"
               >
-                <img
+                {image && <img
                   src={image}
                   alt={name}
                   className="aspect-video w-full object-cover"
                   loading="lazy"
-                />
+                />}
                 <div className="flex flex-1 flex-col p-6">
                   <div className="mb-3 flex items-center gap-3">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-purple-100 dark:bg-purple-900/40">
@@ -840,7 +819,7 @@ export default function LandingPage() {
             <a href={`/tokushoho${jaPrefix}`} className="transition-colors hover:text-gray-700 hover:underline dark:hover:text-gray-200">
               {s.footerTokushoho}
             </a>
-            <a href="https://github.com/takeshy/gemihub" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 transition-colors hover:text-gray-700 hover:underline dark:hover:text-gray-200">
+            <a href="https://github.com/takeshy/kiokuflow" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 transition-colors hover:text-gray-700 hover:underline dark:hover:text-gray-200">
               <Github size={14} />
               GitHub
             </a>
@@ -848,7 +827,7 @@ export default function LandingPage() {
               <RefreshCw size={14} />
               Obsidian Plugin
             </a>
-            <a href={`https://github.com/takeshy/gemihub/blob/main/${lang === "ja" ? "README_ja.md" : "README.md"}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 transition-colors hover:text-gray-700 hover:underline dark:hover:text-gray-200">
+            <a href={`https://github.com/takeshy/kiokuflow/blob/main/${lang === "ja" ? "README_ja.md" : "README.md"}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 transition-colors hover:text-gray-700 hover:underline dark:hover:text-gray-200">
               <BookOpen size={14} />
               README
             </a>

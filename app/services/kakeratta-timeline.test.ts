@@ -58,12 +58,12 @@ test("local posts and replies stay local while remote threads import with stable
 
 test("simultaneous edits keep Kakeratta and archive the local edit without uploading it", async () => {
   const remote = backend([record("remote", "Kakeratta edit", "r2")]);
-  const entry = local("ours", "GemiHub edit", { "kakeratta-id": "remote", "kakeratta-connection": options.connection, "kakeratta-revision": "r1", "kakeratta-base": JSON.stringify({ content: "original", deleted: false }) });
+  const entry = local("ours", "kiokuflow edit", { "kakeratta-id": "remote", "kakeratta-connection": options.connection, "kakeratta-revision": "r1", "kakeratta-base": JSON.stringify({ content: "original", deleted: false }) });
   const result = await syncKakerattaTimeline({ ...options, call: remote.call, entries: [entry] });
   assert.equal(remote.writes.length, 0);
   assert.equal(result.entries.find(entry => entry.id === "ours")?.content, "Kakeratta edit");
   const archive = result.entries.find(entry => entry.metadata["conflict-of"] === "ours")!;
-  assert.equal(archive.content, "GemiHub edit");
+  assert.equal(archive.content, "kiokuflow edit");
   assert.equal(archive.metadata["local-only"], "true");
   const retry = await syncKakerattaTimeline({ ...options, call: remote.call, entries: result.entries, cursor: result.cursor });
   assert.equal(retry.entries.filter(entry => entry.metadata["conflict-of"] === "ours").length, 1);

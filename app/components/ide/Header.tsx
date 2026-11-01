@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { BrandMigrationNotice } from "~/components/BrandMigrationNotice";
 import { Link } from "react-router";
 import {
   MessageSquare,
@@ -128,10 +129,10 @@ export function Header({
     <>
     <header className="flex h-10 items-center justify-between border-b border-gray-200 bg-white px-3 dark:border-gray-800 dark:bg-gray-900">
       <div className="flex items-center gap-2 md:gap-3 min-w-0">
-        <button onClick={onLogoClick} className="flex items-center gap-1.5 shrink-0 hover:opacity-80 cursor-pointer">
+        <button onClick={onLogoClick} aria-label="kiokuflow" className="flex items-center gap-1.5 shrink-0 hover:opacity-80 cursor-pointer">
           <img src="/icons/icon-192x192.png" alt="" width={20} height={20} className="rounded" />
           <span className="hidden text-sm font-bold text-gray-900 dark:text-gray-100 sm:inline">
-            GemiHub
+            kiokuflow
           </span>
         </button>
         <MountSwitcher />
@@ -399,7 +400,7 @@ export function Header({
         )}
       </div>
     </header>
-
+    <BrandMigrationNotice pendingChanges={localModifiedCount} />
     </>
   );
 }

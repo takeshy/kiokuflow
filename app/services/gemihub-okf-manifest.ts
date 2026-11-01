@@ -1,4 +1,4 @@
-export const GEMIHUB_OKF_NAME = "GemiHub";
+export const GEMIHUB_OKF_NAME = "kiokuflow";
 
 export interface GemihubOkfManifest {
   name: string;
@@ -22,7 +22,7 @@ export function isSafeOkfRelativePath(path: string): boolean {
 
 export function parseGemihubOkfManifest(value: unknown): GemihubOkfManifest {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error("Invalid GemiHub OKF manifest");
+    throw new Error("Invalid kiokuflow OKF manifest");
   }
   const raw = value as Record<string, unknown>;
   const name = typeof raw.name === "string" ? raw.name.trim() : "";
@@ -32,33 +32,33 @@ export function parseGemihubOkfManifest(value: unknown): GemihubOkfManifest {
   const sha256 = typeof raw.sha256 === "string" ? raw.sha256.trim().toLowerCase() : "";
   const minAppVersion = typeof raw.minAppVersion === "string" ? raw.minAppVersion.trim() : undefined;
 
-  if (name !== GEMIHUB_OKF_NAME || !SEMVER_RE.test(version)) {
-    throw new Error("Invalid GemiHub OKF manifest identity");
+  if (![GEMIHUB_OKF_NAME, "GemiHub"].includes(name) || !SEMVER_RE.test(version)) {
+    throw new Error("Invalid kiokuflow OKF manifest identity");
   }
   if (!publishedAt || Number.isNaN(Date.parse(publishedAt))) {
-    throw new Error("Invalid GemiHub OKF publish date");
+    throw new Error("Invalid kiokuflow OKF publish date");
   }
   if (!bundleUrl || !SHA256_RE.test(sha256)) {
-    throw new Error("Invalid GemiHub OKF bundle metadata");
+    throw new Error("Invalid kiokuflow OKF bundle metadata");
   }
   if (minAppVersion && !SEMVER_RE.test(minAppVersion)) {
-    throw new Error("Invalid GemiHub OKF minimum app version");
+    throw new Error("Invalid kiokuflow OKF minimum app version");
   }
   if (!raw.files || typeof raw.files !== "object" || Array.isArray(raw.files)) {
-    throw new Error("Invalid GemiHub OKF file manifest");
+    throw new Error("Invalid kiokuflow OKF file manifest");
   }
 
   const entries = Object.entries(raw.files as Record<string, unknown>);
   if (entries.length === 0 || entries.length > MAX_MANIFEST_FILES) {
-    throw new Error("Invalid GemiHub OKF file count");
+    throw new Error("Invalid kiokuflow OKF file count");
   }
   const files: Record<string, string> = {};
   for (const [path, hash] of entries) {
     if (!isSafeOkfRelativePath(path) || !path.toLowerCase().endsWith(".md")) {
-      throw new Error(`Invalid GemiHub OKF file path: ${path}`);
+      throw new Error(`Invalid kiokuflow OKF file path: ${path}`);
     }
     if (typeof hash !== "string" || !SHA256_RE.test(hash)) {
-      throw new Error(`Invalid GemiHub OKF file hash: ${path}`);
+      throw new Error(`Invalid kiokuflow OKF file hash: ${path}`);
     }
     files[path] = hash.toLowerCase();
   }
@@ -126,5 +126,5 @@ export function isGemihubOkfBundleName(name: string): boolean {
   // name falls back to the Drive folder name (e.g. "gemihub-okf") — without
   // it, such installs could never pass the identity check to discover an
   // update in the first place.
-  return normalized === target || normalized.includes(target);
+  return normalized === target || normalized.includes(target) || normalized.includes("gemihub");
 }

@@ -30,7 +30,7 @@ punctuation, Japanese request/grammar cues, five or more whitespace-separated
 words, or Japanese text longer than 20 characters select RAG automatically.
 These intent rules follow kakeratta's `search-intent.js` and require no LLM call.
 
-RAG requires an active paid **GemiHub subscription**, independently of the
+RAG requires an active paid **kiokuflow subscription**, independently of the
 Gemini API's Free/Paid setting, and a configured/synchronized index. It uses
 the index's embedding provider. Automatic sentence searches return only server-index
 results and do not require a local content cache. Unsynced local changes are

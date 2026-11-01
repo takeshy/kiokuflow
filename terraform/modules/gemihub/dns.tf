@@ -4,8 +4,8 @@ resource "google_dns_managed_zone" "primary" {
   count = var.manage_dns ? 1 : 0
 
   name        = "gemihub-net"
-  dns_name    = "${var.domain}."
-  description = "DNS zone for ${var.domain}"
+  dns_name    = "${local.original_app_domain}."
+  description = "DNS zone for ${local.original_app_domain}"
 
   depends_on = [google_project_service.apis]
 }
@@ -13,7 +13,7 @@ resource "google_dns_managed_zone" "primary" {
 resource "google_dns_record_set" "primary_a" {
   count = var.manage_dns ? 1 : 0
 
-  name         = "${var.domain}."
+  name         = "${local.original_app_domain}."
   type         = "A"
   ttl          = 300
   managed_zone = google_dns_managed_zone.primary[0].name
@@ -25,7 +25,7 @@ resource "google_dns_record_set" "primary_a" {
 resource "google_dns_record_set" "primary_wildcard_a" {
   count = var.manage_dns ? 1 : 0
 
-  name         = "*.${var.domain}."
+  name         = "*.${local.original_app_domain}."
   type         = "A"
   ttl          = 300
   managed_zone = google_dns_managed_zone.primary[0].name
@@ -46,7 +46,7 @@ resource "google_dns_record_set" "primary_cert_validation" {
 resource "google_dns_record_set" "primary_txt_verification" {
   count = var.manage_dns && var.google_site_verification_token != "" ? 1 : 0
 
-  name         = "${var.domain}."
+  name         = "${local.original_app_domain}."
   type         = "TXT"
   ttl          = 300
   managed_zone = google_dns_managed_zone.primary[0].name

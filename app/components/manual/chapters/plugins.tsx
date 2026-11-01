@@ -15,7 +15,7 @@ function PluginsEn() {
       </figure>
       <div className={prose}>
         <p>
-          Plugins extend GemiHub with custom features. They are installed from GitHub releases and stored in your Drive.
+          Plugins extend kiokuflow with custom features. They are installed from GitHub releases and stored in your Drive.
         </p>
 
         <h2>Installing a Plugin</h2>
@@ -35,9 +35,7 @@ function PluginsEn() {
         </ul>
 
         <h2>External Skills</h2>
-        <figure className="my-4 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-          <img src="/images/external_skills_first.png" alt="External skills section in the Plugins tab" className="w-full" loading="lazy" />
-        </figure>
+
         <p>
           The Plugins tab also hosts <strong>External skills</strong> — Agent Skills imported from the official <code>llm-hub-skills</code> repository into your Drive <code>skills/</code> folder. Click <strong>Load catalog</strong> to fetch the list of available skills, then <strong>Install</strong> the ones you want.
         </p>
@@ -60,9 +58,7 @@ function PluginsEn() {
         </ul>
 
         <h2>Example: Ronginus</h2>
-        <figure className="my-4 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-          <img src="/images/ronginus.png" alt="Ronginus debate plugin" className="w-full" loading="lazy" />
-        </figure>
+
         <p>
           <strong>Ronginus</strong> is a debate plugin where multiple AIs discuss a topic from different perspectives. You can also participate as a debater. Install it with <code>takeshy/hub-ronginus</code>.
         </p>
@@ -85,7 +81,7 @@ function PluginsJa() {
       </figure>
       <div className={prose}>
         <p>
-          プラグインはGemiHubにカスタム機能を追加します。GitHubリリースからインストールされ、Driveに保存されます。
+          プラグインはkiokuflowにカスタム機能を追加します。GitHubリリースからインストールされ、Driveに保存されます。
         </p>
 
         <h2>プラグインのインストール</h2>
@@ -105,9 +101,7 @@ function PluginsJa() {
         </ul>
 
         <h2>External Skills（外部スキル）</h2>
-        <figure className="my-4 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-          <img src="/images/external_skills_first.png" alt="プラグインタブのExternal skillsセクション" className="w-full" loading="lazy" />
-        </figure>
+
         <p>
           プラグインタブには<strong>External skills</strong>もあります。公式の<code>llm-hub-skills</code>リポジトリからAgent SkillsをDriveの<code>skills/</code>フォルダにインポートする機能です。<strong>Load catalog</strong>をクリックして利用可能なスキルの一覧を取得し、使いたいものを<strong>Install</strong>します。
         </p>
@@ -130,9 +124,7 @@ function PluginsJa() {
         </ul>
 
         <h2>例：Ronginus</h2>
-        <figure className="my-4 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-          <img src="/images/ronginus.png" alt="Ronginusディベートプラグイン" className="w-full" loading="lazy" />
-        </figure>
+
         <p>
           <strong>Ronginus</strong>は、複数のAIがテーマについてそれぞれの視点で議論するディベートプラグインです。ユーザーも参加できます。<code>takeshy/hub-ronginus</code>でインストールできます。
         </p>

@@ -33,7 +33,7 @@ test("standard MCP App handshake delivers input and complete result only after r
   } });
   assert.deepEqual(sent, [{ jsonrpc: "2.0", id: 0, result: {
     protocolVersion: "2026-01-26",
-    hostInfo: { name: "GemiHub", version: "1.0.0" },
+    hostInfo: { name: "kiokuflow", version: "1.0.0" },
     hostCapabilities: { serverTools: {}, serverResources: {} },
     hostContext: { theme: "dark", locale: "ja", displayMode: "inline" },
   } }]);

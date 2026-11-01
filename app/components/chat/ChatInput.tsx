@@ -1,3 +1,4 @@
+import { ragSettingDisplayName } from "~/config/branding";
 import { useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from "react";
 import {
   Send,
@@ -1060,7 +1061,7 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function Ch
                 <option value="">RAG: None</option>
                 {ragSettingKeys.map((name) => (
                   <option key={name} value={name}>
-                    RAG: {name}
+                    RAG: {ragSettingDisplayName(name)}
                   </option>
                 ))}
               </select>

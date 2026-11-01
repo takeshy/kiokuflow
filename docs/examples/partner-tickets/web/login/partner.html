@@ -54,7 +54,7 @@
       try {
         const params = new URLSearchParams(window.location.search);
         const redirect = params.get("redirect") || "/partner/tickets";
-        await gemihub.auth.login("partner", email, redirect);
+        await kiokuflow.auth.login("partner", email, redirect);
         message.textContent = "ログインリンクをメールに送信しました。メールをご確認ください。";
         message.className = "mt-4 text-center text-sm text-green-600";
       } catch (err) {

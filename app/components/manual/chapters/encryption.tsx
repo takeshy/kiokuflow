@@ -11,12 +11,10 @@ function EncryptionEn() {
   return (
     <>
       <h1 className="mb-6 text-3xl font-bold text-gray-900 dark:text-gray-50">Encryption</h1>
-      <figure className="mb-8 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-        <img src="/images/workflow_execute_log_encrypted.png" alt="Encrypted execution log" className="w-full" loading="lazy" />
-      </figure>
+
       <div className={prose}>
         <p>
-          GemiHub supports client-side encryption using a hybrid RSA+AES scheme. File encryption and decryption happen in your browser. API keys are saved using public-key encryption without a password. Private-key setup, unlock and password changes are handled by the server; passwords are not persisted.
+          kiokuflow supports client-side encryption using a hybrid RSA+AES scheme. File encryption and decryption happen in your browser. API keys are saved using public-key encryption without a password. Private-key setup, unlock and password changes are handled by the server; passwords are not persisted.
         </p>
 
         <h2>Setting Up Encryption</h2>
@@ -65,7 +63,7 @@ function EncryptionEn() {
             Warning: If you lose your password, there is no way to recover encrypted data.
           </p>
           <p className="!mb-0">
-            File encryption happens in the browser. Private-key setup, unlock and password changes send the password to the server, which does not persist it. Saving API keys uses only the public key. GemiHub cannot reset or recover your password. Encrypted files, chat history, workflow history, and your API key will all become permanently inaccessible. Always keep your password in a safe place.
+            File encryption happens in the browser. Private-key setup, unlock and password changes send the password to the server, which does not persist it. Saving API keys uses only the public key. kiokuflow cannot reset or recover your password. Encrypted files, chat history, workflow history, and your API key will all become permanently inaccessible. Always keep your password in a safe place.
           </p>
         </div>
         <ul>
@@ -82,12 +80,10 @@ function EncryptionJa() {
   return (
     <>
       <h1 className="mb-6 text-3xl font-bold text-gray-900 dark:text-gray-50">暗号化</h1>
-      <figure className="mb-8 overflow-hidden rounded-xl border border-gray-200 shadow dark:border-gray-800">
-        <img src="/images/workflow_execute_log_encrypted.png" alt="暗号化された実行ログ" className="w-full" loading="lazy" />
-      </figure>
+
       <div className={prose}>
         <p>
-          GemiHubは、ハイブリッドRSA+AES方式によるクライアントサイド暗号化をサポートしています。ファイルの暗号化・復号はブラウザ内で行います。APIキーの保存は公開鍵で行い、パスワードは不要です。秘密鍵の設定・解除・パスワード変更はサーバーで処理しますが、パスワードは永続保存しません。
+          kiokuflowは、ハイブリッドRSA+AES方式によるクライアントサイド暗号化をサポートしています。ファイルの暗号化・復号はブラウザ内で行います。APIキーの保存は公開鍵で行い、パスワードは不要です。秘密鍵の設定・解除・パスワード変更はサーバーで処理しますが、パスワードは永続保存しません。
         </p>
 
         <h2>暗号化のセットアップ</h2>
@@ -136,7 +132,7 @@ function EncryptionJa() {
             警告：パスワードを紛失すると、暗号化されたデータを復元する方法はありません。
           </p>
           <p className="!mb-0">
-            ファイルの暗号化はブラウザ内で行います。秘密鍵の設定・解除・パスワード変更ではパスワードをサーバーへ送信しますが、永続保存しません。APIキーの保存は公開鍵で行うためパスワードを送信しません。GemiHubがパスワードをリセットしたり復元することはできません。暗号化されたファイル、チャット履歴、ワークフロー履歴、APIキーのすべてが永久にアクセス不能になります。パスワードは必ず安全な場所に保管してください。
+            ファイルの暗号化はブラウザ内で行います。秘密鍵の設定・解除・パスワード変更ではパスワードをサーバーへ送信しますが、永続保存しません。APIキーの保存は公開鍵で行うためパスワードを送信しません。kiokuflowがパスワードをリセットしたり復元することはできません。暗号化されたファイル、チャット履歴、ワークフロー履歴、APIキーのすべてが永久にアクセス不能になります。パスワードは必ず安全な場所に保管してください。
           </p>
         </div>
         <ul>

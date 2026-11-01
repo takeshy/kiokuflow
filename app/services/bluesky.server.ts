@@ -35,7 +35,7 @@ function firestoreEnabled() {
 }
 export function blueskyOrigin() {
   const configured = process.env.BLUESKY_PUBLIC_URL || process.env.GOOGLE_REDIRECT_URI;
-  if (!configured) throw new Error("Set BLUESKY_PUBLIC_URL to the public GemiHub origin");
+  if (!configured) throw new Error("Set BLUESKY_PUBLIC_URL to the public kiokuflow origin");
   const url = new URL(configured);
   if (url.username || url.password || (url.protocol !== "https:" && !(url.protocol === "http:" && isLoopback(url.hostname)))) throw new Error("Bluesky requires a public HTTPS origin");
   return url.origin;
@@ -52,7 +52,7 @@ export function blueskyMetadata() {
   const callback = blueskyCallbackUrl();
   return {
     client_id: origin.startsWith("http:") ? `http://localhost?${new URLSearchParams({ redirect_uri: callback, scope })}` : `${origin}/api/bluesky/client-metadata.json`,
-    client_name: "GemiHub", client_uri: origin, redirect_uris: [callback] as [string],
+    client_name: "kiokuflow", client_uri: origin, redirect_uris: [callback] as [string],
     grant_types: ["authorization_code", "refresh_token"] as ["authorization_code", "refresh_token"],
     response_types: ["code"] as ["code"], application_type: "web" as const,
     token_endpoint_auth_method: "none" as const, dpop_bound_access_tokens: true, scope,

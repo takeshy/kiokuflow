@@ -1,11 +1,11 @@
 ---
 name: base
-description: Author and maintain GemiHub .base compatibility files for filtered table, card, and list views over workspace files.
+description: Author and maintain kiokuflow .base compatibility files for filtered table, card, and list views over workspace files.
 ---
 
-# GemiHub Base Authoring
+# kiokuflow Base Authoring
 
-Use this skill to create or edit a `.base` YAML file consumed by GemiHub. The format is GemiHub's portable query-and-view interchange format and is designed to remain compatible with the supported subset of Base files.
+Use this skill to create or edit a `.base` YAML file consumed by kiokuflow. The format is kiokuflow's portable query-and-view interchange format and is designed to remain compatible with the supported subset of Base files.
 
 ## Authoring Contract
 
@@ -137,7 +137,7 @@ properties:
 
 ## Views
 
-Every view should have a unique `name`. GemiHub supports:
+Every view should have a unique `name`. kiokuflow supports:
 
 - `table`: rows with selected columns.
 - `cards`: a responsive card grid with optional image selection.
@@ -181,10 +181,10 @@ The same `.base` file can back several widgets. Older inline `card`, `table`, an
 
 ## Compatibility Boundaries
 
-GemiHub deliberately implements a supported compatibility subset:
+kiokuflow deliberately implements a supported compatibility subset:
 
 - Supported view types: `table`, `cards`, `list`.
-- GemiHub uses an explicit `sort` list; `order` remains display order.
+- kiokuflow uses an explicit `sort` list; `order` remains display order.
 - Unsupported view types fall back to table rendering.
 - Unknown configuration keys should be retained during edits so another application can still use them.
 

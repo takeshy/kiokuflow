@@ -1,6 +1,7 @@
 import type { HubworkAccount, ResolvedAccountTokens } from "~/types/hubwork";
 import { isHubworkFeatureAvailable } from "~/types/hubwork";
-import { getAccountByDomain, getAccountByDefaultDomain, getAccountBySlug, getTokensForAccount } from "./hubwork-accounts.server";
+import { getAccountByDomain, getAccountByDefaultDomain, getAccountBySlug, getTokensForAccount, HUBWORK_DOMAIN } from "./hubwork-accounts.server";
+import { platformSlug, isMainAppDomain } from "~/config/branding";
 import { isFirestoreAvailable } from "./firestore.server";
 
 // In-memory cache: domain → account (60s TTL, max 1000 entries)
@@ -11,13 +12,7 @@ const CACHE_TTL_MS = 60 * 1000;
 const CACHE_MAX_SIZE = 1000;
 
 export function extractAllowedSlugHost(domain: string): string | null {
-  if (domain.endsWith(".gemihub.net")) {
-    return domain.slice(0, -".gemihub.net".length);
-  }
-  if (domain.endsWith(".localhost")) {
-    return domain.slice(0, -".localhost".length);
-  }
-  return null;
+  return platformSlug(domain, HUBWORK_DOMAIN);
 }
 
 /**
@@ -44,6 +39,7 @@ export async function resolveHubworkAccount(
 
   // Strip port if present
   const domain = host.split(":")[0];
+  if (isMainAppDomain(domain, HUBWORK_DOMAIN)) throw new Response("Not Found", { status: 404 });
 
   // Check cache
   const cached = domainCache.get(domain);

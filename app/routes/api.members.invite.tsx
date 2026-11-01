@@ -7,7 +7,7 @@
  * is accepted for callers as an administrator during data migration.
  *
  * Side effect: persists a pending invite to organizations/{orgId}/invites/
- * and dispatches a notification (SMTP if configured, else stderr log).
+ * and returns a shareable invitation URL. No mail is sent.
  *
  * Response: { invite: OrgInvite, inviteUrl }
  */
@@ -17,13 +17,9 @@ import {
   ProjectAccessError,
   requireOrgAccess,
 } from "~/services/project-acl.server";
-import { getOrganization } from "~/services/organizations.server";
 import { createInvite } from "~/services/invites.server";
-import { inviteUrlFor, sendInviteEmail } from "~/services/notify.server";
-import { getValidTokens, hasRequiredHubworkScopes } from "~/services/google-auth.server";
-import { requireAuth } from "~/services/session.server";
+import { inviteUrlFor } from "~/services/notify.server";
 import type { OrgRole } from "~/types/enterprise";
-import { google } from "googleapis";
 
 const ORG_ROLES: ReadonlySet<string> = new Set(["admin", "member"]);
 
@@ -81,46 +77,6 @@ export async function action({ request }: Route.ActionArgs) {
     expiryDays,
   });
 
-  const org = await getOrganization(body.orgId);
   const inviteUrl = inviteUrlFor(request, invite.token);
-  try {
-    const sessionTokens = await requireAuth(request);
-    const { tokens: validTokens, setCookieHeader } = await getValidTokens(request, sessionTokens);
-    if (!validTokens.accessToken) {
-      throw new Error("Google OAuth access token is not available for invitation email delivery");
-    }
-    // Delivery uses the admin's own Gmail, which needs the gmail.send scope —
-    // a plain sign-in only grants drive.file. Fail fast with a reason the UI
-    // can turn into a "reconnect Google" action instead of a raw 403.
-    if (!hasRequiredHubworkScopes(validTokens.grantedScopes)) {
-      const err = new Error("gmail_scope_missing");
-      err.name = "InviteScopeError";
-      throw err;
-    }
-    const oauth2Client = new google.auth.OAuth2();
-    oauth2Client.setCredentials({ access_token: validTokens.accessToken });
-    await sendInviteEmail({
-      invite,
-      inviteUrl,
-      orgDisplayName: org?.name ?? body.orgId,
-      gmailClient: google.gmail({ version: "v1", auth: oauth2Client }),
-    });
-    return Response.json(
-      { invite, inviteUrl, emailSent: true },
-      setCookieHeader ? { headers: { "Set-Cookie": setCookieHeader } } : undefined,
-    );
-  } catch (err) {
-    // The invite itself is already persisted and valid. Reporting an error
-    // status here makes admins retry, minting another live token each time,
-    // so this is a 200 carrying a warning plus the URL to hand over manually.
-    console.warn("[api.members.invite] notify failed:", err);
-    const scopeMissing = err instanceof Error && err.message === "gmail_scope_missing";
-    return Response.json({
-      invite,
-      inviteUrl,
-      emailSent: false,
-      warning: scopeMissing ? "gmail_scope_missing" : "invite_email_failed",
-      reason: err instanceof Error ? err.message : String(err),
-    });
-  }
+  return Response.json({ invite, inviteUrl, emailSent: false });
 }

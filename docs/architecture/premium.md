@@ -7,7 +7,7 @@ tags:
 ---
 # Premium Plan
 
-GemiHub's premium plans add server-side capability on top of the free Drive experience. Lite unlocks the paid workflow nodes and the Interactions API chat; Business turns GemiHub into a web app builder (Google Sheets/Gmail integration, static page hosting, scheduled workflows, custom domains) **and** provisions an organization with a shared project mount running on Vertex AI. The organization/mount model itself lives in [Storage Mounts & AI Providers](./mounts.md); this document covers the plans, billing, hosting, and scheduling.
+kiokuflow's premium plans add server-side capability on top of the free Drive experience. Google Calendar/Gmail integrations and notification emails have been removed. The extracted Web Builder now continues separately as GemiHub; the hosting/auth sections below describe legacy compatibility. Lite unlocks the paid workflow nodes and the Interactions API chat; Business turns kiokuflow into a web app builder (Google Sheets integration, static page hosting, scheduled workflows, custom domains) **and** provisions an organization with a shared project mount running on Vertex AI. The organization/mount model itself lives in [Storage Mounts & AI Providers](./mounts.md); this document covers the plans, billing, hosting, and scheduling.
 
 ## Kakeratta background answers
 
@@ -24,12 +24,12 @@ setup, limits, reference scope, and implementation.
 
 ```
 Load Balancer + Cloud CDN + Certificate Manager
-  ├── *.gemihub.net     → Cloud Run (wildcard subdomain)
+  ├── *.kiokuflow.net     → Cloud Run (wildcard subdomain)
   ├── app.acme.com         → Cloud Run (custom domain)
   └── app.other.com        → Cloud Run (custom domain)
 
 Cloud Run (single, multi-tenant)
-  ├── GemiHub IDE (existing free features)
+  ├── kiokuflow IDE (existing free features)
   ├── Premium API (account resolved from Host header)
   ├── Page proxy (reads from Drive, returns with Cache-Control → CDN caches)
   ├── Scheduled workflow execution endpoint
@@ -52,7 +52,7 @@ Cloud Scheduler (single job)
 ### Design Decisions
 
 - **Single Cloud Run for all accounts** — no per-account instances. Accounts are resolved from the `Host` header via Firestore lookup (cached 60s in memory).
-- **Two-tier URL** — every account gets `{accountSlug}.gemihub.net` immediately; custom domains are optional and additive. DNS-pending accounts still work via the built-in subdomain.
+- **Two-tier URL** — every account gets `{accountSlug}.kiokuflow.net` immediately; custom domains are optional and additive. DNS-pending accounts still work via the built-in subdomain.
 - **Cloud Run as storage proxy** — pages are read from the account's linked Drive or GCS project mount and served with `Cache-Control` headers. Cloud CDN caches the responses. No public storage bucket or Backend Bucket is needed.
 - **Firestore for multi-instance state** — magic link tokens must be shared across Cloud Run instances. Rate limiting stays in-memory (per-instance, acceptable for DoS mitigation).
 - **AJAX-based data access** — pages are static HTML; authenticated data is fetched at runtime via `/__gemihub/auth/me` and `/__gemihub/api/*` workflow endpoints. No server-side injection.
@@ -70,8 +70,6 @@ AI via BYO Gemini key or personal Vertex prepaid balance).
 | Feature | Free | Lite (¥300/$2 mo) | Pro (¥3,000/$20 mo) | Business (¥7,500/$50 mo) |
 |---------|:----:|:--------------:|:--------------:|:---------------:|
 | Upload limit | 20MB | 5GB | 5GB | 5GB |
-| Gmail Send node | - | Yes | Yes | Yes |
-| Google Calendar nodes | - | Yes | Yes | Yes |
 | HTTP node CORS proxy (cross-origin fetch) | 2 req/min | 60 req/min | 60 req/min | 60 req/min |
 | PDF Generation | - | Yes | Yes | Yes |
 | External Sync Token / Temp Edit URL | - | Yes | Yes | Yes |
@@ -92,7 +90,7 @@ AI via BYO Gemini key or personal Vertex prepaid balance).
 | Included Vertex AI budget | - | - | - | $30 / billing period |
 | Shared project storage | - | - | - | 100 GB (+500 GB add-on) |
 
-Gating helpers: `hasPaidFeatures` (Lite and above) covers Gmail/Calendar nodes,
+Gating helpers: `hasPaidFeatures` (Lite and above) covers server-side processing,
 upload limits, and the external sync token; `hasProFeatures` (pro /
 business / granted) covers scheduled workflows and page hosting;
 `hasBusinessFeatures` (business / granted) covers Sheets nodes, custom
@@ -145,8 +143,8 @@ in [Storage Mounts & AI Providers](./mounts.md).
 hubwork-accounts/{accountId}
   email: string
   encryptedRefreshToken: string      — AES-256-GCM, key derived from SESSION_SECRET
-  accountSlug: string                — unique, e.g. "acme" → acme.gemihub.net
-  defaultDomain: string              — "acme.gemihub.net" (auto-generated from slug)
+  accountSlug: string                — unique, e.g. "acme" → acme.kiokuflow.net
+  defaultDomain: string              — "acme.kiokuflow.net" (auto-generated from slug)
   customDomain?: string              — e.g. "app.acme.com"
   rootFolderName: string
   rootFolderId: string
@@ -228,7 +226,7 @@ a service administrator must transfer ownership. See
 
 | Plan | How Created | Description | Organization |
 |------|-------------|-------------|--------------|
-| `lite` | Stripe Checkout → webhook | ¥300/$2 a month. Gmail node, PDF, uploads up to 5 GB per file. | **None.** Lite works entirely on the user's own Drive. |
+| `lite` | Stripe Checkout → webhook | ¥300/$2 a month. PDF, uploads up to 5 GB per file. | **None.** Lite works entirely on the user's own Drive. |
 | `pro` | Stripe Checkout → webhook | ¥3,000/$20 a month. All Lite features + scheduled workflows and static page hosting on the built-in subdomain, served from the user's own Drive (no CDN). AI runs on the account's own Gemini key or a personal Vertex prepaid balance — never an org budget. | **None.** Pro always stays on the user's own Drive mount. |
 | `business` | Stripe Checkout → webhook | All Lite features + Sheets nodes, web builder, subdomain, auth, scheduled workflows, org projects on GCS + Vertex AI. | Provisioned automatically (see below). |
 | `granted` | Admin panel | Free account created by admin. Has Business-level access. | Not provisioned — a service admin creates it. |
@@ -269,7 +267,7 @@ All Hubwork routes resolve the account from the request's `Host` header:
 4. Cache result in memory (60-second TTL)
 5. Return 404 if no account matches, no plan set, or access rules fail
 
-Initial public URL is always `https://{accountSlug}.gemihub.net`. After custom domain setup, both URLs serve the same content.
+Initial public URL is always `https://{accountSlug}.kiokuflow.net`. After custom domain setup, both URLs serve the same content.
 
 This is handled by `resolveHubworkAccount(request)` in `app/services/hubwork-account-resolver.server.ts`.
 
@@ -306,7 +304,7 @@ web/blog/[slug].html     → /blog/hello-world
 
 ### How It Works
 
-1. User creates/edits files in `web/` in the GemiHub IDE, Obsidian, or any Drive-connected client (drag & drop supported)
+1. User creates/edits files in `web/` in the kiokuflow IDE, Obsidian, or any Drive-connected client (drag & drop supported)
 2. On Push (from any client), files are updated on Drive. The page proxy reads directly from Drive on each CDN cache miss.
 3. No publish step, no intermediate storage — files are live as soon as they're on Drive.
 4. CDN caches responses (`s-maxage=600`), so Drive API is only called on cache miss.
@@ -391,12 +389,12 @@ Include in HTML pages to access the Hubwork API:
 ```
 
 Provides:
-- `gemihub.get(path, params)` — GET `/__gemihub/api/{path}` with query params, returns JSON
-- `gemihub.post(path, body)` — POST `/__gemihub/api/{path}` with JSON body, returns JSON
-- `gemihub.auth.me(type)` — Get current user data (returns `null` if not authenticated)
-- `gemihub.auth.login(type, email)` — Send magic link
-- `gemihub.auth.logout(type)` — Destroy session
-- `gemihub.auth.require(type, loginPath?)` — Guard: redirects to login if not authenticated
+- `kiokuflow.get(path, params)` — GET `/__gemihub/api/{path}` with query params, returns JSON
+- `kiokuflow.post(path, body)` — POST `/__gemihub/api/{path}` with JSON body, returns JSON
+- `kiokuflow.auth.me(type)` — Get current user data (returns `null` if not authenticated)
+- `kiokuflow.auth.login(type, email)` — Send magic link
+- `kiokuflow.auth.logout(type)` — Destroy session
+- `kiokuflow.auth.require(type, loginPath?)` — Guard: redirects to login if not authenticated
 
 The user object returned by `auth.me` / `auth.require` contains:
 - `type`, `email` — always present
@@ -410,7 +408,7 @@ The user object returned by `auth.me` / `auth.require` contains:
 <script src="/__gemihub/api.js"></script>
 <script>
   (async () => {
-    const user = await gemihub.auth.require("talent");
+    const user = await kiokuflow.auth.require("talent");
     document.getElementById("app").innerHTML = `Welcome, ${user.email}`;
   })();
 </script>
@@ -495,7 +493,7 @@ nodes:
 
 ## Admin Pages (IDE Preview)
 
-Operator-facing screens — cancelling a booking, marking a no-show, replying to an inquiry — are kept entirely separate from the public site (`web/`) and live under `admin/`. Only `web/` is exposed on the custom domain, so anything under `admin/` is automatically 404 from the public web. The Drive owner opens these pages from the GemiHub IDE preview mode; there is no other entry point.
+Operator-facing screens — cancelling a booking, marking a no-show, replying to an inquiry — are kept entirely separate from the public site (`web/`) and live under `admin/`. Only `web/` is exposed on the custom domain, so anything under `admin/` is automatically 404 from the public web. The Drive owner opens these pages from the kiokuflow IDE preview mode; there is no other entry point.
 
 ### File Layout
 
@@ -515,7 +513,7 @@ admin/
 
 ### Execution Model
 
-Public pages call `gemihub.get/post`, which is served by the Hubwork page proxy at `/__gemihub/api/*`. Admin iframes are different: the **parent IDE bridges every call via `postMessage` to `/api/hubwork/admin/*`**, which executes the workflow under the IDE-logged-in Drive owner's Google OAuth. The public `auth.*` namespace is unavailable; the IDE injects `session.*` instead:
+Public pages call `kiokuflow.get/post`, which is served by the Hubwork page proxy at `/__gemihub/api/*`. Admin iframes are different: the **parent IDE bridges every call via `postMessage` to `/api/hubwork/admin/*`**, which executes the workflow under the IDE-logged-in Drive owner's Google OAuth. The public `auth.*` namespace is unavailable; the IDE injects `session.*` instead:
 
 | Variable | Value |
 |----------|-------|
@@ -562,7 +560,7 @@ Each account type has an independent session cookie (`__hubwork_{type}`). Users 
 1. User submits email on login page → `POST /__gemihub/auth/login` with `{ type, email }`
 2. Server validates email against `accounts[type].identity` sheet in Google Sheets
 3. Token created in Firestore (`hubwork-magic-tokens` collection, 10-minute TTL, includes `type`)
-4. Login link emailed via Gmail API
+4. Legacy email delivery is retired in kiokuflow; use the separate GemiHub service for Web Builder sign-in.
 5. User clicks link → `GET /__gemihub/auth/verify/:token`
 6. Server verifies token in Firestore (transactional, one-time use)
 7. Session cookie (`__hubwork_{type}`) set, 7-day expiry
@@ -594,11 +592,11 @@ Every Hubwork account has two URL tiers:
 
 | Tier | URL | Availability |
 |------|-----|-------------|
-| Built-in | `https://{accountSlug}.gemihub.net` | Immediately on account creation |
+| Built-in | `https://{accountSlug}.kiokuflow.net` | Immediately on account creation |
 | Custom | `https://app.acme.com` | After DNS verification + SSL provisioning |
 
 The admin panel displays both:
-- **Preview URL**: `https://{accountSlug}.gemihub.net` (always working)
+- **Preview URL**: `https://{accountSlug}.kiokuflow.net` (always working)
 - **Production URL**: custom domain (shown only when `domainStatus == "active"`)
 
 ### Provisioning Flow
@@ -616,7 +614,7 @@ The admin panel displays both:
 All domains (built-in + custom) point to the same Cloud Run backend:
 
 ```
-*.gemihub.net     → Cloud Run (wildcard subdomain)
+*.kiokuflow.net     → Cloud Run (wildcard subdomain)
 app.acme.com         → Cloud Run (host rule added dynamically)
 app.other.com        → Cloud Run (host rule added dynamically)
 ```
@@ -760,11 +758,11 @@ If `SKILL.md` already exists, provisioning is skipped (idempotent). Users can cu
 ### What the AI Knows
 
 The skill's reference materials include:
-- `gemihub.get()` / `gemihub.post()` / `gemihub.auth.*` client helper API
+- `kiokuflow.get()` / `kiokuflow.post()` / `kiokuflow.auth.*` client helper API
 - File routing rules (`web/*.html` → pages, `web/api/*.yaml` → APIs)
 - Login page, protected page, and API workflow templates
 - Authentication vs authorization rules (must filter by `auth.email`)
-- Available workflow nodes (`sheet-read`, `sheet-write`, `gmail-send`, etc.)
+- Available workflow nodes (`sheet-read`, `sheet-write`, etc.)
 
 ### Skill Templates (Source)
 
@@ -852,16 +850,6 @@ Delete rows matching a filter.
 | `filter` | Yes | JSON filter |
 | `saveTo` | No | Variable for deleted row count |
 
-### gmail-send
-
-Send an email via Gmail API.
-
-| Property | Required | Description |
-|----------|----------|-------------|
-| `to` | Yes | Recipient email |
-| `subject` | Yes | Subject line |
-| `body` | No | HTML body |
-| `saveTo` | No | Variable for message ID |
 
 ## Subscription & Billing
 
@@ -1031,7 +1019,7 @@ Admin dashboard at `/hubwork/admin` for managing accounts.
 | `app/types/settings.ts` | HubworkAccountType, HubworkDataSource, HubworkSettings definitions |
 | `app/types/hubwork.ts` | Firestore document type definitions |
 | `app/engine/handlers/hubworkSheets.ts` | Sheet read/write/update/delete handlers |
-| `app/engine/handlers/hubworkGmail.ts` | Gmail send handler |
+| `app/engine/handlers/hubworkGmail.ts` | Legacy node rejection (no email delivery) |
 | `app/routes/hubwork.internal.auth.login.tsx` | `POST /__gemihub/auth/login` — magic link with account type |
 | `app/routes/hubwork.internal.auth.verify.$token.tsx` | `GET /__gemihub/auth/verify/:token` — verify + set cookie |
 | `app/routes/hubwork.internal.auth.logout.tsx` | `POST /__gemihub/auth/logout` — destroy session |

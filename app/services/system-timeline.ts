@@ -150,7 +150,7 @@ export async function readSystemTimeline(date = localDateKey()): Promise<{
 export const TIMELINE_TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     name: "read_timeline",
-    description: "Read the user's GemiHub Timeline for a local calendar date. Use this before answering what the user did today or on a specific day.",
+    description: "Read the user's kiokuflow Timeline for a local calendar date. Use this before answering what the user did today or on a specific day.",
     parameters: {
       type: "object",
       properties: {
@@ -160,7 +160,7 @@ export const TIMELINE_TOOL_DEFINITIONS: ToolDefinition[] = [
   },
   {
     name: "append_timeline",
-    description: "Append a note or activity to today's GemiHub Timeline.",
+    description: "Append a note or activity to today's kiokuflow Timeline.",
     parameters: {
       type: "object",
       properties: {
@@ -186,7 +186,7 @@ export async function executeTimelineTool(name: string, args: Record<string, unk
 }
 
 export const TIMELINE_AI_INSTRUCTION = [
-  "## GemiHub Timeline",
+  "## kiokuflow Timeline",
   "When the user asks what they did today or on a specific date, call read_timeline before answering.",
   "When the user asks you to remember, record, or add something to their Timeline, call append_timeline.",
   "Treat Timeline entries as the user's activity record and clearly distinguish scheduled calendar entries from completed activity.",

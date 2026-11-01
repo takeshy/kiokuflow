@@ -1,3 +1,4 @@
+import { ragSettingDisplayName } from "~/config/branding";
 import { useState, useMemo } from "react";
 import { X, Search } from "lucide-react";
 import { ICON } from "~/utils/icon-sizes";
@@ -38,7 +39,7 @@ export function RagFilesDialog({ settingName, files, onClose }: RagFilesDialogPr
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
           <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-            {t("settings.rag.filesDialogTitle").replace("{name}", settingName)}
+            {t("settings.rag.filesDialogTitle").replace("{name}", ragSettingDisplayName(settingName))}
           </h3>
           <button
             onClick={onClose}
