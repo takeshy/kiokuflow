@@ -36,16 +36,31 @@ resource "google_compute_backend_service" "default" {
   }
 }
 
+locals {
+  shared_vm_hosts = merge({
+    kakeratta = ["kakeratta.net", "www.kakeratta.net"]
+    geo       = ["geo.mcp.takeshy.work"]
+  }, var.shared_vm_hosts)
+}
+
 # HTTPS URL map
 # All Host headers fall through to the default service; SNI-based cert
 # selection in the HTTPS proxy's certificate map handles per-domain certs.
 resource "google_compute_url_map" "https" {
   name            = "gemini-hub-https"
   default_service = lookup(var.shared_vm_backends, "gemihub", google_compute_backend_service.default.id)
+  lifecycle {
+    precondition {
+      condition = alltrue([for name in keys(var.shared_vm_backends) :
+        name == "gemihub" || length(lookup(local.shared_vm_hosts, name, [])) > 0
+      ])
+      error_message = "Every additional shared VM backend needs explicit shared_vm_hosts."
+    }
+  }
   dynamic "host_rule" {
     for_each = { for k, v in var.shared_vm_backends : k => v if k != "gemihub" }
     content {
-      hosts        = host_rule.key == "geo" ? ["geo.mcp.takeshy.work"] : ["kakeratta.net", "www.kakeratta.net"]
+      hosts        = lookup(local.shared_vm_hosts, host_rule.key, [])
       path_matcher = "shared-${host_rule.key}"
     }
   }

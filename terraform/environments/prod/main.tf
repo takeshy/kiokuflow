@@ -84,6 +84,7 @@ variable "firestore_database_id" {
 module "gemihub" {
   source             = "../../modules/gemihub"
   shared_vm_backends = var.shared_vm_backends
+  shared_vm_hosts    = var.shared_vm_hosts
 
   project_id                     = var.project_id
   project_number                 = var.project_number
@@ -130,5 +131,11 @@ output "nameservers" {
 variable "shared_vm_backends" {
   description = "Existing shared VM backends; empty keeps the Cloud Run deployment."
   type        = map(string)
+  default     = {}
+}
+
+variable "shared_vm_hosts" {
+  description = "Additional shared VM hostname routes."
+  type        = map(list(string))
   default     = {}
 }

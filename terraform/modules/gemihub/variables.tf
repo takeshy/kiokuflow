@@ -97,3 +97,15 @@ variable "shared_vm_backends" {
   type        = map(string)
   default     = {}
 }
+
+variable "shared_vm_hosts" {
+  description = "Explicit hostnames for additional shared VM backends; existing Kakeratta/Geo defaults are retained."
+  type        = map(list(string))
+  default     = {}
+  validation {
+    condition = alltrue([for hosts in values(var.shared_vm_hosts) : length(hosts) > 0 &&
+      alltrue([for host in hosts : can(regex("^(\\*\\.)?[a-z0-9][a-z0-9.-]*\\.[a-z]{2,}$", host))])
+    ])
+    error_message = "Each backend requires at least one DNS hostname."
+  }
+}

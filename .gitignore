@@ -18,6 +18,8 @@ client_secret_*.apps.googleusercontent.com.json
 /plugins/
 
 # Terraform
+.terraform/
+terraform/modules/*/.terraform.lock.hcl
 terraform/.terraform/
 terraform/*.tfstate*
 terraform/terraform.tfvars
