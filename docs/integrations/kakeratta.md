@@ -9,7 +9,7 @@ tags:
 ---
 # Kakeratta external agent
 
-Open **Settings → Kakeratta**. In Kakeratta, create an MCP connection and assign
+Open **Settings → Integrations → Kakeratta**. In Kakeratta, create an MCP connection and assign
 the desired personas to its external agent. Copy the MCP URL and issued HTTP
 headers into GemiHub (normally `Authorization` with value `Bearer <key>`).
 Use **Load personas / test connection**, enable the integration, and save.
@@ -61,7 +61,7 @@ Posts addressed to `@agent`, `@エージェント` or `@外部エージェント
 follow-up replies, arrive in `list_asks.requests`. GemiHub claims them with
 `claim_request` and posts the final response through `reply_request`. They are
 independent of persona planning and use **Direct requests to the agent** in
-Settings → Kakeratta: a separate model, file access, RAG and Web Search profile.
+Settings → Integrations → Kakeratta: a separate model, file access, RAG and Web Search profile.
 Direct replies are enabled by default for an enabled connection. When explicitly
 requested in the current trigger, the agent can comment under other Kakeratta
 entries without a separate permission toggle.

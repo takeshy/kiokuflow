@@ -79,7 +79,7 @@ function IdeScene({ mode, language = "ja", organization = false }: { mode: Mode;
         ? <DiffEditor fileId="notes" fileName="project-notes.md" currentContent={notes} targetFileId="notes-previous" targetFileName="project-notes-previous.md" saveToCache={async () => undefined} onClose={() => undefined} />
       : <MainViewer fileId="notes" fileName="project-notes.md" fileMimeType="text/markdown" settings={settings} />;
   const leftPanel = mode === "search"
-    ? <SearchPanel apiPlan={settings.apiPlan} ragStoreIds={["sample-store"]} ragTopK={8} fileList={files} onSelectFile={() => undefined} onClose={() => undefined} initialQuery={language === "en" ? "quarterly plan" : "四半期計画"} autoSearch />
+    ? <SearchPanel ragAvailable={settings.ragAvailable} apiPlan={settings.apiPlan} ragStoreIds={["sample-store"]} ragTopK={8} fileList={files} onSelectFile={() => undefined} onClose={() => undefined} initialQuery={language === "en" ? "quarterly plan" : "四半期計画"} autoSearch />
     : <DriveFileTree rootFolderId="storybook-root" activeFileId={mode === "dashboard" ? "dashboard" : mode === "workflow" ? "weekly" : "notes"} encryptionEnabled={false} onSelectFile={() => undefined} onSearchOpen={() => undefined} cacheFilesByIds={async () => undefined} cachingProgress={null} />;
   const executionLogs = [
     { nodeId: "load-notes", nodeType: "drive-read", message: language === "en" ? "Loaded project notes" : "プロジェクトノートを読み込みました", status: "success" as const, timestamp: "2026-08-21T03:00:01.000Z", output: { file: "project-notes.md", characters: 248 } },

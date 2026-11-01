@@ -1,3 +1,4 @@
+import { loadRagContext } from "~/services/rag-context";
 import { fetchWithMcpApproval, answerMcpApproval } from "~/hooks/mcp-approval-client";
 import { isReadOnlyDriveTool } from "~/services/drive-tool-definitions";
 /**
@@ -367,6 +368,11 @@ export async function* executeInteractionsChat(
   options: InteractionsChatOptions,
   callbacks?: LocalChatCallbacks,
 ): AsyncGenerator<StreamChunk> {
+  if (options.ragStoreIds?.length) {
+    const context = await loadRagContext(options.messages, options.ragStoreIds, options.ragTopK, options.abortSignal);
+    yield { type: "rag_used", ragSources: context.sources };
+    options = { ...options, ragStoreIds: undefined, systemPrompt: [options.systemPrompt, context.prompt].filter(Boolean).join("\n\n") };
+  }
   const {
     model,
     canUseProxy,

@@ -1,3 +1,4 @@
+import { getChatApiKey } from "~/types/settings";
 import type { Route } from "./+types/api.base.ai-generate";
 import { requireAuth } from "~/services/session.server";
 import { generateWorkflow } from "~/services/gemini.server";
@@ -7,6 +8,7 @@ import { personalVertexRunForUser } from "~/services/ai/personal-vertex.server";
 import BASE_SKILL_MD from "~/services/gemihub-skill-templates/base/SKILL.md?raw";
 import BASE_REF_FUNCTIONS from "~/services/gemihub-skill-templates/base/references/functions.md?raw";
 import BASE_REF_VIEWS from "~/services/gemihub-skill-templates/base/references/views.md?raw";
+import { isExternalChatModel } from "~/types/settings";
 
 // The base editor's AI uses the same spec the bundled "base" skill ships to the
 // model, so it knows the full Bases syntax (filters, functions, view options,
@@ -55,9 +57,12 @@ export async function action({ request }: Route.ActionArgs) {
       return personalVertexAction(request, run);
     }
   }
-  if (!tokens.geminiApiKey) {
+  const settings = await getSettings(tokens.accessToken, tokens.rootFolderId);
+  const model = settings.selectedModel && isExternalChatModel(settings.selectedModel) ? settings.selectedModel : undefined;
+  const apiKey = getChatApiKey(model || "", tokens);
+  if (!apiKey) {
     return Response.json(
-      { error: "Gemini API key not configured. Please set it in Settings." },
+      { error: "API key is not available. Unlock the selected provider in Settings." },
       { status: 400 },
     );
   }
@@ -88,7 +93,7 @@ ${currentYaml}
 
 Return the complete updated .base YAML only.`;
 
-  const generated = await generateWorkflow(userPrompt, BASE_SYSTEM_PROMPT, tokens.geminiApiKey);
+  const generated = await generateWorkflow(userPrompt, BASE_SYSTEM_PROMPT, apiKey, model, { rootFolderId: tokens.rootFolderId, providers: settings.compatibleProviders });
   const compiled = compileBase(generated);
   const errors = compiled.diagnostics.filter((d) => d.severity === "error");
   if (errors.length > 0) {

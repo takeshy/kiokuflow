@@ -11,16 +11,12 @@
 import {
   GoogleGenAI,
   type Interactions,
-  type Part,
-  type Tool,
 } from "@google/genai";
 import type { Message, StreamChunk, StreamChunkUsage, ToolCall, Attachment, WebSearchSource } from "~/types/chat";
 import type { ToolDefinition, ToolPropertyDefinition, ModelType, GeminiReasoningEffort } from "~/types/settings";
 import { supportsWebSearch } from "~/types/settings";
 import { formatFileSearchSource, MODEL_PRICING, SEARCH_GROUNDING_COST } from "./gemini-chat-core";
-import { DEFAULT_SAFETY_SETTINGS } from "./gemini.server";
 
-const FILE_SEARCH_STORE_PREFIX = "fileSearchStores/";
 
 function collectWebSources(value: unknown, sources: WebSearchSource[]): void {
   if (typeof value === "string") {
@@ -48,11 +44,7 @@ function collectWebSources(value: unknown, sources: WebSearchSource[]): void {
   }
 }
 
-function normalizeFileSearchStoreName(storeName: string | null | undefined): string | null {
-  const trimmed = storeName?.trim();
-  if (!trimmed) return null;
-  return trimmed.startsWith(FILE_SEARCH_STORE_PREFIX) ? trimmed : `${FILE_SEARCH_STORE_PREFIX}${trimmed}`;
-}
+
 
 // ---------------------------------------------------------------------------
 // RAG pre-retrieval via generateContent API
@@ -61,95 +53,6 @@ function normalizeFileSearchStoreName(storeName: string | null | undefined): str
 export interface RagContext {
   source: string;
   text: string;
-}
-
-/**
- * Retrieve RAG context via generateContent when a caller needs explicit
- * pre-retrieval. The main Interactions path now sends File Search and custom
- * function tools together natively.
- */
-export async function retrieveRagContext(
-  apiKey: string,
-  model: ModelType,
-  userMessage: string,
-  ragStoreIds: string[],
-  topK: number,
-  attachments?: Attachment[],
-): Promise<{ sources: string[]; contexts: RagContext[] }> {
-  const ai = new GoogleGenAI({ apiKey });
-
-  const normalizedStoreIds = ragStoreIds
-    .map((id) => normalizeFileSearchStoreName(id))
-    .filter((id): id is string => !!id);
-  if (normalizedStoreIds.length === 0) return { sources: [], contexts: [] };
-
-  const parts: Part[] = [];
-  if (attachments && attachments.length > 0) {
-    for (const attachment of attachments) {
-      parts.push({
-        inlineData: { mimeType: attachment.mimeType, data: attachment.data },
-      });
-    }
-    if (userMessage) {
-      parts.push({ text: userMessage });
-    }
-  } else {
-    parts.push({ text: userMessage });
-  }
-
-  const tools: Tool[] = [{
-    fileSearch: {
-      fileSearchStoreNames: normalizedStoreIds,
-      topK,
-    },
-  }];
-
-  const response = await ai.models.generateContent({
-    model,
-    contents: [{ role: "user", parts }],
-    config: { tools, safetySettings: DEFAULT_SAFETY_SETTINGS },
-  });
-
-  const groundingMetadata = (response.candidates?.[0] as {
-    groundingMetadata?: {
-      groundingChunks?: Array<{
-        retrievedContext?: {
-          title?: string;
-          text?: string;
-          uri?: string;
-          pageNumber?: number;
-          page_number?: number;
-          mediaId?: string;
-          media_id?: string;
-          customMetadata?: Array<{ key?: string; stringValue?: string; string_value?: string; numericValue?: number; numeric_value?: number }>;
-          custom_metadata?: Array<{ key?: string; stringValue?: string; string_value?: string; numericValue?: number; numeric_value?: number }>;
-        };
-      }>;
-    };
-  })?.groundingMetadata;
-
-  const chunks = groundingMetadata?.groundingChunks ?? [];
-  const sources: string[] = [];
-  const contexts: RagContext[] = [];
-
-  for (const chunk of chunks) {
-    const ctx = chunk.retrievedContext;
-    if (!ctx) continue;
-    const source = formatFileSearchSource(ctx);
-    if (!source) continue;
-    if (!sources.includes(source)) {
-      sources.push(source);
-    }
-    const text = String(ctx.text ?? "").replace(/\s+/g, " ").trim();
-    if (text) {
-      const excerpt = text.length > 500 ? text.slice(0, 500) + "..." : text;
-      if (!contexts.some((c) => c.source === source && c.text === excerpt)) {
-        contexts.push({ source, text: excerpt });
-      }
-    }
-  }
-
-  return { sources, contexts };
 }
 
 // ---------------------------------------------------------------------------
@@ -196,7 +99,7 @@ export function buildInteractionsTools(
   webSearchEnabled?: boolean,
   model?: ModelType,
   ragStoreIds?: string[],
-  ragTopK?: number,
+  _ragTopK?: number,
 ): Interactions.Tool[] {
   const result: Interactions.Tool[] = [];
   const effectiveWebSearch = webSearchEnabled && (!model || supportsWebSearch(model));
@@ -217,16 +120,7 @@ export function buildInteractionsTools(
     }
   }
 
-  const normalizedStoreIds = ragStoreIds
-    ?.map((id) => normalizeFileSearchStoreName(id))
-    .filter((id): id is string => !!id);
-  if (normalizedStoreIds && normalizedStoreIds.length > 0 && (!model || !model.toLowerCase().includes("gemma"))) {
-    result.push({
-      type: "file_search" as const,
-      file_search_store_names: normalizedStoreIds,
-      top_k: ragTopK,
-    } as Interactions.Tool);
-  }
+  if (ragStoreIds?.length) throw new Error("Load authenticated Firestore RAG context before building model tools.");
 
   if (effectiveWebSearch) {
     result.push({

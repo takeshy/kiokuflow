@@ -16,6 +16,7 @@ import type { TranslationStrings } from "~/i18n/translations";
 import { writeFileLocal, readFileLocal } from "~/services/drive-local";
 import { SKILLS_FOLDER_NAME } from "~/types/settings";
 import { getCachedLoaderDataInMemory } from "~/services/loader-data-memory";
+import { useEnterpriseSelection } from "~/contexts/EnterpriseContext";
 import { AIWorkflowDialog } from "~/components/ide/AIWorkflowDialog";
 import type { ConfigEditorProps } from "../types";
 import type {
@@ -183,6 +184,7 @@ export function WorkflowConfigEditor({ config, onChange, widgetId, dashboardFile
   >(null);
 
   const loaderSettings = getCachedLoaderDataInMemory()?.settings;
+  const projectSelection = useEnterpriseSelection();
   // Match the app-wide default (DEFAULT_USER_SETTINGS.apiPlan === "paid", and
   // getAvailableModels treats anything other than "free" as paid). Falling back
   // to "free" here would hide paid models (e.g. Gemini 3.1 Pro) whenever the
@@ -579,6 +581,8 @@ export function WorkflowConfigEditor({ config, onChange, widgetId, dashboardFile
           currentName={aiDialog.mode === "modify" ? aiDialog.currentName : undefined}
           workflowId={aiDialog.mode === "modify" ? aiDialog.workflowId : undefined}
           apiPlan={apiPlan}
+          compatibleProviders={!loaderSettings?.usePersonalVertex && !projectSelection ? loaderSettings?.compatibleProviders : undefined}
+          openAIEnabled={!!loaderSettings?.openai?.encryptedApiKey && !loaderSettings.usePersonalVertex && !projectSelection}
           encryptedPrivateKey={encryptedPrivateKey}
           salt={salt}
           appendInstructions={formatGuidance}

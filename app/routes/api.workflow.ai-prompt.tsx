@@ -54,6 +54,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   const systemPrompt = getWorkflowSpecification({
     apiPlan,
+    compatibleProviders: settings?.usePersonalVertex ? undefined : settings?.compatibleProviders, openAIEnabled: !!settings?.openai?.encryptedApiKey && !settings.usePersonalVertex,
     mcpServers: settings ? getEnabledMcpServers(settings) : undefined,
     ragSettingNames: settings?.ragSettings
       ? Object.keys(settings.ragSettings)

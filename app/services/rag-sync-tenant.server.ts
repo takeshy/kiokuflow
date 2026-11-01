@@ -1,3 +1,4 @@
+import { assertRagAccess } from "./rag-access.server";
 /**
  * RAG sync service — enterprise Firestore RAG.
  *
@@ -290,6 +291,7 @@ export async function smartSyncRag(
     onProgress?: (p: RagSyncProgress) => void;
   },
 ): Promise<RagSyncResult> {
+  await assertRagAccess("", ctx.orgId);
   const result: RagSyncResult = {
     uploaded: 0,
     skipped: 0,
@@ -461,6 +463,7 @@ export async function syncSingleFileToRag(
   relativePath: string,
   settingName = "gemihub",
 ): Promise<{ chunks: number; error?: string }> {
+  await assertRagAccess("", ctx.orgId);
   try {
     if (isSystemPath(relativePath)) {
       return { chunks: 0, error: "system files are not eligible for RAG sync" };
@@ -533,37 +536,15 @@ export async function syncSingleFileToRag(
  * system prompt.
  */
 export async function buildRagContext(params: {
-  orgId: string;
-  projectId: string;
+  ctx: ProjectAccessContext;
+  tokens: import("./session.server").SessionTokens;
   query: string;
-  tenant: ProjectAccessContext["tenant"];
   settingName: string;
   topK?: number;
+  signal?: AbortSignal;
 }): Promise<string | null> {
-  const { generateEmbedding } = await import("./rag-embeddings.server");
-  const { searchSimilarChunks } = await import("./rag-store.server");
-
-  const embedding = await generateEmbedding(params.query, params.tenant, {
-    taskType: "RETRIEVAL_QUERY",
-  });
-  if (!embedding) return null;
-
-  const results = await searchSimilarChunks(
-    params.orgId,
-    params.projectId,
-    params.settingName,
-    embedding,
-    params.topK ?? 5,
-  );
-  if (results.length === 0) return null;
-
-  const lines: string[] = [];
-  for (const r of results) {
-    const fileName = r.chunk.metadata.fileName;
-    lines.push(`--- From ${fileName} ---`);
-    lines.push(r.chunk.text);
-    lines.push("");
-  }
-
-  return lines.join("\n");
+  const { retrieveProjectRag } = await import("./project-rag-search.server");
+  const { formatRagContext } = await import("./rag-context");
+  const result = await retrieveProjectRag(params.ctx, params.tokens, params.settingName, params.query, { topK: params.topK, signal: params.signal });
+  return formatRagContext({ sources: [...new Set(result.results.map(hit => hit.docPath))], contexts: result.results.map(hit => ({ source: hit.docPath, text: hit.text, jevVerified: hit.jevVerified })) });
 }

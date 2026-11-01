@@ -1,3 +1,4 @@
+import { assertRagAccess } from "~/services/rag-access.server";
 /**
  * POST /api/settings/rag-sync
  *
@@ -42,6 +43,7 @@ export async function tenantAction(request: Request) {
 
   const ctx = await requireProjectAccess(request, projectId, "editor");
 
+  await assertRagAccess("", ctx.orgId);
   // Resolve RAG setting
   const settings = await getSettingsForTenant(ctx);
   const ragSettingName =

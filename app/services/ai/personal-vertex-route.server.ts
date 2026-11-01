@@ -1,3 +1,5 @@
+import { retrievePersonalRagForChat } from "~/services/rag-index.server";
+import { formatRagContext } from "~/services/rag-context";
 import { streamMcpApproval, rememberMcpTool } from "~/services/mcp-approval.server";
 import { isReadOnlyDriveTool } from "~/services/drive-tool-definitions";
 /**
@@ -119,8 +121,18 @@ export async function handlePersonalVertexChatAction(
   const validData = parsed.data;
   const messages = validData.messages as unknown as Message[];
   const model = validData.model as ModelType;
-  const systemPrompt = validData.systemPrompt;
+  let systemPrompt = validData.systemPrompt;
   const ragStoreIds = validData.ragStoreIds;
+  const { rag: retrievedRag, error: ragError } = await retrievePersonalRagForChat(validTokens, ragStoreIds, validData.messages, validData.settings?.ragTopK, request.signal);
+  if (ragError) {
+    emitLog(logCtx, 400, { error: ragError });
+    return new Response(
+      JSON.stringify({ error: ragError }),
+      { status: 400, headers: { "Content-Type": "application/json", ...responseHeaders } },
+    );
+  }
+  if (retrievedRag) systemPrompt = [systemPrompt, formatRagContext(retrievedRag)].filter(Boolean).join("\n\n");
+
   const enableDriveTools = validData.enableDriveTools;
   const rawDriveToolMode = validData.driveToolMode;
   const requestedMcpServers = validData.mcpServers as McpServerConfig[] | undefined;
@@ -141,22 +153,6 @@ export async function handlePersonalVertexChatAction(
     return new Response(
       JSON.stringify({ error: `model "${model}" is not available on personal Vertex AI` }),
       { status: 403, headers: { "Content-Type": "application/json", ...responseHeaders } },
-    );
-  }
-
-  // RAG needs either the user's own Gemini File Search key or a project's
-  // Firestore vector index; personal Vertex has neither. Say so instead of
-  // accepting the request, silently skipping retrieval, AND letting the RAG
-  // tool constraint strip the function tools — which leaves the user worse
-  // off than if they had never selected a source.
-  if (ragStoreIds && ragStoreIds.length > 0) {
-    emitLog(logCtx, 400, { error: "RAG is not available on personal Vertex" });
-    return new Response(
-      JSON.stringify({
-        error:
-          "RAG is not available with personal Vertex AI. Deselect the RAG source, or use your own Gemini API key.",
-      }),
-      { status: 400, headers: { "Content-Type": "application/json", ...responseHeaders } },
     );
   }
 
@@ -351,6 +347,7 @@ export async function handlePersonalVertexChatAction(
       };
 
       try {
+        if (retrievedRag) sendChunk({ type: "rag_used", ragSources: retrievedRag.sources });
         for await (const chunk of streamWithTools({
           tenant,
           model,

@@ -537,6 +537,13 @@ export interface TranslationStrings {
 
   // Settings page
   "settings.title": string;
+  "settings.tab.ai": string;
+  "settings.tab.integrations": string;
+  "settings.tab.actions": string;
+  "settings.ai.organizationProvider": string;
+  "settings.ai.activeProvider": string;
+  "settings.ai.activeProviderHint": string;
+  "settings.ai.setupEncryption": string;
   "settings.tab.general": string;
   "settings.tab.kakeratta": string;
   "settings.tab.bluesky": string;
@@ -953,6 +960,27 @@ export interface TranslationStrings {
 
   // Search
   "search.title": string;
+  "search.chooseTarget": string;
+  "search.fileMode": string;
+  "search.contentMode": string;
+  "search.fileHint": string;
+  "search.contentHint": string;
+  "search.filePlaceholder": string;
+  "search.contentPlaceholder": string;
+  "search.enterHint": string;
+  "search.autoRagHint": string;
+  "search.freeSearchHint": string;
+  "search.ragSetupHint": string;
+  "search.ragPaidOnly": string;
+  "search.ragSetupNeeded": string;
+  "search.ragUnavailable": string;
+  "search.keywordResults": string;
+  "search.fuzzyResults": string;
+  "search.semanticResults": string;
+  "search.hybridResults": string;
+  "search.expandFuzzy": string;
+  "search.keywordOnly": string;
+
   "search.placeholder": string;
   "search.ragPlaceholder": string;
   "search.searching": string;
@@ -2047,6 +2075,13 @@ const en: TranslationStrings = {
 
   // Settings
   "settings.title": "Settings",
+  "settings.tab.ai": "AI providers",
+  "settings.tab.integrations": "Integrations",
+  "settings.tab.actions": "Commands & shortcuts",
+  "settings.ai.activeProvider": "AI provider to use",
+  "settings.ai.activeProviderHint": "Configure credentials and models in the tabs below, then choose a provider and save. Browsing a tab does not change the active provider.",
+  "settings.ai.setupEncryption": "Set or verify the Gemini encryption password in General before saving an API key.",
+  "settings.ai.organizationProvider": "This organization project uses Vertex AI. Manage its AI connection in organization settings.",
   "settings.tab.general": "General",
   "settings.tab.kakeratta": "Kakeratta",
   "settings.tab.bluesky": "Bluesky",
@@ -2163,17 +2198,17 @@ const en: TranslationStrings = {
   "settings.general.currentPassword": "Current Password",
   "settings.general.newPassword": "New Password",
   "settings.general.changePassword": "Change Password",
-  "settings.general.encryptionSection": "File Encryption",
-  "settings.general.passwordRequired": "Password is required to save API key",
+  "settings.general.encryptionSection": "Encryption and passwords",
+  "settings.general.passwordRequired": "Used to protect your Gemini API key and encrypted files.",
   "settings.general.wrongCurrentPassword": "Current password is incorrect",
   "settings.general.passwordMismatch": "Passwords do not match",
   "settings.general.passwordMinLength": "Password must be at least 8 characters",
   "settings.general.apiKeyOptional": "Optional. Set a key to use AI features on your own Drive; organization projects run on the organization's Vertex AI and need no key. A password is required only when you store a key, because it is kept encrypted.",
-  "settings.general.configured": "API Key & Encryption configured.",
+  "settings.general.configured": "Encryption password configured.",
   "settings.general.apiKeySavedLocked": "A key is saved (encrypted) but not unlocked in this session. Leave blank to keep it, or enter a new key to replace it.",
   "settings.general.invalidApiKey": "Invalid API key. Please check your Gemini API key and try again.",
   "settings.general.passwordRequiredError": "Password is required for initial setup.",
-  "settings.general.currentPasswordRequired": "Current password is required to change the API key.",
+  "settings.general.currentPasswordRequired": "Current password is required to save an API key or change the password.",
   "settings.general.required": "Required",
   "settings.general.errorTitle": "Save Error",
   "settings.general.generalSaved": "General settings saved.",
@@ -2464,6 +2499,27 @@ const en: TranslationStrings = {
 
   // Search
   "search.title": "Search",
+  "search.chooseTarget": "Choose what to search.",
+  "search.fileMode": "File search",
+  "search.contentMode": "Content search",
+  "search.fileHint": "Search file names and paths in the current file tree.",
+  "search.contentHint": "Words search text on this device; sentences use a server-side RAG index (paid).",
+  "search.filePlaceholder": "File name or path",
+  "search.contentPlaceholder": "Enter words or a question about your files",
+  "search.enterHint": "Enter to search · Shift+Enter for a new line",
+  "search.autoRagHint": "RAG searches the last indexed server version. Unsynced local changes are not included.",
+  "search.freeSearchHint": "Keyword and typo searches are free. RAG for sentences and similar meanings requires a paid plan.",
+  "search.ragSetupHint": "Enable RAG in General settings and synchronize an index to search by meaning.",
+  "search.ragPaidOnly": "Sentence RAG search requires a paid plan. Showing keyword matches instead.",
+  "search.ragSetupNeeded": "RAG is not ready. Enable it and synchronize an index in Settings. Showing keyword matches.",
+  "search.ragUnavailable": "RAG was unavailable. Showing local matches instead.",
+  "search.keywordResults": "Keyword search (this device)",
+  "search.fuzzyResults": "Keyword + typo search (this device)",
+  "search.semanticResults": "RAG search (server)",
+  "search.hybridResults": "Keyword + RAG (device + server)",
+  "search.expandFuzzy": "Also search similar matches",
+  "search.keywordOnly": "Search keywords only",
+
   "search.placeholder": "Enter search query...",
   "search.ragPlaceholder": "e.g. Which files describe the authentication flow?",
   "search.searching": "Searching...",
@@ -2980,8 +3036,8 @@ const en: TranslationStrings = {
   "settings.general.enableWebpageBuilder": "Enable Web app builder",
   "settings.general.enableWebpageBuilderDescription": "Show the \"Build a web app\" action in chat and keep the Webpage Builder skill up to date. Requires a Business plan.",
   "settings.general.aiProvider": "AI Provider",
-  "settings.general.tabApikey": "Gemini API Key",
-  "settings.general.tabVertex": "Vertex AI (Prepaid)",
+  "settings.general.tabApikey": "Gemini",
+  "settings.general.tabVertex": "Vertex AI",
   "settings.general.enableVertexAiDescription": "Run chat on Google Vertex AI with a prepaid balance. No Gemini API key needed. Purchase credits below — ¥1,500 ($9 credited) per unit, no expiry.",
   "settings.general.vertexPrepaid": "GemiHub prepaid credits",
   "settings.general.vertexOwn": "My Google Cloud project",
@@ -3000,7 +3056,7 @@ const en: TranslationStrings = {
   "settings.general.vertexOauthDesktopError": "This JSON is for a Desktop application. Create a Web application OAuth client and register {url} as an authorized redirect URI.",
   "settings.general.vertexOauthRedirectUri": "Authorized redirect URI: {url}",
   "settings.general.vertexOauthClientRequired": "Upload an OAuth client JSON to enable Connect with Google.",
-  "settings.general.vertexOnlyNote": "While Vertex AI is selected, chat, workflow LLM nodes, AI generation, plugins, and scheduled runs all use Vertex AI. A saved Gemini API key is kept but not used. RAG (File Search) is unavailable.",
+  "settings.general.vertexOnlyNote": "While Vertex AI is selected, chat, workflow LLM nodes, AI generation, plugins, and scheduled runs all use Vertex AI. A saved Gemini API key is kept but not used. RAG uses a separately configured embedding model and requires a paid GemiHub plan.",
   "settings.general.vertexBalance": "Current balance",
   "settings.general.vertexBalanceEmpty": "Purchase credits to start using Vertex AI",
   "settings.general.buyVertexCredit": "Buy credits",
@@ -3558,6 +3614,13 @@ const ja: TranslationStrings = {
 
   // Settings
   "settings.title": "設定",
+  "settings.tab.ai": "AIプロバイダー",
+  "settings.tab.integrations": "外部連携",
+  "settings.tab.actions": "コマンド・ショートカット",
+  "settings.ai.activeProvider": "使用するAIプロバイダー",
+  "settings.ai.activeProviderHint": "下のタブでAPIキーとモデルを設定してから、使用するプロバイダーを選び、保存してください。タブの閲覧では使用するプロバイダーは変わりません。",
+  "settings.ai.setupEncryption": "Gemini APIキーを保存する前に、一般設定で暗号化パスワードを設定・確認してください。",
+  "settings.ai.organizationProvider": "組織プロジェクトはVertex AIを使用します。接続設定は組織設定で管理します。",
   "settings.tab.general": "一般",
   "settings.tab.kakeratta": "Kakeratta",
   "settings.tab.bluesky": "Bluesky",
@@ -3674,17 +3737,17 @@ const ja: TranslationStrings = {
   "settings.general.currentPassword": "現在のパスワード",
   "settings.general.newPassword": "新しいパスワード",
   "settings.general.changePassword": "パスワード変更",
-  "settings.general.encryptionSection": "ファイル暗号化",
-  "settings.general.passwordRequired": "APIキーの保存にはパスワードが必要です",
+  "settings.general.encryptionSection": "暗号化とパスワード",
+  "settings.general.passwordRequired": "Gemini APIキーとファイルの暗号化に使用します。",
   "settings.general.wrongCurrentPassword": "現在のパスワードが正しくありません",
   "settings.general.passwordMismatch": "パスワードが一致しません",
   "settings.general.passwordMinLength": "パスワードは8文字以上である必要があります",
   "settings.general.apiKeyOptional": "任意です。自分のDriveでAI機能を使う場合に設定してください（組織プロジェクトは組織のVertex AIで動作するためキー不要です）。キーを保存するときのみ、暗号化のためパスワードが必要です。",
-  "settings.general.configured": "APIキーと暗号化が設定されています。",
+  "settings.general.configured": "暗号化パスワードが設定されています。",
   "settings.general.apiKeySavedLocked": "キーは暗号化して保存済みですが、このセッションではまだ復号されていません。そのまま使う場合は空欄、変更する場合は新しいキーを入力してください。",
   "settings.general.invalidApiKey": "無効なAPIキーです。Gemini APIキーを確認して再度お試しください。",
   "settings.general.passwordRequiredError": "初回設定にはパスワードが必要です。",
-  "settings.general.currentPasswordRequired": "APIキーを変更するには現在のパスワードが必要です。",
+  "settings.general.currentPasswordRequired": "APIキーの保存やパスワード変更には現在のパスワードが必要です。",
   "settings.general.required": "必須",
   "settings.general.errorTitle": "保存エラー",
   "settings.general.generalSaved": "一般設定を保存しました。",
@@ -3975,6 +4038,27 @@ const ja: TranslationStrings = {
 
   // Search
   "search.title": "検索",
+  "search.chooseTarget": "検索対象を選んでください。",
+  "search.fileMode": "ファイル検索",
+  "search.contentMode": "内容検索",
+  "search.fileHint": "現在のファイルツリーのファイル名・パスを検索します。",
+  "search.contentHint": "単語は端末内の本文、文章・質問はサーバーのRAGインデックス（有料）を検索します。",
+  "search.filePlaceholder": "ファイル名・パスを入力",
+  "search.contentPlaceholder": "単語や、ファイルの内容についての質問を入力",
+  "search.enterHint": "Enterで検索 · Shift+Enterで改行",
+  "search.autoRagHint": "RAGの対象はサーバーの最終インデックス同期時点の内容です。端末内の未同期変更は含まれません。",
+  "search.freeSearchHint": "単語・表記ゆれの検索は無料です。文章や意味の近い内容のRAG検索は有料プランで利用できます。",
+  "search.ragSetupHint": "意味で検索するには、一般設定でRAGを有効にして、インデックスを同期してください。",
+  "search.ragPaidOnly": "文章のRAG検索は有料プランで利用できます。今回は語句が一致する結果を表示しています。",
+  "search.ragSetupNeeded": "RAGが未設定です。設定で有効化・同期してください。今回は語句が一致する結果を表示しています。",
+  "search.ragUnavailable": "RAG検索を利用できなかったため、端末内の検索結果を表示しています。",
+  "search.keywordResults": "通常検索（端末内）",
+  "search.fuzzyResults": "あいまい検索（端末内）",
+  "search.semanticResults": "RAG検索（サーバー）",
+  "search.hybridResults": "通常＋RAG検索（端末＋サーバー）",
+  "search.expandFuzzy": "あいまい検索もする",
+  "search.keywordOnly": "単語だけで検索",
+
   "search.placeholder": "検索キーワードを入力...",
   "search.ragPlaceholder": "例: 認証フローについて書かれたファイルはどれ？",
   "search.searching": "検索中...",
@@ -4491,8 +4575,8 @@ const ja: TranslationStrings = {
   "settings.general.enableWebpageBuilder": "Webアプリ構築を使用する",
   "settings.general.enableWebpageBuilderDescription": "チャットの「Webアプリを構築する」導線を表示し、Webページビルダースキルの更新案内を有効にします（Businessプランが必要です）。",
   "settings.general.aiProvider": "AIプロバイダ",
-  "settings.general.tabApikey": "Gemini APIキー",
-  "settings.general.tabVertex": "Vertex AI（プリペイド）",
+  "settings.general.tabApikey": "Gemini",
+  "settings.general.tabVertex": "Vertex AI",
   "settings.general.enableVertexAiDescription": "チャットをGoogle Vertex AIで実行します（プリペイド残高）。Gemini APIキーは不要です。下記からクレジットを購入 — ¥1,500（$9分クレジット）単位、有効期限なし。",
   "settings.general.vertexPrepaid": "GemiHubプリペイド",
   "settings.general.vertexOwn": "自分のGoogle Cloudプロジェクト",
@@ -4511,7 +4595,7 @@ const ja: TranslationStrings = {
   "settings.general.vertexOauthDesktopError": "これは「デスクトップアプリ」用JSONです。「ウェブアプリケーション」を作成し、{url} を承認済みリダイレクトURIに登録してください。",
   "settings.general.vertexOauthRedirectUri": "承認済みリダイレクトURI: {url}",
   "settings.general.vertexOauthClientRequired": "OAuthクライアントJSONを読み込むと「Googleで接続」が有効になります。",
-  "settings.general.vertexOnlyNote": "Vertex AIを選択中は、チャット・ワークフローのLLMノード・AI生成・プラグイン・スケジュール実行のすべてがVertex AIで動作します。保存済みのGemini APIキーは保持されますが使用されません。RAG（File Search）は利用できません。",
+  "settings.general.vertexOnlyNote": "Vertex AIを選択中は、チャット・ワークフローのLLMノード・AI生成・プラグイン・スケジュール実行のすべてがVertex AIで動作します。保存済みのGemini APIキーは保持されますが使用されません。RAGは別途設定したembeddingモデルを使用し、GemiHubの有料プランが必要です。",
   "settings.general.vertexBalance": "現在の残高",
   "settings.general.vertexBalanceEmpty": "クレジットを購入してVertex AIを利用開始",
   "settings.general.buyVertexCredit": "クレジット購入",

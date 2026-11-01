@@ -40,7 +40,7 @@ import { saveEdit, saveEditDiff } from "~/services/edit-history.server";
 import { handleRagAction } from "~/services/sync-rag.server";
 import { createLogContext, emitLog } from "~/services/logger.server";
 import { findAmbiguousPushPaths, indexUniqueRemotePaths, remoteChangedSincePushSnapshot } from "~/services/sync-push-guard";
-import { deleteSingleFileFromRag } from "~/services/file-search.server";
+import { deleteSingleFileFromRag } from "~/services/rag-index.server";
 import { DEFAULT_RAG_STORE_KEY } from "~/types/settings";
 import { parseConflictBackupName } from "gemihub-sync-core/conflict";
 
@@ -1036,8 +1036,8 @@ export async function action({ request }: Route.ActionArgs) {
               const ragFile = ragSetting.files[fileName];
               if (!ragFile) continue;
               let removable = !ragFile.fileId;
-              if (ragFile.fileId && validTokens.geminiApiKey) {
-                removable = await deleteSingleFileFromRag(validTokens.geminiApiKey, ragFile.fileId);
+              if (ragFile.fileId) {
+                removable = await deleteSingleFileFromRag(validTokens.geminiApiKey || "", ragFile.fileId, { rootFolderId: validTokens.rootFolderId });
               }
               if (removable) {
                 delete ragSetting.files[fileName];

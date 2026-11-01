@@ -1,174 +1,103 @@
 ---
 type: Guide
 title: Search
-description: "Search features: local search, Drive search, RAG semantic search, and Quick Open."
+description: "File-name and content search, automatic paid RAG for sentences, optional fuzzy expansion, and Quick Open."
 tags:
   - search
 ---
 # Search
 
-Multi-mode file search with Local, Drive, and RAG search, plus Quick Open for rapid file navigation.
+Click the search icon in the file tree, or press Ctrl+Shift+F / Cmd+Shift+F,
+**File search** opens immediately. Switch to **Content search** using the tab. Enter searches;
+Shift+Enter inserts a line break. The arrow returns to the file tree.
 
-## Features
+## File search
 
-- **Local Search**: Search IndexedDB cached files by name and content (offline-capable)
-- **Drive Search**: Full-text search in Google Drive (name + content)
-- **RAG Search**: Semantic search using Gemini File Search with AI-generated answers
-- **Quick Open**: Rapid file navigation with keyboard shortcut (Cmd+P / Ctrl+P)
+Searches names and paths from the current tree. It includes files whose
+content has never been cached and does not read file bodies or make AI calls.
 
----
+## Content search
 
-## Keyboard Shortcuts
+Keyword search uses locally saved text from the current workspace. File-name matches
+are excluded. Query terms use AND matching after NFKC, case, and kana
+normalization. Only file IDs present in the current tree participate, excluding
+stale/deleted cache records. Binary and encrypted contents are excluded.
+The mount-aware cache dispatcher keeps project and Drive data separate.
+Sync/open files first to make their text available locally.
 
-| Shortcut | Action |
-|----------|--------|
-| Cmd+Shift+F (Ctrl+Shift+F) | Open Search Panel |
-| Cmd+P (Ctrl+P) | Open Quick Open dialog |
+Short words and phrases initially use keyword matching. Questions, sentence
+punctuation, Japanese request/grammar cues, five or more whitespace-separated
+words, or Japanese text longer than 20 characters select RAG automatically.
+These intent rules follow kakeratta's `search-intent.js` and require no LLM call.
 
----
+RAG requires an active paid **GemiHub subscription**, independently of the
+Gemini API's Free/Paid setting, and a configured/synchronized index. It uses
+the index's embedding provider. Automatic sentence searches return only server-index
+results and do not require a local content cache. Unsynced local changes are
+excluded; uploading a file alone does not update its index until RAG synchronization.
+Personal Drive searches use `/api/search`;
+project searches use `/api/rag/search` with project ACL and organization-plan
+checks. File paths and retrieved excerpts are displayed without generating
+an additional AI answer. Duplicate basenames are never guessed for navigation.
 
-## Search Panel
+When RAG is unavailable or fails, the panel explains the reason and returns
+local matches. It does not silently claim that lexical results are semantic.
 
-Accessible from the left sidebar. Replaces the file tree when active.
+## Expand the results
 
-### Local Mode
+**Also search similar matches** is available after keyword searches, including
+zero-hit searches. It adds substring edit-distance matching locally. Very short
+terms are not expanded into arbitrary approximate matches. File search stays
+local; paid content search additionally includes semantic RAG matches. Exact
+keyword results are retained and duplicate files are removed. **Search keywords
+only** overrides automatic intent selection and returns to lexical matching.
 
-Searches files cached in IndexedDB (offline-capable).
+Query/target/workspace changes abort outstanding searches and invalidate their
+results. Late responses cannot overwrite a newer search. Auto-search previews
+run once rather than repeating embedding requests after every render.
 
-- **Multi-term search**: Splits query by whitespace (including full-width space), ALL terms must match (AND logic)
-- **Matching**: Searches both file name and content (case-insensitive)
-- **Snippets**: Shows 40 characters before/after the first matching term in content
-- **Limitation**: Only searches locally cached files, not live Drive content
+## APIs
 
-### Drive Mode
+`POST /api/search` remains available for personal Drive:
 
-Full-text search via Google Drive API.
+```ts
+{
+  query: string; // trimmed, 1–16000 characters
+  mode: "rag" | "drive";
+  ragStoreIds?: string[]; // required for RAG, at most 10 indexes
+  topK?: number; // integer 1–20; default: selected index's saved Top K
+  jevFilter?: boolean; // override the selected index's Jev toggle
+  searchUntilMatch?: boolean; // override its repeat-until-match option
+}
+```
 
-- Searches file names and content within the user's `gemihub/` folder (direct children only; subfolders are not searched)
-- Network-dependent, returns real-time results
-- Results are paginated automatically (capped at 1000 files)
-- Returns file ID, name, and MIME type
+RAG results contain `{ title, snippet, jevVerified? }` per source, and the legacy `aiText`
+field contains retrieved text for older callers. Subscription and index ownership
+are checked by `retrievePersonalRag`. Drive mode retains the legacy Drive API
+search for callers; the panel uses the current tree and cached text instead.
+The API validates same-origin requests and rejects organization mounts, which
+must use the project endpoint. Responses are not cached.
 
-### RAG Mode
-
-Semantic search using Gemini's File Search tool.
-
-- Requires configured RAG stores in Settings
-- Uses multi-line textarea input (Ctrl+Enter / Cmd+Enter to search)
-- Returns both matched file results and an AI-generated answer
-- Binary file extensions are filtered from results
-
-#### Model Selection
-
-Available models depend on API plan:
-
-| Plan | Models |
-|------|--------|
-| Free | gemini-3.8-flash, gemini-3.5-flash-lite |
-| Paid | gemini-3.8-flash, gemini-3.1-pro-preview |
-
-If the selected model does not support File Search, the system automatically falls back to the other model for the same plan.
-
-#### RAG Result Matching
-
-RAG results are matched against the local file list to provide file IDs for navigation. Unmatched results are displayed without navigation capability.
-
-### Result Display
-
-Each result shows:
-
-- File type icon (YAML: orange, Markdown: blue, JSON: yellow, other: gray)
-- File name
-- File path (if available)
-- Content snippet (Local mode only)
-
-Clicking a result opens the file in the editor.
-
----
+The content panel displays the selected RAG's Top K and, when Jev is configured,
+checkboxes for relevance filtering and searching until a match is found. Repeat
+checks successive Top K-sized batches until a confirmed match is found or the
+candidates run out (up to 1,000). Unchecked media and candidate-limit warnings are
+shown explicitly. These temporary panel choices do not change saved settings.
+Responses include `jevFiltered`, `judgedCount`, `uncheckedCount` and
+`candidateLimitReached`. See [RAG setup](../integrations/rag.md).
 
 ## Quick Open
 
-Modal dialog for rapid file selection.
+Ctrl+P / Cmd+P opens Quick Open. Type a name/path, use the arrow keys to select,
+and press Enter. It also supports the editor's image-picker mode.
 
-### Features
+## Source
 
-- **Substring matching**: Case-insensitive search against file name and path
-- **Keyboard navigation**: Arrow keys to move selection, Enter to open, Escape to close
-- **Real-time filtering**: Results update as you type
-- **Auto-scroll**: Selected item scrolls into view
-- **Scrollable list**: Results displayed in a scrollable container (`max-h-80`)
-
-### Image Picker Mode
-
-Quick Open is also used as an image picker in the WYSIWYG editor:
-
-- Filters file list to image extensions (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.svg`, `.bmp`, `.ico`)
-- Returns image URL via callback
-
----
-
-## API
-
-### Request
-
-POST `/api/search`
-
-```typescript
-{
-  query: string              // Search query (required)
-  mode: "rag" | "drive"     // Search mode (required)
-  ragStoreIds?: string[]    // RAG store IDs (required for RAG mode)
-  topK?: number             // Result limit, 1-20 (default from user's RAG settings ragTopK, clamped on server)
-  model?: string            // Gemini model name (RAG mode only)
-}
-```
-
-### Response
-
-**Drive mode:**
-```json
-{
-  "mode": "drive",
-  "results": [
-    { "id": "fileId", "name": "file.md", "mimeType": "text/markdown" }
-  ]
-}
-```
-
-**RAG mode:**
-```json
-{
-  "mode": "rag",
-  "results": [
-    { "title": "file.md", "uri": "..." }
-  ],
-  "aiText": "AI-generated answer based on the matching files."
-}
-```
-
-### Error Responses
-
-Errors return JSON with an `error` field (except 405 which returns plain text):
-
-| Status | Condition |
-|--------|-----------|
-| 400 | Missing or invalid `query` |
-| 400 | Missing `ragStoreIds` for RAG mode |
-| 400 | Gemini API key not configured |
-| 400 | Invalid `mode` |
-| 405 | Non-POST method (plain text) |
-| 500 | Server/upstream error (message included) |
-
----
-
-## Key Files
-
-| File | Description |
-|------|-------------|
-| `app/routes/api.search.tsx` | Search API endpoint (Drive + RAG modes) |
-| `app/components/ide/SearchPanel.tsx` | Search panel UI (Local / Drive / RAG tabs) |
-| `app/components/ide/QuickOpenDialog.tsx` | Quick Open dialog (Cmd+P) |
-| `app/routes/_index.tsx` | Keyboard shortcut registration |
-| `app/services/google-drive.server.ts` | Drive search (`searchFiles()`, delegating to the shared `gemihub-sync-core/drive` client) |
-| `app/services/indexeddb-cache.ts` | Local search data source (IndexedDB cache) |
-| `app/services/file-search.server.ts` | RAG store management |
+- `app/components/ide/SearchPanel.tsx`: target choice, intent routing, requests,
+  expansion, and stale-response handling.
+- `app/services/file-search.ts`: intent rules, lexical/fuzzy matching, previews,
+  current-tree restriction, and result merging.
+- `app/routes/api.search.tsx`: personal search API.
+- `app/routes/api.rag.search.tsx`: organization/project RAG API.
+- `app/services/rag-index.server.ts`: paid personal embedding retrieval.
+- `app/services/indexeddb-cache.ts`: mount-aware local data source.

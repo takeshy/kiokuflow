@@ -1,26 +1,31 @@
+import { z } from "zod";
+import { assertRagAccess } from "~/services/rag-access.server";
 import type { Route } from "./+types/api.rag.search";
 import {
   ProjectAccessError,
   requireProjectAccess,
 } from "~/services/project-acl.server";
-import { generateEmbedding } from "~/services/rag-embeddings.server";
+import { retrieveProjectRag } from "~/services/project-rag-search.server";
+import { requireAuth } from "~/services/session.server";
+import { getValidTokens } from "~/services/google-auth.server";
 import {
   getAdjacentChunks,
   listIndexedFiles,
-  searchSimilarChunks,
   type RagChunk,
 } from "~/services/rag-store.server";
 
-const JSON_HEADERS = { "Content-Type": "application/json" };
-const MAX_TOP_K = 50;
+const JSON_HEADERS = { "Content-Type": "application/json", "Cache-Control": "no-store" };
+const searchSchema = z.object({
+  projectId: z.string().min(1).max(200),
+  query: z.string().trim().min(1).max(16000),
+  ragSettingName: z.string().min(1).max(200),
+  topK: z.number().int().min(1).max(20).optional(),
+  jevFilter: z.boolean().optional(),
+  searchUntilMatch: z.boolean().optional(),
+});
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: JSON_HEADERS });
-}
-
-function clampInt(value: unknown, fallback: number, min: number, max: number): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
-  return Math.max(min, Math.min(max, Math.trunc(value)));
 }
 
 function serializeChunk(chunk: RagChunk) {
@@ -42,49 +47,19 @@ export async function action({ request }: Route.ActionArgs) {
     return new Response("Method not allowed", { status: 405 });
   }
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return json({ error: "Invalid JSON body" }, 400);
-  }
-
-  const { projectId, query, topK, ragSettingName } = body as {
-    projectId?: unknown;
-    query?: unknown;
-    topK?: unknown;
-    ragSettingName?: unknown;
-  };
-
-  if (typeof projectId !== "string" || !projectId) {
-    return json({ error: "projectId is required" }, 400);
-  }
-  if (typeof query !== "string" || !query.trim()) {
-    return json({ error: "query is required" }, 400);
-  }
-  if (typeof ragSettingName !== "string" || !ragSettingName) {
-    return json({ error: "ragSettingName is required" }, 400);
-  }
-
-  const limit = clampInt(topK, 5, 1, MAX_TOP_K);
+  const parsed = searchSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return json({ error: "Invalid RAG search request" }, 400);
+  const { projectId, query, topK, ragSettingName, jevFilter, searchUntilMatch } = parsed.data;
 
   try {
     const ctx = await requireProjectAccess(request, projectId, "viewer", { isMutation: true });
-    const embedding = await generateEmbedding(query.trim(), ctx.tenant, {
-      taskType: "RETRIEVAL_QUERY",
-    });
-    if (!embedding) {
-      return json({ results: [] });
-    }
-
-    const hits = await searchSimilarChunks(ctx.orgId, ctx.projectId, ragSettingName, embedding, limit);
-    const results = hits.map(({ chunk, distance }) => ({
-      ...serializeChunk(chunk),
-      distance,
-    }));
-
-    return json({ results });
+    const { tokens, setCookieHeader } = await getValidTokens(request, await requireAuth(request));
+    const result = await retrieveProjectRag(ctx, tokens, ragSettingName, query.trim(), { topK, jevFilter, searchUntilMatch, signal: request.signal });
+    const response = json({ ...result, results: result.results.map(chunk => ({ ...serializeChunk(chunk), distance: chunk.distance, jevVerified: chunk.jevVerified })) });
+    if (setCookieHeader) response.headers.set("Set-Cookie", setCookieHeader);
+    return response;
   } catch (e) {
+    if (e instanceof Response) return json({ error: await e.text() }, e.status);
     if (e instanceof ProjectAccessError) {
       return json({ error: e.message }, e.status);
     }
@@ -104,6 +79,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   try {
     const ctx = await requireProjectAccess(request, projectId, "viewer");
+    await assertRagAccess("", ctx.orgId);
     if (mode === "adjacent") {
       const docPath = url.searchParams.get("docPath") ?? "";
       const chunkIndex = Number(url.searchParams.get("chunkIndex"));
@@ -130,6 +106,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     const files = await listIndexedFiles(ctx.orgId, ctx.projectId, ragSettingName);
     return json({ files });
   } catch (e) {
+    if (e instanceof Response) return json({ error: await e.text() }, e.status);
     if (e instanceof ProjectAccessError) {
       return json({ error: e.message }, e.status);
     }

@@ -19,11 +19,10 @@ function SettingsEn() {
           The Settings page is accessible from the gear icon in the IDE header. Settings are stored as <code>settings.json</code> in your Drive <code>gemihub/</code> folder and synced across devices.
         </p>
 
+        <h2>AI providers</h2>
+        <p>The leftmost tab lets you choose the AI provider to use. Its Gemini, OpenAI, OpenRouter, OpenCode Go, and Vertex AI tabs configure API keys, connections, and default models. The Jev tab configures RAG relevance filtering using a direct key or OpenRouter. Browsing a provider tab does not change your chat provider; save to apply your choice.</p>
         <h2>General</h2>
         <ul>
-          <li><strong>Gemini API Key</strong> — Your API key for Gemini services.</li>
-          <li><strong>API Plan</strong> — Free or Paid (determines available models).</li>
-          <li><strong>Default Model</strong> — The default Gemini model for chat and workflows.</li>
           <li><strong>System Prompt</strong> — Custom instructions for the AI across all conversations.</li>
           <li><strong>Language</strong> — Interface language (English / Japanese).</li>
           <li><strong>Font Size</strong> — Editor font size.</li>
@@ -33,7 +32,7 @@ function SettingsEn() {
           <li><strong>Optional advanced features</strong> — Enable Dashboard, Workflow, and RAG. Disabled features remain hidden from navigation and settings.</li>
         </ul>
         <p>
-          Recommended order: complete General first, enable only the optional features you need, configure Sync, and then set up integrations such as MCP and RAG. Organization and plan tabs appear only for eligible accounts.
+          Kakeratta and Bluesky share the Integrations tab. Commands and Shortcuts share a tab with separate internal tabs. API-provider passwords are set, verified, and changed in General; provider tabs contain API keys and model settings. Recommended order: complete General first, enable only the optional features you need, configure Sync, and then set up integrations such as MCP and RAG. Organization and plan tabs appear only for eligible accounts.
         </p>
 
         <h2>MCP Servers</h2>
@@ -51,11 +50,12 @@ function SettingsEn() {
           <img src="/images/setting_rag_en.png" alt="RAG settings" className="w-full" loading="lazy" />
         </figure>
         <ul>
-          <li>Add and manage RAG store configurations (Internal / External).</li>
+          <li>Add paid Firestore RAG indexes and choose a Gemini/OpenAI embedding provider and model per index.</li>
           <li>Configure target folders and exclude patterns.</li>
           <li>Sync files to RAG stores.</li>
           <li>Enable auto-registration on Push to Drive.</li>
-          <li>Set Top-K result count.</li>
+          <li>Set Top K per RAG (1–20). With Jev, this is the candidate batch size, not a guaranteed result count.</li>
+          <li>Enable Jev relevance filtering and Search until a match is found per RAG. Search-only changes require no re-indexing.</li>
         </ul>
 
         <h2>Plugins</h2>
@@ -140,11 +140,10 @@ function SettingsJa() {
           設定ページはIDEヘッダーのギアアイコンからアクセスできます。設定はDriveの<code>gemihub/</code>フォルダに<code>settings.json</code>として保存され、デバイス間で同期されます。
         </p>
 
+        <h2>AIプロバイダー</h2>
+        <p>一番左のタブで使用するAIプロバイダーを選びます。その下のGemini・OpenAI・OpenRouter・OpenCode Go・Vertex AIタブでAPIキー、接続、デフォルトモデルを設定できます。Jevタブでは直接キーまたはOpenRouterでRAGの一致判定を設定します。設定タブを閲覧しても使用するチャットプロバイダーは変わりません。保存すると選択を適用します。</p>
         <h2>一般</h2>
         <ul>
-          <li><strong>Gemini APIキー</strong> — GeminiサービスのAPIキー。</li>
-          <li><strong>APIプラン</strong> — 無料または有料（利用可能なモデルが決定）。</li>
-          <li><strong>デフォルトモデル</strong> — チャットとワークフローのデフォルトGeminiモデル。</li>
           <li><strong>システムプロンプト</strong> — すべての会話に適用されるAIへのカスタム指示。</li>
           <li><strong>言語</strong> — インターフェース言語（英語 / 日本語）。</li>
           <li><strong>フォントサイズ</strong> — エディタのフォントサイズ。</li>
@@ -154,7 +153,7 @@ function SettingsJa() {
           <li><strong>任意の上級機能</strong> — ダッシュボード、ワークフロー、RAGを有効化。無効な機能はナビゲーションと設定から隠れます。</li>
         </ul>
         <p>
-          推奨順序は、まず一般設定を完了し、必要な上級機能だけを有効にしてから同期を設定し、その後にMCPやRAGなどの連携を設定します。組織・プラン関連タブは対象アカウントにのみ表示されます。
+          KakerattaとBlueskyは「外部連携」、コマンドとショートカットは「コマンド・ショートカット」の内部タブから設定します。AIプロバイダーのパスワード設定・確認・変更は一般設定にまとめています。推奨順序は、まず一般設定を完了し、必要な上級機能だけを有効にしてから同期を設定し、その後にMCPやRAGなどの連携を設定します。組織・プラン関連タブは対象アカウントにのみ表示されます。
         </p>
 
         <h2>MCPサーバー</h2>
@@ -172,11 +171,12 @@ function SettingsJa() {
           <img src="/images/setting_rag.png" alt="RAG設定" className="w-full" loading="lazy" />
         </figure>
         <ul>
-          <li>RAGストア設定の追加と管理（内部 / 外部）。</li>
+          <li>有料Firestore RAGインデックスを追加し、RAGごとにGemini／OpenAIのembeddingプロバイダーとモデルを選択。</li>
           <li>対象フォルダと除外パターンの設定。</li>
           <li>RAGストアへのファイル同期。</li>
           <li>ドライブ反映時の自動登録の有効化。</li>
-          <li>Top-K結果数の設定。</li>
+          <li>RAGごとにTop K（1～20）を設定。Jev有効時は1回に判定する候補数であり、結果件数を保証する値ではありません。</li>
+          <li>Jevの一致判定と「一致するまで検索」をRAGごとに設定。検索設定だけの変更では再同期は不要です。</li>
         </ul>
 
         <h2>プラグイン</h2>

@@ -38,6 +38,9 @@ import {
 import { buildOkfDocumentTool, executeReadOkfDocumentTool } from "./okfDocumentTool";
 import { getWorkflowNodeSpec } from "~/engine/workflowSpec";
 import { executeTimelineTool, TIMELINE_TOOL_DEFINITIONS } from "~/services/system-timeline";
+import { isExternalChatModel } from "~/types/settings";
+import { openAIChatWithToolsStream } from "~/services/openai-chat";
+import { loadRagContext } from "~/services/rag-context";
 
 export interface LocalChatOptions {
   apiKey: string;
@@ -90,6 +93,11 @@ export async function* executeLocalChat(
   options: LocalChatOptions,
   callbacks?: LocalChatCallbacks,
 ): AsyncGenerator<StreamChunk> {
+  if (options.ragStoreIds?.length) {
+    const context = await loadRagContext(options.messages, options.ragStoreIds, options.ragTopK, options.abortSignal);
+    yield { type: "rag_used", ragSources: context.sources };
+    options = { ...options, ragStoreIds: undefined, systemPrompt: [options.systemPrompt, context.prompt].filter(Boolean).join("\n\n") };
+  }
   const {
     apiKey,
     canUseProxy,
@@ -290,7 +298,7 @@ export async function* executeLocalChat(
     // Workflow spec lookup (full spec when nodeTypes omitted)
     if (name === "get_workflow_spec") {
       const nodeTypes = Array.isArray(args.nodeTypes) ? (args.nodeTypes as string[]) : undefined;
-      return { spec: getWorkflowNodeSpec(nodeTypes) };
+      return { spec: getWorkflowNodeSpec(nodeTypes, { apiPlan: settings?.apiPlan, compatibleProviders: settings?.usePersonalVertex ? undefined : settings?.compatibleProviders, openAIEnabled: !!settings?.openai?.encryptedApiKey }) };
     }
 
     // OKF document fetch — on-demand full body for one document referenced
@@ -351,6 +359,13 @@ export async function* executeLocalChat(
   };
 
   // Stream with tools
+  if (isExternalChatModel(model)) {
+    yield* openAIChatWithToolsStream(model, messages, tools, systemPrompt, executeToolCall, {
+      webSearchEnabled, reasoningEffort, abortSignal,
+      functionCallLimits: { maxFunctionCalls, functionCallWarningThreshold, requestLimitExtension: requestFunctionCallLimitExtension },
+    });
+    return;
+  }
   yield* chatWithToolsStream(
     apiKey,
     model,

@@ -2,7 +2,7 @@ import type { Route } from "./+types/api.settings.rag-sync";
 import { requireAuth } from "~/services/session.server";
 import { getValidTokens } from "~/services/google-auth.server";
 import { getSettings, saveSettings } from "~/services/user-settings.server";
-import { FILE_SEARCH_EMBEDDING_MODEL, smartSync, getOrCreateStore, isUnsupportedFileSearchApiKey } from "~/services/file-search.server";
+import { smartSync, getOrCreateStore, isCurrentRagIndex } from "~/services/rag-index.server";
 
 // ---------------------------------------------------------------------------
 // POST -- RAG sync with SSE progress
@@ -23,20 +23,6 @@ export async function action({ request }: Route.ActionArgs) {
   const tokens = await requireAuth(request);
   const { tokens: validTokens, setCookieHeader } = await getValidTokens(request, tokens);
   const responseHeaders = setCookieHeader ? { "Set-Cookie": setCookieHeader } : undefined;
-
-  const apiKey = validTokens.geminiApiKey;
-  if (!apiKey) {
-    return Response.json(
-      { error: "Gemini API key not configured" },
-      { status: 400, headers: responseHeaders }
-    );
-  }
-  if (isUnsupportedFileSearchApiKey(apiKey)) {
-    return Response.json(
-      { error: "RAG is unavailable because Gemini File Search does not currently accept AQ-format authorization keys." },
-      { status: 400, headers: responseHeaders }
-    );
-  }
 
   let ragSettingName: string | undefined;
   try {
@@ -60,12 +46,12 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   const ragSetting = settings.ragSettings[settingName];
-  if (ragSetting.isExternal) {
-    return Response.json(
-      { error: "External RAG settings cannot be synced" },
-      { status: 400, headers: responseHeaders }
-    );
-  }
+  const { embeddingConfig } = await import("~/services/rag-config");
+  const config = embeddingConfig(ragSetting);
+  const apiKey = config.provider === "openai" ? validTokens.openaiApiKey : validTokens.geminiApiKey;
+  if (!apiKey) return Response.json({ error: `Unlock the ${config.provider} API key first.` }, { status: 400, headers: responseHeaders });
+  const { assertRagAccess } = await import("~/services/rag-access.server");
+  await assertRagAccess(validTokens.rootFolderId);
 
   // Create SSE stream for progress reporting
   const abortSignal = request.signal;
@@ -98,16 +84,19 @@ export async function action({ request }: Route.ActionArgs) {
       try {
         // Ensure store exists. If this setting predates multimodal File Search,
         // create a gemini-embedding-2 store and let the sync re-index files.
-        if (!ragSetting.storeName || ragSetting.embeddingModel !== FILE_SEARCH_EMBEDDING_MODEL) {
+        if (!isCurrentRagIndex(ragSetting, validTokens.rootFolderId, settingName)) {
           sendEvent("progress", {
-            message: "Creating multimodal File Search store...",
+            message: "Preparing Firestore vector index...",
             current: 0,
             total: 0,
           });
-          const storeName = await getOrCreateStore(apiKey, settingName);
+          const storeName = await getOrCreateStore(apiKey, settingName, { rootFolderId: validTokens.rootFolderId, setting: ragSetting });
+          if (ragSetting.storeName?.startsWith("ragv1:")) ragSetting.retiredIndexes = [...new Set([...(ragSetting.retiredIndexes || []), ragSetting.storeName])];
           ragSetting.storeName = storeName;
           ragSetting.storeId = storeName;
-          ragSetting.embeddingModel = FILE_SEARCH_EMBEDDING_MODEL;
+          ragSetting.embeddingModel = config.model;
+          ragSetting.embeddingProvider = config.provider;
+          ragSetting.isExternal = false;
           ragSetting.files = {};
 
           // Persist the new store before uploading. If a long sync is interrupted,
@@ -139,7 +128,8 @@ export async function action({ request }: Route.ActionArgs) {
               action,
               message: `${action === "upload" ? "Uploading" : action === "skip" ? "Skipping" : "Deleting"}: ${fileName}`,
             });
-          }
+          },
+          { signal: abortSignal }
         );
 
         // Update settings with sync results

@@ -7,6 +7,8 @@ import {
 } from "@google/genai";
 import type { ModelType } from "~/types/settings";
 import { getThinkingConfig } from "~/services/gemini-chat-core";
+import { isExternalChatModel } from "~/types/settings";
+import { openAIChatWithToolsStream, type OpenAIChatOptions } from "~/services/openai-chat";
 
 // Default safety settings per Gemini best practices
 export const DEFAULT_SAFETY_SETTINGS: SafetySetting[] = [
@@ -31,12 +33,22 @@ function checkFinishReason(candidates: Array<{ finishReason?: string }> | undefi
 export async function generateWorkflow(
   userPrompt: string,
   systemPrompt: string,
-  apiKey: string
+  apiKey: string,
+  model: ModelType = "gemini-3.8-flash",
+  serverCompatible?: OpenAIChatOptions["serverCompatible"],
 ): Promise<string> {
+  if (isExternalChatModel(model)) {
+    let text = "";
+    for await (const chunk of openAIChatWithToolsStream(model, [{ role: "user", content: userPrompt, timestamp: Date.now() }], [], systemPrompt, undefined, { serverApiKey: apiKey, serverCompatible, disableTools: true })) {
+      if (chunk.type === "error") throw new Error(chunk.error);
+      if (chunk.type === "text") text += chunk.content || "";
+    }
+    return text.match(/```(?:yaml)?\s*([\s\S]*?)```/)?.[1]?.trim() ?? text;
+  }
   const ai = new GoogleGenAI({ apiKey });
 
   const response = await ai.models.generateContent({
-    model: "gemini-3.8-flash",
+    model,
     contents: userPrompt,
     config: {
       systemInstruction: systemPrompt,
@@ -66,9 +78,19 @@ export async function* generateWorkflowStream(
   systemPrompt: string,
   apiKey: string,
   model: ModelType = "gemini-3.8-flash",
-  history?: Array<{ role: "user" | "model"; text: string }>
+  history?: Array<{ role: "user" | "model"; text: string }>,
+  serverCompatible?: OpenAIChatOptions["serverCompatible"],
 ): AsyncGenerator<WorkflowStreamChunk> {
   try {
+    if (isExternalChatModel(model)) {
+      const messages = (history || []).map((message) => ({ role: message.role === "model" ? "assistant" as const : "user" as const, content: message.text, timestamp: Date.now() }));
+      messages.push({ role: "user", content: userPrompt, timestamp: Date.now() });
+      for await (const chunk of openAIChatWithToolsStream(model, messages, [], systemPrompt, undefined, { serverApiKey: apiKey, serverCompatible, disableTools: true })) {
+        if (chunk.type === "text" || chunk.type === "thinking" || chunk.type === "done") yield { type: chunk.type, content: chunk.content };
+        else if (chunk.type === "error") yield { type: "error", content: chunk.error };
+      }
+      return;
+    }
     const ai = new GoogleGenAI({ apiKey });
 
     // Always enable thinking for workflow generation (quality improvement)

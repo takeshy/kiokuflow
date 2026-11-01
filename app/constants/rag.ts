@@ -1,4 +1,4 @@
-/** Extensions eligible for Gemini File Search RAG. */
+/** Extensions eligible for Firestore embedding RAG. */
 export const RAG_ELIGIBLE_EXTENSIONS = new Set([
   // text
   ".md", ".txt", ".csv", ".tsv", ".json", ".xml", ".html", ".yaml", ".yml",
@@ -7,7 +7,7 @@ export const RAG_ELIGIBLE_EXTENSIONS = new Set([
   ".c", ".cpp", ".h", ".cs", ".php", ".dart", ".sql", ".sh",
   // documents
   ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".pptx",
-  // images supported by multimodal File Search with gemini-embedding-2
+  // images supported by gemini-embedding-2
   ".png", ".jpg", ".jpeg",
 ]);
 

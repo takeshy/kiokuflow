@@ -1,4 +1,5 @@
 import { SHOW_WEBPAGE_BUILDER } from "~/config/feature-visibility";
+import { resolveRagTopK } from "~/services/rag-search-options";
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { Plus, Trash2, ChevronDown, HardDrive, Loader2, Check } from "lucide-react";
 import { ICON } from "~/utils/icon-sizes";
@@ -23,6 +24,9 @@ import {
 import type { TranslationStrings } from "~/i18n/translations";
 import { MessageList } from "~/components/chat/MessageList";
 import { ChatInput, type ChatInputHandle } from "~/components/chat/ChatInput";
+import { LiveConversation } from "~/components/chat/LiveConversation";
+import { openAIChatWithToolsStream } from "~/services/openai-chat";
+import { isExternalChatModel, getReasoningEfforts } from "~/types/settings";
 import { EditConfirmationDialog } from "~/components/chat/EditConfirmationDialog";
 import type { DriveEditProposal } from "~/engine/local-executor";
 import { OkfUpdateDialog } from "~/components/chat/OkfUpdateDialog";
@@ -384,12 +388,13 @@ export function ChatPanel({
   const [pendingEncryptedContent, setPendingEncryptedContent] = useState<string | null>(null);
   const [showCryptoPrompt, setShowCryptoPrompt] = useState(false);
   const [isCompacting, setIsCompacting] = useState(false);
+  const [liveOpen, setLiveOpen] = useState(false);
 
   // Project mount: the model list comes from the Vertex catalogue, narrowed
   // by the project's allowedModels; the user's apiPlan does not apply there.
   const availableModels = useMemo(
-    () => availableChatModels(enterpriseSelection, settings.apiPlan),
-    [enterpriseSelection, settings.apiPlan],
+    () => availableChatModels(enterpriseSelection, settings.apiPlan, settings),
+    [enterpriseSelection, settings],
   );
   const availableMcpServers = useMemo(() => getEnabledMcpServers(settings), [settings]);
   const defaultModel =
@@ -404,7 +409,7 @@ export function ChatPanel({
   }, [availableModels, selectedModel]);
 
   // RAG is an advanced, opt-in feature. Web Search is an independent control.
-  const ragFeatureEnabled = settings.ragFeatureEnabled ?? false;
+  const ragFeatureEnabled = settings.ragAvailable === true && settings.ragFeatureEnabled;
   const [selectedRagSetting, setSelectedRagSetting] = useState<string | null>(() => {
     try {
       const stored = localStorage.getItem("gemihub:selectedRagSetting");
@@ -915,6 +920,7 @@ export function ChatPanel({
   const handleModelChange = useCallback(
     (model: ModelType) => {
       setSelectedModel(model);
+      setReasoningEffort((effort) => getReasoningEfforts(model).includes(effort) ? effort : "default");
       if (webSearchEnabled && !supportsWebSearch(model)) {
         setWebSearchEnabled(false);
         try { localStorage.setItem("gemihub:webSearchEnabled", "false"); } catch { /* ignore */ }
@@ -937,7 +943,7 @@ export function ChatPanel({
       const projectSelection = enterpriseSelectionRef.current;
       // Inside an org project or using personal Vertex, no Gemini API key is
       // needed — chat runs on Vertex AI.
-      if (!projectSelection && !isPaidPlan && !localApiKey && settings.usePersonalVertex !== true) {
+      if (!projectSelection && !isPaidPlan && !localApiKey && settings.usePersonalVertex !== true && !isExternalChatModel(overrides?.model || selectedModel)) {
         if (hasEncryptedApiKey && onNeedUnlock) {
           pendingSendRef.current = { content, attachments, overrides };
           onNeedUnlock();
@@ -959,7 +965,7 @@ export function ChatPanel({
       // Apply overrides from slash commands
       let effectiveModel = overrides?.model || selectedModel;
       // Auto-switch to image model when image keywords detected
-      if (!isImageGenerationModel(effectiveModel) && shouldUseImageModel(content)) {
+      if (!isExternalChatModel(effectiveModel) && !isImageGenerationModel(effectiveModel) && shouldUseImageModel(content)) {
         const available = getAvailableModels(settings.apiPlan);
         const preferredImage = available.find((m) => m.name === "gemini-3.1-flash-image-preview")
           || available.find((m) => m.name === "gemini-3-pro-image-preview");
@@ -1195,7 +1201,7 @@ export function ChatPanel({
             reasoningEffort,
             maxFunctionCalls: 50,
             functionCallWarningThreshold: 10,
-            ragTopK: settings.ragTopK,
+            ragTopK: resolveRagTopK(settings.ragSettings[effectiveRagSetting || ""], settings.ragTopK),
             abortSignal: abortController.signal,
             requirePlanApproval: needsPlanApproval,
             settings,
@@ -1545,7 +1551,12 @@ export function ChatPanel({
       // Call Gemini directly for compact (local key), or via Interactions API (paid plan)
       let summary = "";
       const compactApiKey = getCachedApiKey();
-      if (compactApiKey) {
+      if (isExternalChatModel(selectedModel) && !enterpriseSelectionRef.current && !settings.usePersonalVertex) {
+        for await (const chunk of openAIChatWithToolsStream(selectedModel, summaryMessages, [], "You are a conversation summarizer. Output only the summary without any preamble.", undefined, { disableTools: true })) {
+          if (chunk.type === "error") throw new Error(chunk.error);
+          if (chunk.type === "text") summary += chunk.content || "";
+        }
+      } else if (compactApiKey) {
         const compactGenerator = chatStream(
           compactApiKey,
           selectedModel,
@@ -1642,7 +1653,7 @@ export function ChatPanel({
     } finally {
       setIsCompacting(false);
     }
-  }, [messages, isStreaming, isCompacting, saveChat, selectedModel, settings.apiPlan, t]);
+  }, [messages, isStreaming, isCompacting, saveChat, selectedModel, settings.apiPlan, settings.usePersonalVertex, t]);
 
   // Draft (not send) a question about GemiHub itself, enabling the installed
   // GemiHub OKF help bundle if one is present, for the empty-chat "Ask about
@@ -1681,9 +1692,18 @@ export function ChatPanel({
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
+      {liveOpen && !enterpriseSelection && <LiveConversation systemPrompt={settings.systemPrompt} messages={messages} onClose={(transcript) => {
+        setLiveOpen(false);
+        if (transcript.length) {
+          const next = [...messages, ...transcript];
+          setMessages(next);
+          void saveChat(next);
+        }
+      }} />}
       {/* Chat history selector */}
       <div className="border-b border-gray-200 dark:border-gray-800 px-2 py-1">
         <div className="flex items-center gap-1">
+          {!enterpriseSelection && settings.openai?.encryptedApiKey && <button type="button" onClick={() => setLiveOpen(true)} disabled={isStreaming || isCompacting} title="Live · OpenAI" className="rounded px-2 py-1 text-sm text-blue-600 hover:bg-blue-50 disabled:opacity-50 dark:text-blue-300 dark:hover:bg-gray-800">Live</button>}
           <button
             onClick={() => setChatListOpen(!chatListOpen)}
             className="flex-1 flex items-center gap-1 rounded px-2 py-1 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 text-left truncate"
@@ -1787,7 +1807,7 @@ export function ChatPanel({
         // A Gemini API key is only needed on the Drive mount with the free
         // plan: an org project runs on the tenant's Vertex AI and the paid
         // plan goes through the server-side Interactions proxy.
-        disabled={!enterpriseSelection && settings.apiPlan !== "paid" && !hasApiKey && !getCachedApiKey()}
+        disabled={!enterpriseSelection && settings.apiPlan !== "paid" && !hasApiKey && !getCachedApiKey() && !isExternalChatModel(selectedModel)}
         models={availableModels}
         selectedModel={selectedModel}
         onModelChange={handleModelChange}

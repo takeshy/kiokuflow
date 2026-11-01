@@ -42,7 +42,7 @@ import {
 import { SYNC_META_FILE_NAME, type SyncMeta } from "~/services/sync-diff";
 import { parallelProcess } from "~/utils/parallel";
 import { saveSettings } from "~/services/user-settings.server";
-import { deleteSingleFileFromRag } from "~/services/file-search.server";
+import { deleteSingleFileFromRag } from "~/services/rag-index.server";
 import { DEFAULT_RAG_STORE_KEY } from "~/types/settings";
 import { saveEdit } from "~/services/edit-history.server";
 import { isBinaryMimeType } from "~/services/sync-client-utils";
@@ -692,8 +692,8 @@ export async function action({ request }: Route.ActionArgs) {
           const ragFile = ragSetting?.files?.[fileName];
           if (ragFile) {
             let canRemoveTracking = !ragFile.fileId;
-            if (ragFile.fileId && validTokens.geminiApiKey) {
-              canRemoveTracking = await deleteSingleFileFromRag(validTokens.geminiApiKey, ragFile.fileId);
+            if (ragFile.fileId) {
+              canRemoveTracking = await deleteSingleFileFromRag(validTokens.geminiApiKey || "", ragFile.fileId, { rootFolderId: validTokens.rootFolderId });
             }
             if (canRemoveTracking) {
               delete ragSetting.files[fileName];
@@ -795,8 +795,8 @@ export async function action({ request }: Route.ActionArgs) {
             const ragFile = ragSetting.files[fileName];
             if (!ragFile) continue;
             let canRemoveTracking = !ragFile.fileId;
-            if (ragFile.fileId && validTokens.geminiApiKey) {
-              canRemoveTracking = await deleteSingleFileFromRag(validTokens.geminiApiKey, ragFile.fileId);
+            if (ragFile.fileId) {
+              canRemoveTracking = await deleteSingleFileFromRag(validTokens.geminiApiKey || "", ragFile.fileId, { rootFolderId: validTokens.rootFolderId });
             }
             if (canRemoveTracking) {
               delete ragSetting.files[fileName];
@@ -841,8 +841,8 @@ export async function action({ request }: Route.ActionArgs) {
           const ragFile = ragSetting?.files?.[oldName];
           if (ragFile) {
             let canRemoveTracking = !ragFile.fileId;
-            if (ragFile.fileId && validTokens.geminiApiKey) {
-              canRemoveTracking = await deleteSingleFileFromRag(validTokens.geminiApiKey, ragFile.fileId);
+            if (ragFile.fileId) {
+              canRemoveTracking = await deleteSingleFileFromRag(validTokens.geminiApiKey || "", ragFile.fileId, { rootFolderId: validTokens.rootFolderId });
             }
             if (canRemoveTracking) {
               delete ragSetting.files[oldName];

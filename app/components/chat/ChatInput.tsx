@@ -19,7 +19,7 @@ import { ICON } from "~/utils/icon-sizes";
 import type { Attachment } from "~/types/chat";
 import type { SkillMetadata } from "~/types/skill";
 import type { ModelType, ModelInfo, RagSetting, DriveToolMode, SlashCommand, McpServerConfig, GeminiReasoningEffort } from "~/types/settings";
-import { getDriveToolModeConstraint, supportsWebSearch, isGemma4, isImageGenerationModel } from "~/types/settings";
+import { getDriveToolModeConstraint, supportsWebSearch, isGemma4, isImageGenerationModel, getReasoningEfforts } from "~/types/settings";
 import type { ChatOverrides } from "~/components/ide/ChatPanel";
 import { useI18n } from "~/i18n/context";
 import type { TranslationStrings } from "~/i18n/translations";
@@ -1042,12 +1042,7 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function Ch
               aria-label={t("chat.reasoningEffort")}
               className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
             >
-              <option value="default">default</option>
-              <option value="none">none</option>
-              {!selectedModel.includes("pro") && <option value="minimal">minimal</option>}
-              <option value="low">low</option>
-              <option value="medium">medium</option>
-              <option value="high">high</option>
+              {getReasoningEfforts(selectedModel).map((effort) => <option key={effort} value={effort}>{effort}</option>)}
             </select>
           )}
 

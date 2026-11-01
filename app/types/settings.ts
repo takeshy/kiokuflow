@@ -238,7 +238,7 @@ export function normalizeDeprecatedModelName(model: unknown): ModelType | null |
 }
 
 export function supportsWebSearch(model: string): boolean {
-  return !isGemma4(model);
+  return !isGemma4(model) && !model.startsWith("opencodego:");
 }
 
 export function mustUseWebSearchOnly(_model: string): boolean {
@@ -294,6 +294,18 @@ export const FONT_SIZE_OPTIONS: { value: FontSize; label: string }[] = [
 
 // Model types
 export type ModelType =
+  | `openrouter:${string}`
+  | `opencodego:${string}`
+  | "gpt-6-astra"
+  | "gpt-6.1-sol"
+  | "gpt-6.1-terra"
+  | "gpt-6-luna"
+  | "gpt-5.5"
+  | "gpt-5.5-pro"
+  | "gpt-5.4"
+  | "gpt-5.4-mini"
+  | "gpt-5.4-nano"
+  | "o3"
   | "gemini-3.8-flash"
   | "gemini-3.1-pro-preview"
   | "gemini-3.1-pro-preview-customtools"
@@ -308,6 +320,56 @@ export interface ModelInfo {
   displayName: string;
   description: string;
   isImageModel?: boolean;
+}
+
+// Official OpenAI model choices (Sol/Terra 6.1, Luna 6).
+export const OPENAI_MODELS: ModelInfo[] = [
+  "gpt-6-astra", "gpt-6.1-sol", "gpt-6.1-terra", "gpt-6-luna",
+  "gpt-5.5", "gpt-5.5-pro", "gpt-5.4", "gpt-5.4-mini", "gpt-5.4-nano", "o3",
+].map((name) => ({ name: name as ModelType, displayName: `OpenAI · ${name}`, description: "OpenAI Responses API" }));
+
+export function isOpenAIModel(model: string): boolean {
+  return /^(gpt-|o\d)/i.test(model);
+}
+
+export type CompatibleProvider = "openrouter" | "opencodego";
+export interface CompatibleProviderSettings {
+  encryptedApiKey: string;
+  salt: string;
+  availableModels: { id: string; name: string }[];
+  enabledModels: string[];
+}
+export const COMPATIBLE_PROVIDERS = {
+  openrouter: { name: "OpenRouter", baseUrl: "https://openrouter.ai/api/v1", keyUrl: "https://openrouter.ai/keys" },
+  opencodego: { name: "OpenCode Go", baseUrl: "https://opencode.ai/zen/go/v1", keyUrl: "https://opencode.ai/auth" },
+} as const;
+
+export function parseCompatibleModel(model: string): { provider: CompatibleProvider; model: string } | null {
+  const match = /^(openrouter|opencodego):([A-Za-z0-9][A-Za-z0-9._:/@+-]{0,255})$/.exec(model);
+  return match ? { provider: match[1] as CompatibleProvider, model: match[2] } : null;
+}
+
+export function isExternalChatModel(model: string): boolean {
+  return isOpenAIModel(model) || !!parseCompatibleModel(model);
+}
+
+/** Select the provider key without ever falling back to another provider. */
+export function getChatApiKey(model: string, keys: { geminiApiKey?: string; openaiApiKey?: string; compatibleApiKeys?: Partial<Record<CompatibleProvider, string>> }): string | undefined {
+  const compatible = parseCompatibleModel(model);
+  return compatible ? keys.compatibleApiKeys?.[compatible.provider] : isOpenAIModel(model) ? keys.openaiApiKey : keys.geminiApiKey;
+}
+
+/** Shared reasoning controls expose only efforts valid for the selected model. */
+export function getReasoningEfforts(model: string): GeminiReasoningEffort[] {
+  if (parseCompatibleModel(model)) return ["default", "none", "low", "medium", "high"];
+  if (isOpenAIModel(model)) {
+    if (model.endsWith("-pro")) return ["default", "medium", "high"];
+    if (model.includes("sol") || model.includes("astra") || /^o\d/.test(model)) return ["default", "low", "medium", "high"];
+    return ["default", "none", "low", "medium", "high"];
+  }
+  return model.includes("pro")
+    ? ["default", "none", "low", "medium", "high"]
+    : ["default", "none", "minimal", "low", "medium", "high"];
 }
 
 export const PAID_MODELS: ModelInfo[] = [
@@ -392,14 +454,25 @@ function mergeModelLists(lists: ModelInfo[][]): ModelInfo[] {
   return merged;
 }
 
-export const AVAILABLE_MODELS: ModelInfo[] = mergeModelLists([PAID_MODELS, FREE_MODELS]);
+export const AVAILABLE_MODELS: ModelInfo[] = mergeModelLists([PAID_MODELS, FREE_MODELS, OPENAI_MODELS]);
 
-export function getAvailableModels(plan: ApiPlan): ModelInfo[] {
-  return plan === "free" ? FREE_MODELS : PAID_MODELS;
+export function getAvailableModels(plan: ApiPlan, includeOpenAI = false, providers?: UserSettings["compatibleProviders"]): ModelInfo[] {
+  const models = plan === "free" ? FREE_MODELS : PAID_MODELS;
+  const compatible: ModelInfo[] = [];
+  for (const provider of ["openrouter", "opencodego"] as const) {
+    const config = providers?.[provider];
+    if (!config?.encryptedApiKey) continue;
+    for (const id of config.enabledModels) {
+      const name = `${provider}:${id}`;
+      if (!parseCompatibleModel(name)) continue;
+      compatible.push({ name: name as ModelType, displayName: `${COMPATIBLE_PROVIDERS[provider].name} · ${config.availableModels.find(model => model.id === id)?.name || id}`, description: id });
+    }
+  }
+  return [...models, ...(includeOpenAI ? OPENAI_MODELS : []), ...compatible];
 }
 
-export function isModelAllowedForPlan(plan: ApiPlan, modelName: ModelType): boolean {
-  return getAvailableModels(plan).some((model) => model.name === modelName);
+export function isModelAllowedForPlan(plan: ApiPlan, modelName: ModelType, includeOpenAI = false, providers?: UserSettings["compatibleProviders"]): boolean {
+  return getAvailableModels(plan, includeOpenAI, providers).some((model) => model.name === modelName);
 }
 
 export function isImageGenerationModel(modelName: ModelType): boolean {
@@ -477,10 +550,16 @@ export const DEFAULT_EDIT_HISTORY_SETTINGS: EditHistorySettings = {
 
 // RAG setting
 export interface RagSetting {
+  /** Retrieval candidate batch size, independently configurable per index. */
+  topK?: number;
+  jevRagFilterEnabled?: boolean;
+  searchUntilMatch?: boolean;
   storeId: string | null;
   storeIds: string[];
   storeName: string | null;
   embeddingModel?: string | null;
+  embeddingProvider?: "gemini" | "openai";
+  retiredIndexes?: string[];
   isExternal: boolean;
   targetFolders: string[];
   excludePatterns: string[];
@@ -501,6 +580,9 @@ export interface RagFileInfo {
 export const DEFAULT_RAG_STORE_KEY = "gemihub";
 
 export const DEFAULT_RAG_SETTING: RagSetting = {
+  topK: 5,
+  jevRagFilterEnabled: true,
+  searchUntilMatch: false,
   storeId: null,
   storeIds: [],
   storeName: null,
@@ -646,6 +728,11 @@ export interface UserSettings {
   syncConflictFolder: string;
   encryptedApiKey: string;
   apiKeySalt: string;
+  /** OpenAI credentials use their own encryption password, independent of Gemini/file encryption. */
+  openai?: { encryptedApiKey: string; salt: string };
+  /** Jev is a decision/filter service, not a chat model. */
+  jev?: { encryptedApiKey?: string; salt?: string; useOpenRouter: boolean };
+  compatibleProviders?: Partial<Record<CompatibleProvider, CompatibleProviderSettings>>;
   shortcutKeys: ShortcutKeyBinding[];
   showManagementFolders: boolean;
   maxSavedChatHistories: number;
@@ -658,6 +745,8 @@ export interface UserSettings {
   dashboardEnabled: boolean;
   workflowEnabled: boolean;
   ragFeatureEnabled: boolean;
+  /** Server-computed entitlement; never trust this client-side flag for API access. */
+  ragAvailable?: boolean;
   webpageBuilderEnabled: boolean;
   /** Path of the dashboard to open on app launch (e.g. "Dashboards/home.dashboard"). */
   homeDashboard?: string | null;

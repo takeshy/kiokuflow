@@ -75,6 +75,7 @@ interface LpStrings {
   premiumFeatureUpload: string;
   premiumFeatureUploadFree: string;
   premiumFeatureUploadPaid: string;
+  premiumFeatureRag: string;
   premiumFeatureInteractions: string;
   premiumFeatureInteractionsDesc: string;
   premiumFeatureGmail: string;
@@ -118,13 +119,13 @@ interface LpStrings {
 
 const en: LpStrings = {
   tagline: "AI That Acts, Not Just Answers",
-  description: "GemiHub is an AI assistant that reads your files, finds what you need, and gets things done on its own. Read PDFs, EPUBs, and notes with quote-anchored memos, connect external tools, search across your documents by meaning, and automate repetitive tasks — all while keeping your data in your own Google Drive.",
+  description: "GemiHub is an AI assistant that reads your files, finds what you need, and gets things done on its own. Read PDFs, EPUBs, and notes with quote-anchored memos, connect external tools, search across your documents by meaning, and automate repetitive tasks — with personal source files kept in your own Google Drive.",
   signIn: "Sign in with Google",
   features: [
     { icon: Highlighter, title: "Read & Memo", description: "Open PDFs, EPUBs, Markdown, and images, select a passage, and attach a memo right where you read. Quotes are highlighted and jump both ways. Notes are saved as plain Markdown in your Drive." },
     { icon: LayoutDashboard, title: "Personal Dashboards", description: "Build a home screen from file viewers (Markdown, PDF, EPUB, images), memo lists, cards, editable tables, kanban boards, workflow output, and web embeds." },
-    { icon: MessageSquare, title: "AI Chat", description: "Have a conversation with AI that can read your files, search the web, generate images, and use external tools — all on its own." },
-    { icon: Search, title: "Ask Your Files", description: "Search your Drive files by meaning, not just keywords. Search for \"meeting\" and get results mentioning \"conference\" too." },
+    { icon: MessageSquare, title: "AI Chat", description: "Choose Gemini, OpenAI, OpenRouter, or OpenCode Go to work with your files and tools. OpenAI Live lets you talk naturally with AI, interrupt, and mute the microphone." },
+    { icon: Search, title: "Ask Your Files", description: "Switch between file-name and content search. Search words locally, or ask questions against synced server indexes with paid RAG. Expand results with fuzzy matching." },
     { icon: BookOpen, title: "Notes & Editor", description: "Jot down notes in Markdown. Save ideas and meeting notes straight to Drive." },
     { icon: GitBranch, title: "Workflows", description: "Just describe what you want and AI builds an automation workflow. Works with Drive, the web, and external services." },
     { icon: GitCompare, title: "Obsidian-Friendly", description: "Use Obsidian-compatible Canvas files and sync notes with the GemiHub Drive Sync plugin through the same Drive metadata." },
@@ -132,7 +133,7 @@ const en: LpStrings = {
     { icon: Globe, title: "One-Click Publishing", description: "Turn Drive files into public pages and share them by URL." },
     { icon: Zap, title: "Works Offline", description: "All files cached in your browser for instant access — even without internet. Edit offline, then push changes to Drive with one click. Conflicts are detected automatically." },
     { icon: KeyRound, title: "Encrypted Secrets", description: "Store API tokens, passwords, and other secrets as RSA + AES encrypted files in your Drive, organized into folders and searchable by name or description — without ever exposing the value." },
-    { icon: Shield, title: "Your Data, Your Control", description: "No external database. Everything stored in your Google Drive. Supports encryption and self-hosting." },
+    { icon: Shield, title: "Your Data, Your Control", description: "Keep personal source files in Google Drive. Paid RAG stores excerpts and embeddings in Firestore. Encryption and self-hosting are supported." },
   ],
   screenshotsTitle: "See It in Action",
   screenshots: [
@@ -152,19 +153,19 @@ const en: LpStrings = {
     { src: "/images/external_skills.png", alt: "External Skills", description: "Install Agent Skills from the official catalog with one click — like OKF Authoring, which teaches the AI to turn your notes into knowledge bundles." },
     { src: "/images/visual_workflow.png", alt: "Workflow Builder", description: "Build automation with a drag-and-drop editor. Connect AI prompts, Drive operations, and web requests into a single flow." },
     { src: "/images/ai_generate_workflow.png", alt: "AI Workflow Generation", description: "Describe what you want in plain language and AI creates the workflow for you, with a live preview." },
-    { src: "/images/rag_search.png", alt: "Smart File Search", description: "Sync your Drive files to meaning-based search. Ask questions naturally and get answers drawn from your own documents." },
+    { src: "/images/rag_search.png", alt: "Smart File Search", description: "Paid RAG indexes synced documents in Firestore using Gemini or OpenAI embeddings. Set Top K per index and optionally use Jev, directly or via OpenRouter, to check candidates until a match is found." },
     { src: "/images/okf_sample.png", alt: "OKF Knowledge Bundles", description: "Keep curated Markdown knowledge bundles (OKF) in Drive and switch them on per chat — the AI answers with your domain knowledge always in context." },
     { src: "/images/canvas.png", alt: "Obsidian-Compatible Canvas", description: "Open .canvas files with text cards, groups, file previews, web pages, and curved links. Edit mode lets you arrange cards and connections." },
     { src: "/images/publish_web.png", alt: "One-Click Publishing", description: "Turn any Drive file into a public web page. Share via URL with no hosting required." },
-    { src: "/images/pull_diff_en.png", alt: "Push/Pull Sync", description: "All data lives in your Google Drive. Push and pull changes with automatic conflict handling and diff previews." },
+    { src: "/images/pull_diff_en.png", alt: "Push/Pull Sync", description: "Personal source files live in your Google Drive. Push and pull changes with automatic conflict handling and diff previews." },
   ],
   dataUsageTitle: "How We Handle Your Data",
   dataUsageIntro: "GemiHub uses your Google account to sign in. Here's what we access and why:",
   dataCards: [
-    { icon: User, title: "Google Account", description: "Your Google account is used only for authentication. Your name and email are not stored or displayed." },
+    { icon: User, title: "Google Account", description: "Your Google account identifies you for sign-in, subscription access, and organization membership." },
     { icon: HardDrive, title: "Google Drive", description: "Chat history, workflows, and settings are stored in a dedicated \"gemihub\" folder on your Drive. Files outside the app are never accessed." },
-    { icon: Lock, title: "No Third-Party Sharing", description: "Your data is never sold or shared. Everything stays in your own Google Drive." },
-    { icon: ServerCog, title: "Fully Portable", description: "No database — all data lives in your Drive. If this service shuts down, just run your own instance and everything is right where you left it." },
+    { icon: Lock, title: "AI Connections You Choose", description: "Queries and relevant content are sent to your chosen AI and embedding providers. Optional Jev filtering sends candidate excerpts or images to Jev or OpenRouter." },
+    { icon: ServerCog, title: "Fully Portable", description: "Personal source files remain in Drive. Self-host GemiHub and rebuild RAG indexes from those files when needed." },
   ],
   pluginShowcaseTitle: "Plugin Showcase",
   pluginShowcases: [
@@ -192,7 +193,7 @@ const en: LpStrings = {
   ],
   pluginShowcaseInstall: "Install from Settings > Plugins with:",
   pluginShowcaseLink: "View on GitHub",
-  dataUsageOrgNote: "Business organizations are the one exception: shared project files live in GemiHub's managed cloud storage, with the organization, project, and member records kept in Firestore, so a team can work on the same files. Your personal Drive keeps working exactly as before, and files can be copied between the two at any time.",
+  dataUsageOrgNote: "Business shared project files live in managed Cloud Storage with Firestore metadata. Paid RAG also stores searchable excerpts and embeddings in Firestore, including for personal Drive files. Source files remain in the selected workspace.",
   dataUsageLearnMore: "Learn more in our",
   privacyPolicy: "Privacy Policy",
   heroManual: "Read the Manual",
@@ -203,7 +204,7 @@ const en: LpStrings = {
   footerManual: "Manual",
   footerContact: "Contact",
   premiumTitle: "Premium Plans",
-  premiumIntro: "GemiHub is useful on the free plan by default. Premium adds features that need heavier server-side processing, such as streaming files over 20 MB, Gmail integration, or temporary upload/edit URLs.",
+  premiumIntro: "GemiHub is useful on the free plan by default. Premium adds features that need heavier server-side processing, such as embedding RAG, streaming files over 20 MB, Gmail integration, or temporary upload/edit URLs. AI, embedding and Jev API usage is billed separately by the selected provider.",
   premiumFree: "Free",
   premiumLite: "Lite",
   premiumPro: "Pro",
@@ -215,6 +216,7 @@ const en: LpStrings = {
   premiumFeatureUpload: "Max File Size",
   premiumFeatureUploadFree: "20 MB",
   premiumFeatureUploadPaid: "5 GB",
+  premiumFeatureRag: "Firestore RAG + optional Jev filtering",
   premiumFeatureInteractions: "Interactions API Chat",
   premiumFeatureInteractionsDesc: "Multi-round AI chat with server-side proxy — supports function calling, RAG, and web search simultaneously in a single conversation.",
   premiumFeatureGmail: "Gmail Send",
@@ -265,13 +267,13 @@ const en: LpStrings = {
 
 const ja: LpStrings = {
   tagline: "答えるだけじゃない、動く AI",
-  description: "GemiHub は、ファイルを読んで、必要な情報を探して、作業までこなしてくれる AI アシスタントです。PDF や EPUB を読みながら引用付きメモを残し、外部ツールとの連携、ドキュメント横断の意味検索、繰り返し作業の自動化まで。データはすべてあなたの Google Drive に保存されます。",
+  description: "GemiHub は、ファイルを読んで、必要な情報を探して、作業までこなしてくれる AI アシスタントです。PDF や EPUB を読みながら引用付きメモを残し、外部ツールとの連携、ドキュメント横断の意味検索、繰り返し作業の自動化まで。個人の元ファイルは、あなたのGoogle Driveに保存します。",
   signIn: "Googleでサインイン",
   features: [
     { icon: Highlighter, title: "読んで、線を引いて、メモ", description: "PDF・EPUB・Markdown・画像を開いて文章を選択するだけで、その場に引用付きメモを添付。引用はハイライトされ、本文⇄メモを双方向ジャンプ。メモはプレーンな Markdown として Drive に保存されます。" },
     { icon: LayoutDashboard, title: "パーソナルダッシュボード", description: "ファイルビューア（Markdown・PDF・EPUB・画像）、メモ一覧、カード、編集可能テーブル、カンバン、ワークフロー出力、Web埋め込みをホーム画面に配置できます。" },
-    { icon: MessageSquare, title: "AIチャット", description: "AI がファイルを読み、Web を調べ、画像を作り、外部ツールまで使って回答。全部おまかせで動きます。" },
-    { icon: Search, title: "ファイルに質問", description: "Drive の資料をキーワードではなく「意味」で検索。「打ち合わせ」で調べれば「ミーティング」の内容もヒット。" },
+    { icon: MessageSquare, title: "AIチャット", description: "Gemini・OpenAI・OpenRouter・OpenCode Goを選び、ファイルやツールと連携。OpenAI Liveでは自然に話し、AIへの割り込みやマイクのミュートもできます。" },
+    { icon: Search, title: "ファイルに質問", description: "ファイル名と内容をタブで切り替え。単語は端末内で検索し、文章は有料RAGでサーバー同期済みの資料を検索。結果にあいまい検索も追加できます。" },
     { icon: BookOpen, title: "メモ・エディタ", description: "Markdownでさっとメモ。アイデアや議事録をそのままDriveに保存できます。" },
     { icon: GitBranch, title: "ワークフロー", description: "やりたいことを言葉で伝えるだけでAIが自動化ワークフローを作成。Drive や Web、外部サービスとも連携。" },
     { icon: GitCompare, title: "Obsidianと相性抜群", description: "Obsidian互換Canvasを扱え、GemiHub Drive Syncプラグインとは同じDriveメタデータで双方向同期できます。" },
@@ -279,7 +281,7 @@ const ja: LpStrings = {
     { icon: Globe, title: "ワンクリック公開", description: "Driveファイルを公開ページにして、URLで共有できます。" },
     { icon: Zap, title: "オフラインでも快適", description: "すべてのファイルがブラウザにキャッシュされ、ネットがなくても即座にアクセス。オフラインで編集して、ワンクリックでDriveに同期。コンフリクトも自動検出。" },
     { icon: KeyRound, title: "暗号化シークレット", description: "APIトークンやパスワードなどをRSA + AESで暗号化してDriveに保存。フォルダで整理でき、名前や説明で検索可能。値そのものが公開されることはありません。" },
-    { icon: Shield, title: "データは自分の手に", description: "外部データベースなし。すべてあなたのGoogle Driveに保存。暗号化やセルフホストにも対応。" },
+    { icon: Shield, title: "データは自分の手に", description: "個人の元ファイルはGoogle Driveに保存。有料RAGの抜粋とembeddingはFirestoreに保存します。暗号化とセルフホストにも対応。" },
   ],
   screenshotsTitle: "動作イメージ",
   screenshots: [
@@ -299,19 +301,19 @@ const ja: LpStrings = {
     { src: "/images/external_skills.png", alt: "External Skills", description: "公式カタログから Agent Skills をワンクリックでインストール。ノートをナレッジバンドルに変換する OKF Authoring などが使えます。" },
     { src: "/images/visual_workflow.png", alt: "ワークフロービルダー", description: "ドラッグ＆ドロップで自動化を構築。AI への指示、Drive 操作、Web リクエストをひとつの流れに。" },
     { src: "/images/ai_generate_workflow.png", alt: "AIワークフロー生成", description: "やりたいことを言葉で伝えるだけで AI がワークフローを作成。リアルタイムでプレビューも確認できます。" },
-    { src: "/images/rag_search.png", alt: "かしこいファイル検索", description: "Drive のファイルを意味で検索できるように同期。自然な言葉で質問すれば、あなたの資料から答えを見つけます。" },
+    { src: "/images/rag_search.png", alt: "かしこいファイル検索", description: "有料RAGはGemini／OpenAIのembeddingで同期済み資料をFirestoreに登録。RAGごとのTop Kと、Jevによる「一致するまで検索」に対応します。Jevは直接キーまたはOpenRouterで利用できます。" },
     { src: "/images/okf_sample.png", alt: "OKFナレッジバンドル", description: "Drive に置いた Markdown のナレッジバンドル（OKF）をチャットごとにオン/オフ。AI があなたのドメイン知識を常に踏まえて回答します。" },
     { src: "/images/canvas.png", alt: "Obsidian互換Canvas", description: ".canvas ファイルを表示・編集。テキストカード、グループ、ファイルプレビュー、Webページ、曲線リンクに対応します。" },
     { src: "/images/publish_web.png", alt: "ワンクリック公開", description: "DriveのファイルをそのままWebページに。ホスティング不要でURLを共有。" },
-    { src: "/images/pull_diff.png", alt: "Push/Pull同期", description: "すべてのデータは Google Drive に保存。変更の同期も、差分確認やコンフリクト解決もかんたん。" },
+    { src: "/images/pull_diff.png", alt: "Push/Pull同期", description: "個人の元ファイルはGoogle Driveに保存。変更の同期も、差分確認やコンフリクト解決もかんたん。" },
   ],
   dataUsageTitle: "データの取り扱いについて",
   dataUsageIntro: "GemiHubはGoogleアカウントでサインインします。アクセスするデータとその理由は以下のとおりです：",
   dataCards: [
-    { icon: User, title: "Googleアカウント", description: "Googleアカウントは認証にのみ使用します。名前やメールアドレスの保存・表示は行いません。" },
+    { icon: User, title: "Googleアカウント", description: "Googleアカウントはサインイン、契約プランの確認、組織へのアクセスに利用します。" },
     { icon: HardDrive, title: "Google Drive", description: "チャット履歴・ワークフロー・設定はDrive内の専用フォルダ「gemihub」に保存。アプリ外のファイルにはアクセスできません。" },
-    { icon: Lock, title: "第三者への共有なし", description: "データの販売や第三者への共有は一切ありません。すべてご自身のDriveに保存されます。" },
-    { icon: ServerCog, title: "完全なポータビリティ", description: "データベースなし。すべてDriveに保存されているので、サービスが停止しても自分でインスタンスを立ち上げればそのまま使えます。" },
+    { icon: Lock, title: "選択したAIと連携", description: "質問と必要な内容を選択したAI・embeddingプロバイダーへ送信します。Jev判定を有効にすると、候補の本文・画像をJevまたはOpenRouterへ送信します。" },
+    { icon: ServerCog, title: "完全なポータビリティ", description: "個人の元ファイルはDriveに残ります。セルフホストして利用でき、RAGインデックスは元ファイルから再構築できます。" },
   ],
   pluginShowcaseTitle: "プラグイン紹介",
   pluginShowcases: [
@@ -339,7 +341,7 @@ const ja: LpStrings = {
   ],
   pluginShowcaseInstall: "Settings > Plugins からインストール:",
   pluginShowcaseLink: "GitHubで見る",
-  dataUsageOrgNote: "例外は Business の組織機能です。共有プロジェクトのファイルは GemiHub のマネージドクラウドストレージに保存され、組織・プロジェクト・メンバーの情報は Firestore で管理されます（チームで同じファイルを扱うため）。個人の Drive はこれまでどおり使えて、両者の間でファイルをいつでもコピーできます。",
+  dataUsageOrgNote: "Businessの共有プロジェクトはCloud Storageにファイル、Firestoreにメタデータを保存します。有料RAGは個人Driveの資料も含め、検索用の抜粋とembeddingをFirestoreに保存します。元ファイルは選択したワークスペースに残ります。",
   dataUsageLearnMore: "詳しくは",
   privacyPolicy: "プライバシーポリシー",
   heroManual: "マニュアルを読む",
@@ -350,7 +352,7 @@ const ja: LpStrings = {
   footerManual: "マニュアル",
   footerContact: "お問い合わせ",
   premiumTitle: "有料プラン",
-  premiumIntro: "GemiHub は基本的に無料プランで便利に使えます。プレミアムプランでは、1ファイルが20MBを超えるストリーミング、Gmail 連携、一時アップロード URL など、サーバー側の処理負担がかかる機能を利用できます。",
+  premiumIntro: "GemiHub は基本的に無料プランで便利に使えます。プレミアムプランでは、embeddingによるRAG検索、1ファイルが20MBを超えるストリーミング、Gmail 連携、一時アップロード URL など、サーバー側の処理負担がかかる機能を利用できます。AI・embedding・JevのAPI利用料は、選択したプロバイダーで別途かかります。",
   premiumFree: "Free",
   premiumLite: "Lite",
   premiumPro: "Pro",
@@ -362,6 +364,7 @@ const ja: LpStrings = {
   premiumFeatureUpload: "1ファイル最大サイズ",
   premiumFeatureUploadFree: "20 MB",
   premiumFeatureUploadPaid: "5 GB",
+  premiumFeatureRag: "Firestore RAG・任意のJev判定",
   premiumFeatureInteractions: "Interactions API チャット",
   premiumFeatureInteractionsDesc: "サーバー経由のマルチラウンド AI チャット。ファンクションコール・RAG・Web検索を1つの会話で同時に利用可能。",
   premiumFeatureGmail: "Gmail 送信",
@@ -581,6 +584,7 @@ export default function LandingPage() {
           {(() => {
             const features: { label: string; free: boolean | string; lite: boolean | string; pro: boolean | string; business: boolean | string }[] = [
               { label: s.premiumFeatureUpload, free: s.premiumFeatureUploadFree, lite: s.premiumFeatureUploadPaid, pro: s.premiumFeatureUploadPaid, business: s.premiumFeatureUploadPaid },
+              { label: s.premiumFeatureRag, free: false, lite: true, pro: true, business: true },
               { label: s.premiumFeatureInteractions, free: false, lite: true, pro: true, business: true },
               { label: s.premiumFeatureGmail, free: false, lite: true, pro: true, business: true },
               { label: s.premiumFeatureCalendar, free: false, lite: true, pro: true, business: true },

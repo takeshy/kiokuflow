@@ -1,3 +1,4 @@
+import { getChatApiKey } from "~/types/settings";
 import { isReadOnlyDriveTool } from "~/services/drive-tool-definitions";
 import type { WorkflowNode, ExecutionContext, ServiceContext, FileExplorerData, PromptCallbacks } from "../types";
 import { replaceVariables } from "./utils";
@@ -18,13 +19,16 @@ import {
   getDriveToolModeConstraint,
   getEnabledMcpServers,
   isImageGenerationModel,
+  isExternalChatModel,
   type ToolDefinition,
   type ModelType,
 } from "~/types/settings";
-import { getOrCreateStore } from "~/services/file-search.server";
+import { retrievePersonalRag } from "~/services/rag-index.server";
+import { formatRagContext } from "~/services/rag-context";
 import { readFileRaw } from "~/services/google-drive.server";
 import { assertPersonalVertexModel, PERSONAL_MAX_FUNCTION_CALLS } from "~/services/ai/personal-vertex.server";
 import type { Message, Attachment, McpAppInfo } from "~/types/chat";
+import { openAIChatWithToolsStream } from "~/services/openai-chat";
 
 export interface CommandToolCall {
   name: string;
@@ -63,8 +67,6 @@ export async function handleCommandNode(
   // afterwards inside the Vertex stream; an empty balance throws
   // AiBudgetExceededError from that assertion.
   const personalVertex = serviceContext.personalVertex;
-  const apiKey = personalVertex ? undefined : serviceContext.geminiApiKey;
-  if (!apiKey && !personalVertex) throw new Error("Gemini API key not configured");
 
   const settings = serviceContext.settings;
 
@@ -73,6 +75,9 @@ export async function handleCommandNode(
   const modelName: ModelType = (modelProp
     ? replaceVariables(modelProp, context)
     : settings?.selectedModel || getDefaultModelForPlan(settings?.apiPlan ?? "paid")) as ModelType;
+  const openai = !personalVertex && isExternalChatModel(modelName);
+  const apiKey = personalVertex ? undefined : getChatApiKey(modelName, serviceContext);
+  if (!apiKey && !personalVertex) throw new Error(openai ? "AI provider key is locked. Unlock it in Settings > General." : "Gemini API key not configured");
 
   if (personalVertex) assertPersonalVertexModel(modelName);
 
@@ -88,22 +93,6 @@ export async function handleCommandNode(
         : rag.storeId
           ? [rag.storeId]
           : undefined;
-    }
-    // Fallback: if settings has the RAG name but no store ID, try to find the store by name
-    if (!ragStoreIds && apiKey) {
-      try {
-        const storeName = await getOrCreateStore(apiKey, ragSettingProp, {
-          signal: serviceContext.abortSignal,
-        });
-        ragStoreIds = [storeName];
-        // Cache the store ID in settings for subsequent nodes
-        if (rag) {
-          rag.storeName = storeName;
-          rag.storeId = storeName;
-        }
-      } catch {
-        // Store lookup failed, proceed without RAG
-      }
     }
   }
 
@@ -263,10 +252,14 @@ export async function handleCommandNode(
   ];
 
   // System prompt
-  const systemPrompt = node.properties["systemPrompt"]
+  let systemPrompt = node.properties["systemPrompt"]
     ? replaceVariables(node.properties["systemPrompt"], context)
     : undefined;
 
+  if (ragStoreIds?.length && !personalVertex) {
+    const rag = await retrievePersonalRag({ rootFolderId: serviceContext.driveRootFolderId, accessToken: serviceContext.driveAccessToken, geminiApiKey: serviceContext.geminiApiKey, openaiApiKey: serviceContext.openaiApiKey, jevApiKey: serviceContext.jevApiKey, compatibleApiKeys: serviceContext.compatibleApiKeys }, ragStoreIds, prompt, undefined, { signal: serviceContext.abortSignal });
+    systemPrompt = [systemPrompt, formatRagContext(rag)].filter(Boolean).join("\n\n");
+  }
   // Check if this is an image generation model
   const saveImageTo = node.properties["saveImageTo"];
   if (isImageGenerationModel(modelName)) {
@@ -331,14 +324,18 @@ export async function handleCommandNode(
         executeToolCall,
         billing: personalVertex.billing,
       })
-    : chatWithToolsStream(
+    : openai ? openAIChatWithToolsStream(modelName, messages, tools, systemPrompt, executeToolCall, {
+        serverApiKey: apiKey, serverCompatible: { rootFolderId: serviceContext.driveRootFolderId, providers: settings?.compatibleProviders }, abortSignal: serviceContext.abortSignal,
+        webSearchEnabled, enableThinking: node.properties["enableThinking"] !== "false",
+        functionCallLimits: { maxFunctionCalls: 50 },
+      }) : chatWithToolsStream(
         apiKey!,
         modelName,
         messages,
         tools,
         systemPrompt,
         tools.length > 0 ? executeToolCall : undefined,
-        ragStoreIds,
+        undefined,
         {
           webSearchEnabled,
           enableThinking: node.properties["enableThinking"] !== "false",

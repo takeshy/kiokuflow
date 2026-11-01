@@ -1,3 +1,5 @@
+import { retrievePersonalRagForChat } from "~/services/rag-index.server";
+import { formatRagContext } from "~/services/rag-context";
 import { isReadOnlyDriveTool } from "~/services/drive-tool-definitions";
 import type { Route } from "./+types/api.chat.interactions";
 import { z } from "zod";
@@ -112,8 +114,18 @@ export async function action({ request }: Route.ActionArgs) {
   const validData = parsed.data;
   const messages = validData.messages as unknown as Message[];
   const model = validData.model as ModelType;
-  const systemPrompt = validData.systemPrompt;
+  let systemPrompt = validData.systemPrompt;
   const ragStoreIds = validData.ragStoreIds;
+  const { rag: retrievedRag, error: ragError } = await retrievePersonalRagForChat(validTokens, ragStoreIds, validData.messages, validData.settings?.ragTopK, request.signal);
+  if (ragError) {
+    emitLog(logCtx, 400, { error: ragError });
+    return new Response(
+      JSON.stringify({ error: ragError }),
+      { status: 400, headers: { "Content-Type": "application/json", ...responseHeaders } },
+    );
+  }
+  if (retrievedRag) systemPrompt = [systemPrompt, formatRagContext(retrievedRag)].filter(Boolean).join("\n\n");
+
   const driveToolMode = validData.driveToolMode ?? "all";
   const requestedMcpServerIds = validData.mcpServerIds ?? [];
   const webSearchEnabled = validData.webSearchEnabled && supportsWebSearch(model);
@@ -192,7 +204,7 @@ export async function action({ request }: Route.ActionArgs) {
     tools,
     webSearchEnabled,
     model,
-    ragStoreIds,
+    undefined,
     clampedTopK,
   );
   if (ragStoreIds && ragStoreIds.length > 0) {
@@ -260,12 +272,13 @@ export async function action({ request }: Route.ActionArgs) {
           previousInteractionId: interactionId,
           generationConfig,
           webSearchEnabled,
-          ragStoreIds: isInitialRound ? ragStoreIds : undefined,
+          ragStoreIds: undefined,
           ragTopK: isInitialRound ? clampedTopK : undefined,
           ragUserMessage: lastUserContent,
           ragAttachments: lastUserAttachments,
         });
 
+        if (retrievedRag) sendChunk({ type: "rag_used", ragSources: retrievedRag.sources });
         for await (const chunk of generator) {
           sendChunk(chunk);
         }

@@ -1231,7 +1231,8 @@ export function DriveFileTree({
             <button
               onClick={onSearchOpen}
               className={toolbarButtonClass}
-              title="Search"
+              title={t("search.title")}
+              aria-label={t("search.title")}
             >
               <Search size={toolbarIconSize} />
             </button>

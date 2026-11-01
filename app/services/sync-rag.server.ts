@@ -1,6 +1,10 @@
+import { assertRagAccess } from "./rag-access.server";
+import { embeddingConfig } from "./rag-config";
+import { isCurrentRagIndex } from "./rag-index.server";
+import { getFileListFromMeta } from "./sync-meta.server";
 import { getSettings, saveSettings } from "~/services/user-settings.server";
 import { readFileBytes } from "~/services/google-drive.server";
-import { FILE_SEARCH_EMBEDDING_MODEL, getOrCreateStore, registerSingleFile, calculateChecksum, deleteSingleFileFromRag } from "~/services/file-search.server";
+import { getOrCreateStore, registerSingleFile, calculateChecksum, deleteSingleFileFromRag } from "~/services/rag-index.server";
 import { rebuildSyncMeta } from "~/services/sync-meta.server";
 import { DEFAULT_RAG_SETTING, DEFAULT_RAG_STORE_KEY } from "~/types/settings";
 import { isRagEligible } from "~/constants/rag";
@@ -12,11 +16,15 @@ type RagActionContext = {
     accessToken: string;
     rootFolderId: string;
     geminiApiKey?: string | null;
+    openaiApiKey?: string | null;
   };
   jsonWithCookie: (data: unknown, init?: ResponseInit) => Response;
 };
 
 export type RagDeps = {
+  authorizeFile?: (accessToken: string, rootFolderId: string, fileId: string, fileName: string) => Promise<void>;
+  assertRagAccess?: typeof assertRagAccess;
+  isCurrentRagIndex?: typeof isCurrentRagIndex;
   getSettings: typeof getSettings;
   saveSettings: typeof saveSettings;
   getOrCreateStore: typeof getOrCreateStore;
@@ -28,6 +36,11 @@ export type RagDeps = {
 };
 
 export const defaultRagDeps: RagDeps = {
+  authorizeFile: async (accessToken, rootFolderId, fileId, fileName) => {
+    const { files } = await getFileListFromMeta(accessToken, rootFolderId);
+    if (!files.some((file) => file.id === fileId && file.name === fileName)) throw new Error("File does not belong to this workspace path");
+  },
+  assertRagAccess, isCurrentRagIndex,
   getSettings,
   saveSettings,
   getOrCreateStore,
@@ -70,6 +83,7 @@ export async function handleRagAction(
 ): Promise<Response> {
   const { validTokens, jsonWithCookie } = context;
 
+  await deps.assertRagAccess?.(validTokens.rootFolderId);
   switch (actionType) {
     case "ragRegister": {
       // Per-file RAG registration during push or file creation
@@ -87,7 +101,8 @@ export async function handleRagAction(
       }
 
       const settings = await deps.getSettings(validTokens.accessToken, validTokens.rootFolderId);
-      const apiKey = validTokens.geminiApiKey;
+      const config = embeddingConfig(settings.ragSettings[DEFAULT_RAG_STORE_KEY] || {});
+      const apiKey = config.provider === "openai" ? validTokens.openaiApiKey : validTokens.geminiApiKey;
 
       // Skip if disabled or no API key
       if (!apiKey || !settings.ragRegistrationOnPush) {
@@ -111,11 +126,12 @@ export async function handleRagAction(
 
       // Ensure store exists. Older settings may point to text-only stores; switch
       // the default auto-registration store to gemini-embedding-2 for images.
-      if (!ragSetting.storeName || ragSetting.embeddingModel !== FILE_SEARCH_EMBEDDING_MODEL) {
-        const storeName = await deps.getOrCreateStore(apiKey, storeKey);
+      if (!(deps.isCurrentRagIndex ? deps.isCurrentRagIndex(ragSetting, validTokens.rootFolderId, storeKey) : ragSetting.storeName && ragSetting.embeddingModel === config.model)) {
+        const storeName = await deps.getOrCreateStore(apiKey, storeKey, { rootFolderId: validTokens.rootFolderId, setting: ragSetting });
+        if (ragSetting.storeName?.startsWith("ragv1:")) ragSetting.retiredIndexes = [...new Set([...(ragSetting.retiredIndexes || []), ragSetting.storeName])];
         ragSetting.storeName = storeName;
         ragSetting.storeId = storeName;
-        ragSetting.embeddingModel = FILE_SEARCH_EMBEDDING_MODEL;
+        ragSetting.embeddingModel = config.model;
         ragSetting.files = {};
         // Save settings to persist store name (one-time)
         await deps.saveSettings(validTokens.accessToken, validTokens.rootFolderId, settings);
@@ -123,6 +139,7 @@ export async function handleRagAction(
 
       let uploadContent: string | Uint8Array;
       if (fileId) {
+        await deps.authorizeFile?.(validTokens.accessToken, validTokens.rootFolderId, fileId, fileName);
         try {
           uploadContent = await deps.readFileBytes(validTokens.accessToken, fileId);
         } catch (error) {
@@ -150,10 +167,11 @@ export async function handleRagAction(
       // Register the file
       const result = await deps.registerSingleFile(
         apiKey,
-        ragSetting.storeName,
+        ragSetting.storeName!,
         fileName,
         uploadContent,
-        existing?.fileId ?? null
+        existing?.fileId ?? null,
+        { rootFolderId: validTokens.rootFolderId, secretManagerFolder: settings.secretManagerFolder }
       );
 
       const ragFileInfo = {
@@ -209,11 +227,7 @@ export async function handleRagAction(
             delete ragSetting.files[fileName];
             continue;
           }
-          if (!validTokens.geminiApiKey) {
-            ragSetting.files[fileName] = toPendingRagInfo(existing ?? ragFileInfo, existingDocId);
-            continue;
-          }
-          const deleted = await deps.deleteSingleFileFromRag(validTokens.geminiApiKey, existingDocId);
+          const deleted = await deps.deleteSingleFileFromRag(validTokens.geminiApiKey || "", existingDocId, { rootFolderId: validTokens.rootFolderId });
           if (deleted) {
             delete ragSetting.files[fileName];
             continue;
@@ -244,20 +258,12 @@ export async function handleRagAction(
       if (!documentId) {
         return jsonWithCookie({ error: "Missing documentId" }, { status: 400 });
       }
-      const apiKey = validTokens.geminiApiKey;
-      if (!apiKey) {
-        return jsonWithCookie({ ok: false, skipped: true, reason: "no-api-key" });
-      }
-      const ok = await deps.deleteSingleFileFromRag(apiKey, documentId);
+      const apiKey = "";
+      const ok = await deps.deleteSingleFileFromRag(apiKey, documentId, { rootFolderId: validTokens.rootFolderId });
       return jsonWithCookie({ ok });
     }
 
     case "ragRetryPending": {
-      const retryApiKey = validTokens.geminiApiKey;
-      if (!retryApiKey) {
-        return jsonWithCookie({ ok: false, skipped: true, reason: "no-api-key" });
-      }
-
       const retrySettings = await deps.getSettings(validTokens.accessToken, validTokens.rootFolderId);
       if (!retrySettings.ragRegistrationOnPush) {
         return jsonWithCookie({ ok: true, retried: 0, stillPending: 0 });
@@ -268,11 +274,15 @@ export async function handleRagAction(
       if (!retryRagSetting) {
         return jsonWithCookie({ ok: true, retried: 0, stillPending: 0 });
       }
-      if (!retryRagSetting.storeName || retryRagSetting.embeddingModel !== FILE_SEARCH_EMBEDDING_MODEL) {
-        const storeName = await deps.getOrCreateStore(retryApiKey, retryStoreKey);
+      const config = embeddingConfig(retryRagSetting);
+      const retryApiKey = config.provider === "openai" ? validTokens.openaiApiKey : validTokens.geminiApiKey;
+      if (!retryApiKey) return jsonWithCookie({ ok: false, skipped: true, reason: "no-api-key" });
+      if (!(deps.isCurrentRagIndex ? deps.isCurrentRagIndex(retryRagSetting, validTokens.rootFolderId, retryStoreKey) : retryRagSetting.storeName && retryRagSetting.embeddingModel === config.model)) {
+        const storeName = await deps.getOrCreateStore(retryApiKey, retryStoreKey, { rootFolderId: validTokens.rootFolderId, setting: retryRagSetting });
+        if (retryRagSetting.storeName?.startsWith("ragv1:")) retryRagSetting.retiredIndexes = [...new Set([...(retryRagSetting.retiredIndexes || []), retryRagSetting.storeName])];
         retryRagSetting.storeName = storeName;
         retryRagSetting.storeId = storeName;
-        retryRagSetting.embeddingModel = FILE_SEARCH_EMBEDDING_MODEL;
+        retryRagSetting.embeddingModel = config.model;
         retryRagSetting.files = {};
         await deps.saveSettings(validTokens.accessToken, validTokens.rootFolderId, retrySettings);
         return jsonWithCookie({ ok: true, retried: 0, stillPending: 0 });
@@ -308,7 +318,7 @@ export async function handleRagAction(
         ) {
           // Excluded/ineligible file should never be retried.
           if (info.fileId) {
-            const deleted = await deps.deleteSingleFileFromRag(retryApiKey, info.fileId);
+            const deleted = await deps.deleteSingleFileFromRag(retryApiKey, info.fileId, { rootFolderId: validTokens.rootFolderId });
             if (!deleted) {
               retryRagSetting.files[fileName] = toPendingRagInfo(info, info.fileId);
               stillPendingCount++;
@@ -329,10 +339,11 @@ export async function handleRagAction(
           const content = await deps.readFileBytes(validTokens.accessToken, driveFileId);
           const result = await deps.registerSingleFile(
             retryApiKey,
-            retryRagSetting.storeName,
+            retryRagSetting.storeName!,
             fileName,
             content,
-            info.fileId
+            info.fileId,
+            { rootFolderId: validTokens.rootFolderId, secretManagerFolder: retrySettings.secretManagerFolder }
           );
           retryRagSetting.files[fileName] = {
             checksum: result.checksum,

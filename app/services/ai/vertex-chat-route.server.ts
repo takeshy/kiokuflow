@@ -160,12 +160,12 @@ export async function handleVertexChatAction(
     if (lastUserMessage?.content) {
       try {
         const ragContext = await buildRagContext({
-          orgId: ctx.orgId,
-          projectId: ctx.projectId,
+          ctx,
+          tokens: validTokens,
           settingName: ragStoreIds[0],
           query: lastUserMessage.content,
-          tenant: ctx.tenant,
-          topK: requestSettings?.ragTopK ?? 5,
+          topK: requestSettings?.ragTopK,
+          signal: request.signal,
         });
         if (ragContext) {
           effectiveSystemPrompt = effectiveSystemPrompt
@@ -173,7 +173,8 @@ export async function handleVertexChatAction(
             : `Relevant context from documents:\n${ragContext}`;
         }
       } catch (err) {
-        console.error("[chat] RAG context injection failed:", err instanceof Error ? err.message : String(err));
+        if (err instanceof Response) throw err;
+        return Response.json({ error: err instanceof Error ? err.message : "RAG retrieval failed" }, { status: 400 });
       }
     }
   }

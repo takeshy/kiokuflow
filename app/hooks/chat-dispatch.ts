@@ -10,6 +10,7 @@ import {
   AVAILABLE_MODELS,
   getAvailableModels,
   isImageGenerationModel,
+  isExternalChatModel,
   type ApiPlan,
   type ModelInfo,
   type ModelType,
@@ -35,19 +36,19 @@ export type ChatDispatchOptions = Omit<LocalChatOptions, "apiKey"> & {
 
 /** Paid plan uses Interactions; images always go through the key-based paths. */
 export function usesInteractions(settings: Pick<UserSettings, "apiPlan">, model: ModelType): boolean {
-  return settings.apiPlan === "paid" && !isImageGenerationModel(model);
+  return settings.apiPlan === "paid" && !isImageGenerationModel(model) && !isExternalChatModel(model);
 }
 
 /** True when chat can run without a browser-held API key. */
-export function chatNeedsNoApiKey(settings: Pick<UserSettings, "apiPlan" | "usePersonalVertex">, projectSelection: ChatProjectSelection | null): boolean {
-  return !!projectSelection || settings.apiPlan === "paid" || settings.usePersonalVertex === true;
+export function chatNeedsNoApiKey(settings: Pick<UserSettings, "apiPlan" | "usePersonalVertex">, projectSelection: ChatProjectSelection | null, model?: ModelType): boolean {
+  return !!projectSelection || settings.apiPlan === "paid" || settings.usePersonalVertex === true || (!!model && isExternalChatModel(model));
 }
 
 /**
  * Models offered for the active mount. Project mount: the Vertex catalogue,
  * narrowed by the project's allowedModels; the user's apiPlan does not apply.
  */
-export function availableChatModels(projectSelection: ChatProjectSelection | null, apiPlan: ApiPlan): ModelInfo[] {
+export function availableChatModels(projectSelection: ChatProjectSelection | null, apiPlan: ApiPlan, settings?: Pick<UserSettings, "openai" | "usePersonalVertex" | "compatibleProviders">): ModelInfo[] {
   if (projectSelection) {
     const vertexNames = Object.values(VERTEX_MODELS) as ModelType[];
     const allowedNames = projectSelection.allowedModels.length > 0
@@ -59,7 +60,7 @@ export function availableChatModels(projectSelection: ChatProjectSelection | nul
         ({ name, displayName: name, description: "" } satisfies ModelInfo),
     );
   }
-  return getAvailableModels(apiPlan);
+  return getAvailableModels(apiPlan, !!settings?.openai?.encryptedApiKey && !settings.usePersonalVertex, settings?.usePersonalVertex ? undefined : settings?.compatibleProviders);
 }
 
 export function startChatStream(
@@ -84,6 +85,7 @@ export function startChatStream(
     // reads. The Drive mount's own cache is addressed by file id.
     return executeChatStream({ ...common, personalVertex: true }, callbacks);
   }
+  if (isExternalChatModel(common.model)) return executeLocalChat({ ...common, apiKey: apiKey || "" }, callbacks);
   if (usesInteractions(common.settings, common.model)) {
     return executeInteractionsChat(
       { ...common, previousInteractionId, geminiApiKey: apiKey ?? undefined },

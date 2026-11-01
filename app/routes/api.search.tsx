@@ -2,12 +2,24 @@ import type { Route } from "./+types/api.search";
 import { requireAuth } from "~/services/session.server";
 import { getValidTokens } from "~/services/google-auth.server";
 import { searchFiles } from "~/services/google-drive.server";
-import { GoogleGenAI, type Tool } from "@google/genai";
+import { retrievePersonalRag } from "~/services/rag-index.server";
+import { z } from "zod";
+import { validateOrigin } from "~/utils/security";
+
+const searchSchema = z.object({
+  query: z.string().trim().min(1).max(16000),
+  mode: z.enum(["rag", "drive"]),
+  ragStoreIds: z.array(z.string().max(4000)).max(10).optional(),
+  jevFilter: z.boolean().optional(),
+  searchUntilMatch: z.boolean().optional(),
+  topK: z.number().int().min(1).max(20).optional(),
+});
 
 export async function action({ request }: Route.ActionArgs) {
   if (request.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }
+  validateOrigin(request);
 
   const tokens = await requireAuth(request);
   const { tokens: validTokens, setCookieHeader } = await getValidTokens(request, tokens);
@@ -16,109 +28,17 @@ export async function action({ request }: Route.ActionArgs) {
     ...(setCookieHeader ? { "Set-Cookie": setCookieHeader } : {}),
   };
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON body" }), { status: 400, headers });
-  }
-  const { query, mode, ragStoreIds, topK, model } = body as {
-    query: string;
-    mode: "rag" | "drive";
-    ragStoreIds?: string[];
-    topK?: number;
-    model?: string;
-  };
-
-  if (!query || typeof query !== "string") {
-    return new Response(JSON.stringify({ error: "query is required" }), { status: 400, headers });
-  }
+  headers["Cache-Control"] = "no-store";
+  const parsed = searchSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return Response.json({ error: "Invalid search request" }, { status: 400, headers });
+  if (validTokens.currentProjectId || !validTokens.rootFolderId || !validTokens.accessToken) return Response.json({ error: "Use project search for an organization workspace." }, { status: 403, headers });
+  const { query, mode, ragStoreIds, topK } = parsed.data;
 
   try {
     if (mode === "rag") {
-      const apiKey = validTokens.geminiApiKey;
-      if (!apiKey) {
-        return new Response(JSON.stringify({ error: "Gemini API key not configured" }), { status: 400, headers });
-      }
-      if (!ragStoreIds || ragStoreIds.length === 0) {
-        return new Response(JSON.stringify({ error: "ragStoreIds is required for RAG search" }), { status: 400, headers });
-      }
-
-      const ai = new GoogleGenAI({ apiKey });
-      const clampedTopK = Math.min(20, Math.max(1, topK ?? 5));
-      const tools: Tool[] = [
-        {
-          fileSearch: {
-            fileSearchStoreNames: ragStoreIds,
-            topK: clampedTopK,
-          },
-        },
-      ];
-
-      const plan = tokens.apiPlan === "free" ? "free" : "paid";
-      const allowedModels = plan === "paid"
-        ? ["gemini-3.8-flash", "gemini-3.1-pro-preview"]
-        : ["gemini-3.8-flash", "gemini-3.5-flash-lite"];
-      const requestedModel = typeof model === "string" ? model : "";
-      const selectedModel = allowedModels.includes(requestedModel)
-        ? requestedModel
-        : allowedModels[0];
-      const fallbackModel = allowedModels.find((m) => m !== selectedModel);
-
-      const runSearch = (model: string) => ai.models.generateContent({
-        model,
-        contents: [{ role: "user", parts: [{ text: query }] }],
-        config: {
-          systemInstruction:
-            "You MUST call the file_search tool for every query. " +
-            "Answer ONLY from the matched chunks — do NOT use prior knowledge, do NOT speculate, do NOT add external information. " +
-            "If file_search returns zero matches, respond in the query's language with a short message stating that no matching files were found, and stop. " +
-            "Otherwise, summarize concisely in the query's language using only information present in the chunks.",
-          tools,
-        },
-      });
-
-      let response;
-      try {
-        response = await runSearch(selectedModel);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        if (/tool_type|fileSearch|not supported/i.test(message) && fallbackModel) {
-          response = await runSearch(fallbackModel);
-        } else {
-          throw err;
-        }
-      }
-
-      const resp = response as {
-        candidates?: Array<{
-          content?: { parts?: Array<{ text?: string }> };
-          groundingMetadata?: {
-            groundingChunks?: Array<{
-              retrievedContext?: { uri?: string; title?: string; text?: string };
-            }>;
-          };
-        }>;
-      };
-
-      const aiText = resp.candidates?.[0]?.content?.parts?.map((p) => p.text).filter(Boolean).join("") ?? "";
-
-      // Build file list from grounding chunks (deduplicated)
-      const binaryExts = /\.(mp4|mp3|wav|ogg|webm|avi|mov|mkv|zip|tar|gz|7z|rar|exe|dll|bin|so|woff2?|ttf|otf|eot)$/i;
-      const seenTitles = new Set<string>();
-      const results: Array<{ title: string; uri?: string }> = [];
-      const chunks = resp.candidates?.[0]?.groundingMetadata?.groundingChunks;
-      if (chunks) {
-        for (const gc of chunks) {
-          const ctx = gc.retrievedContext;
-          const title = ctx?.title;
-          if (!title || seenTitles.has(title) || binaryExts.test(title)) continue;
-          seenTitles.add(title);
-          results.push({ title, uri: ctx?.uri });
-        }
-      }
-
-      return new Response(JSON.stringify({ mode: "rag", results, aiText: aiText || undefined }), { headers });
+      if (!ragStoreIds?.length) return Response.json({ error: "Choose a RAG index" }, { status: 400, headers });
+      const rag = await retrievePersonalRag(validTokens, ragStoreIds, query, topK, { ...parsed.data, signal: request.signal });
+      return Response.json({ mode: "rag", jevFiltered: rag.jevFiltered, judgedCount: rag.judgedCount, uncheckedCount: rag.uncheckedCount, candidateLimitReached: rag.candidateLimitReached, results: rag.sources.map((title) => ({ title, jevVerified: rag.jevFiltered ? rag.contexts.filter(context => context.source === title).every(context => context.jevVerified === true) : undefined, snippet: rag.contexts.filter(context => context.source === title).map(context => context.text).join("\n\n") })), aiText: rag.contexts.map((context) => `[${context.source}]\n${context.text}`).join("\n\n") }, { headers });
     }
 
     if (mode === "drive") {
@@ -138,6 +58,7 @@ export async function action({ request }: Route.ActionArgs) {
 
     return new Response(JSON.stringify({ error: "Invalid mode" }), { status: 400, headers });
   } catch (e) {
+    if (e instanceof Response) return Response.json({ error: await e.text() }, { status: e.status, headers });
     const message = e instanceof Error ? e.message : "Search failed";
     return new Response(JSON.stringify({ error: message }), { status: 500, headers });
   }

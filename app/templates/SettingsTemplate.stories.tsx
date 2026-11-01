@@ -9,7 +9,7 @@ import { settingsFixture } from "./settings.fixtures";
 import { OrganizationWorkspaceBar, organizationWorkspaceFixture } from "./OrganizationWorkspaceBar";
 import type { Language } from "~/types/settings";
 
-function SettingsScreen({ initialTab, organization = false, language = "ja" }: { initialTab: SettingsTabId; organization?: boolean; language?: Language }) {
+function SettingsScreen({ initialTab, organization = false, language = "ja", openai = false, provider }: { initialTab: SettingsTabId; organization?: boolean; language?: Language; openai?: boolean; provider?: "openrouter" | "opencodego" }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const selection = organization
     ? { orgId: "acme", projectId: "website", projectName: "Website renewal", role: "admin" as const, allowedModels: [], gcsPrefix: "projects/website", region: "asia-northeast1" }
@@ -27,7 +27,7 @@ function SettingsScreen({ initialTab, organization = false, language = "ja" }: {
         <StaticPluginProvider>
           {organization && <OrganizationWorkspaceBar workspace={organizationWorkspaceFixture} />}
           <SettingsTemplate
-            settings={settingsFixture}
+            settings={provider ? { ...settingsFixture, selectedModel: `${provider}:example-model`, compatibleProviders: { [provider]: { encryptedApiKey: "storybook-key", salt: "storybook-salt", availableModels: [{ id: "example-model", name: "Example model" }], enabledModels: ["example-model"] } } } : openai ? { ...settingsFixture, selectedModel: "gpt-6.1-sol", openai: { encryptedApiKey: "storybook-key", salt: "storybook-salt" } } : settingsFixture}
             hasApiKey
             maskedKey="AIza***demo"
             hasHubworkScopes
@@ -44,16 +44,16 @@ function SettingsScreen({ initialTab, organization = false, language = "ja" }: {
   );
 }
 
-function StoryRoute({ initialTab, organization = false, language = "ja" }: { initialTab: SettingsTabId; organization?: boolean; language?: Language }) {
+function StoryRoute({ initialTab, organization = false, language = "ja", openai = false, provider }: { initialTab: SettingsTabId; organization?: boolean; language?: Language; openai?: boolean; provider?: "openrouter" | "opencodego" }) {
   const router = useMemo(
     () => createMemoryRouter([
       {
         path: "*",
-        element: <SettingsScreen initialTab={initialTab} organization={organization} language={language} />,
+        element: <SettingsScreen initialTab={initialTab} organization={organization} language={language} openai={openai} provider={provider} />,
         action: async () => ({ success: true }),
       },
     ]),
-    [initialTab, organization, language],
+    [initialTab, organization, language, openai, provider],
   );
   return <RouterProvider router={router} />;
 }
@@ -80,6 +80,13 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+export const AiProviders: Story = { args: { activeTab: "ai" } };
+export const OpenRouterProvider: Story = { render: () => <StoryRoute initialTab="ai" provider="openrouter" /> };
+export const OpenCodeGoProvider: Story = { render: () => <StoryRoute initialTab="ai" provider="opencodego" /> };
+export const OpenAIProvider: Story = { render: () => <StoryRoute initialTab="ai" openai /> };
+export const OpenAIProviderEnglish: Story = { render: () => <StoryRoute initialTab="ai" openai language="en" /> };
+export const AiProvidersEnglish: Story = { render: () => <StoryRoute initialTab="ai" language="en" /> };
+export const AiProvidersOrganizationProject: Story = { render: () => <StoryRoute initialTab="ai" organization /> };
 export const General: Story = {};
 export const Enterprise: Story = { args: { activeTab: "enterprise" } };
 export const EnterpriseOrganizationProject: Story = {
@@ -96,6 +103,8 @@ export const SyncOrganizationProject: Story = {
 };
 export const Sync: Story = { args: { activeTab: "sync" } };
 export const Mcp: Story = { args: { activeTab: "mcp" } };
+export const Integrations: Story = { args: { activeTab: "integrations" } };
+export const Bluesky: Story = { args: { activeTab: "bluesky" } };
 export const Kakeratta: Story = { args: { activeTab: "kakeratta" } };
 export const Rag: Story = { args: { activeTab: "rag" } };
 export const Commands: Story = { args: { activeTab: "commands" } };

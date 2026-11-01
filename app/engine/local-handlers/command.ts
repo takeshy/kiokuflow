@@ -1,3 +1,4 @@
+import { loadRagContext } from "~/services/rag-context";
 import { fetchWithMcpApproval } from "~/hooks/mcp-approval-client";
 import { isReadOnlyDriveTool } from "~/services/drive-tool-definitions";
 /**
@@ -30,6 +31,8 @@ import {
   type UserSettings,
 } from "~/types/settings";
 import type { Message, Attachment, McpAppInfo } from "~/types/chat";
+import { isExternalChatModel } from "~/types/settings";
+import { openAIChatWithToolsStream } from "~/services/openai-chat";
 
 export interface CommandToolCall {
   name: string;
@@ -264,7 +267,7 @@ export async function handleCommandNodeLocal(
   ];
 
   // System prompt
-  const systemPrompt = node.properties["systemPrompt"]
+  let systemPrompt = node.properties["systemPrompt"]
     ? replaceVariables(node.properties["systemPrompt"], context)
     : undefined;
 
@@ -303,14 +306,22 @@ export async function handleCommandNodeLocal(
   }
 
   // Normal chat with tools
-  const generator = chatWithToolsStream(
+  if (ragStoreIds?.length) {
+    const rag = await loadRagContext(messages, ragStoreIds, undefined, abortSignal);
+    systemPrompt = [systemPrompt, rag.prompt].filter(Boolean).join("\n\n");
+  }
+  const generator = isExternalChatModel(modelName) ? openAIChatWithToolsStream(modelName, messages, tools, systemPrompt, executeToolCall, {
+    webSearchEnabled, abortSignal,
+    enableThinking: node.properties["enableThinking"] !== "false",
+    functionCallLimits: { maxFunctionCalls: 50 },
+  }) : chatWithToolsStream(
     geminiApiKey,
     modelName,
     messages,
     tools,
     systemPrompt,
     tools.length > 0 ? executeToolCall : undefined,
-    ragStoreIds,
+    undefined,
     {
       webSearchEnabled,
       enableThinking: node.properties["enableThinking"] !== "false",

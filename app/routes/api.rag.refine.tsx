@@ -1,3 +1,4 @@
+import { assertRagAccess } from "~/services/rag-access.server";
 import type { Route } from "./+types/api.rag.refine";
 import { requireProjectAccess } from "~/services/project-acl.server";
 import { generateCompact } from "~/services/gemini-vertex.server";
@@ -38,6 +39,7 @@ export async function action({ request }: Route.ActionArgs) {
   if (!text) return json({ error: "text is required" }, 400);
 
   const ctx = await requireProjectAccess(request, projectId, "viewer", { isMutation: true });
+  await assertRagAccess("", ctx.orgId);
   const model = allowedModel(body?.model);
   const mode = body?.mode === "evaluate-context" ? "evaluate-context" : "refine";
   const messages: Message[] = [

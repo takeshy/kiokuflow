@@ -1,8 +1,10 @@
+import { getChatApiKey } from "~/types/settings";
 import type { Route } from "./+types/api.workflow.ai-generate";
 import { requireAuth } from "~/services/session.server";
 import { generateWorkflowStream } from "~/services/gemini.server";
 import { getWorkflowSpecification, buildWorkflowUserPrompt } from "~/engine/workflowSpec";
 import { getSettings } from "~/services/user-settings.server";
+import { serverCompatibleOptions } from "~/services/compatible-provider.server";
 import type { ModelType, ApiPlan, Language } from "~/types/settings";
 import { getDefaultModelForPlan, getEnabledMcpServers } from "~/types/settings";
 import type { ExecutionStep } from "~/engine/types";
@@ -49,14 +51,6 @@ export async function action({ request }: Route.ActionArgs) {
       const { personalVertexAction } = await import("~/services/ai/vertex-workflow-ai-generate.server");
       return personalVertexAction(request, run, personalSettings);
     }
-  }
-
-  if (!tokens.geminiApiKey) {
-    emitLog(logCtx, 400, { error: "Gemini API key not configured" });
-    return Response.json(
-      { error: "Gemini API key not configured. Please set it in Settings." },
-      { status: 400 }
-    );
   }
 
   const body = await request.json();
@@ -115,6 +109,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   const spec = getWorkflowSpecification({
     apiPlan,
+    compatibleProviders: settings?.usePersonalVertex ? undefined : settings?.compatibleProviders, openAIEnabled: !!settings?.openai?.encryptedApiKey,
     mcpServers: settings ? getEnabledMcpServers(settings) : undefined,
     ragSettingNames: settings?.ragSettings
       ? Object.keys(settings.ragSettings)
@@ -177,7 +172,10 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   const selectedModel = model || (settings?.selectedModel as ModelType) || getDefaultModelForPlan(apiPlan);
+  const apiKey = getChatApiKey(selectedModel, tokens);
+  if (!apiKey) return Response.json({ error: "API key is not available. Unlock the selected provider in Settings." }, { status: 400 });
 
+  const serverCompatible = await serverCompatibleOptions(selectedModel, tokens, settings);
   logCtx.details = { model: selectedModel, streaming: true, phase };
   emitLog(logCtx, 200);
 
@@ -188,9 +186,10 @@ export async function action({ request }: Route.ActionArgs) {
         for await (const chunk of generateWorkflowStream(
           userPrompt,
           systemPrompt,
-          tokens.geminiApiKey!,
+          apiKey,
           selectedModel,
-          history
+          history,
+          serverCompatible,
         )) {
           const data = JSON.stringify(chunk);
           controller.enqueue(

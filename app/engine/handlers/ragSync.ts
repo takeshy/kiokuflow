@@ -1,7 +1,8 @@
+import { embeddingConfig } from "~/services/rag-config";
 import type { WorkflowNode, ExecutionContext, ServiceContext } from "../types";
 import { replaceVariables } from "./utils";
 import * as driveService from "~/services/google-drive.server";
-import { FILE_SEARCH_EMBEDDING_MODEL, uploadDriveFile, getOrCreateStore } from "~/services/file-search.server";
+import { uploadDriveFile, getOrCreateStore } from "~/services/rag-index.server";
 import { DEFAULT_RAG_SETTING } from "~/types/settings";
 import { saveSettings } from "~/services/user-settings.server";
 
@@ -18,8 +19,10 @@ export async function handleRagSyncNode(
   if (!path) throw new Error("rag-sync node missing 'path' property");
   if (!ragSettingName) throw new Error("rag-sync node missing 'ragSetting' property");
 
-  const apiKey = serviceContext.geminiApiKey;
-  if (!apiKey) throw new Error("Gemini API key not configured");
+  const setting = serviceContext.settings?.ragSettings[ragSettingName];
+  const config = embeddingConfig(setting || {});
+  const apiKey = config.provider === "openai" ? serviceContext.openaiApiKey : serviceContext.geminiApiKey;
+  if (!apiKey) throw new Error(`Unlock the ${config.provider} API key to index this file.`);
 
   const accessToken = serviceContext.driveAccessToken;
   const folderId = serviceContext.driveRootFolderId;
@@ -43,7 +46,7 @@ export async function handleRagSyncNode(
 
   // Get or create the RAG store
   const storeName = await getOrCreateStore(apiKey, ragSettingName, {
-    signal: serviceContext.abortSignal,
+    signal: serviceContext.abortSignal, rootFolderId: folderId, setting,
   });
 
   // Update in-memory settings so subsequent command nodes can find the store ID
@@ -55,12 +58,17 @@ export async function handleRagSyncNode(
       serviceContext.settings.ragSettings[ragSettingName] = { ...DEFAULT_RAG_SETTING };
     }
     const rs = serviceContext.settings.ragSettings[ragSettingName];
-    rs.storeName = storeName;
-    rs.embeddingModel = FILE_SEARCH_EMBEDDING_MODEL;
-    if (!rs.storeId) {
+    // Same switch-over as settings/push: retire the old index so its chunks are
+    // cleaned up on the next full sync, and drop checksums that belong to it.
+    if (rs.storeName !== storeName) {
+      if (rs.storeName?.startsWith("ragv1:")) rs.retiredIndexes = [...new Set([...(rs.retiredIndexes || []), rs.storeName])];
+      rs.storeName = storeName;
       rs.storeId = storeName;
+      rs.embeddingModel = config.model;
+      rs.embeddingProvider = config.provider;
+      rs.files = {};
+      await saveSettings(accessToken, folderId, serviceContext.settings);
     }
-    await saveSettings(accessToken, folderId, serviceContext.settings);
   }
 
   // Upload the file to the RAG store
@@ -70,7 +78,7 @@ export async function handleRagSyncNode(
     file.id,
     file.name,
     storeName,
-    { signal: serviceContext.abortSignal }
+    { signal: serviceContext.abortSignal, rootFolderId: folderId, secretManagerFolder: serviceContext.settings?.secretManagerFolder }
   );
 
   const result = {

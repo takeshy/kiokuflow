@@ -1,3 +1,4 @@
+import { normalizeRagSettings } from "./rag-search-options";
 // User settings CRUD — enterprise-only (GCS-backed).
 // Legacy Google Drive paths removed in Phase 5f.
 
@@ -63,6 +64,7 @@ function applySettingsMigrations(parsed: Partial<UserSettings>): UserSettings {
   return {
     ...DEFAULT_USER_SETTINGS,
     ...parsed,
+    ragSettings: normalizeRagSettings(parsed.ragSettings || DEFAULT_USER_SETTINGS.ragSettings, parsed.ragTopK ?? DEFAULT_USER_SETTINGS.ragTopK),
     mcpServers: normalizedMcpServers,
     slashCommands: normalizedSlashCommands,
     encryption: { ...DEFAULT_USER_SETTINGS.encryption, ...parsed.encryption },

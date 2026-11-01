@@ -45,3 +45,39 @@ resource "google_firestore_field" "collection_group" {
 
   depends_on = [google_project_service.apis]
 }
+
+# Shared index for paid personal RAG and tenant RAG. Provider/model/chunking
+# configurations are isolated by settingName; projectId isolates workspaces.
+resource "google_firestore_index" "rag_chunks" {
+  count       = var.manage_firestore_indexes ? 1 : 0
+  project     = var.project_id
+  database    = var.firestore_database_id
+  collection  = "ragChunks"
+  query_scope = "COLLECTION"
+
+  fields {
+    field_path = "orgId"
+    order      = "ASCENDING"
+  }
+  fields {
+    field_path = "projectId"
+    order      = "ASCENDING"
+  }
+  fields {
+    field_path = "settingName"
+    order      = "ASCENDING"
+  }
+  fields {
+    field_path = "__name__"
+    order      = "ASCENDING"
+  }
+  fields {
+    field_path = "embedding"
+    vector_config {
+      dimension = 2048
+      flat {}
+    }
+  }
+
+  depends_on = [google_project_service.apis]
+}

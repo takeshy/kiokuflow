@@ -1,8 +1,8 @@
 # GemiHub
 
-**ドキュメントを読み、線を引き、そのまま Gemini に聞く — すべてあなた自身の Google Drive の中で。**
+**ドキュメントを読み、線を引き、選んだ AI に聞く — すべてあなた自身の Google Drive の中で。**
 
-Drive の PDF・EPUB・Markdown を開き、気になった一節をハイライトして、その場にメモを貼る。ハイライトもメモも、ダッシュボードもチャット履歴もワークフローも、すべて *あなたの* Drive にある普通のファイルです。だから AI はそのすべてを読めるし、あなたはいつでも全部を持って出ていけます。外部データベースなし。セルフホスト可能。
+Drive の PDF・EPUB・Markdown を開き、気になった一節をハイライトして、その場にメモを貼る。ハイライトもメモも、ダッシュボードもチャット履歴もワークフローも、すべて *あなたの* Drive にある普通のファイルです。だから AI はそのすべてを読めるし、あなたはいつでも全部を持って出ていけます。有料RAGの検索用抜粋とembeddingはFirestoreに保存します。セルフホスト可能。
 
 **[gemihub.net で今すぐ試す →](https://gemihub.net)** · [English README](./README.md)
 
@@ -31,13 +31,13 @@ PDF・EPUB・Markdown・テキスト・画像を、メインビューアでも�
 
 ### 最初から文脈を持っている AI
 
-Gemini とのストリーミングチャットは、ファンクションコール・思考プロセス表示・画像生成に対応し、あなたのファイルを直接読み・検索し・作成し・更新します。**RAG** による意味検索、Markdown ナレッジベースを束ねた **OKF バンドル**、**MCP** による外部ツール接続、再利用可能な **Agent Skills** を組み合わせ、ブラウザ上で実行され結果をリアルタイムに流す**ビジュアルワークフロー**で自動化まで繋げられます。
+Gemini・OpenAI・OpenRouter・OpenCode Goを選んでストリーミングチャットができ、モデルに応じてツールやファイル添付を利用できます。Geminiは画像生成にも対応し、あなたのファイルを直接読み・検索し・作成し・更新します。**RAG** による意味検索、Markdown ナレッジベースを束ねた **OKF バンドル**、**MCP** による外部ツール接続、再利用可能な **Agent Skills** を組み合わせ、ブラウザ上で実行され結果をリアルタイムに流す**ビジュアルワークフロー**で自動化まで繋げられます。
 
 ![ビジュアルワークフローエディタ](./public/images/visual_workflow.png)
 
 ### あなたのデータは、あなたの管理下に
 
-チャット履歴・ワークフロー・設定・編集履歴は、すべてあなた自身の Google Drive の `gemihub/` フォルダに保存されます。独自データベースもベンダーロックインもありません。任意でハイブリッド RSA + AES 暗号化を有効にでき、単体で動く Python 復号スクリプトも同梱しているので、GemiHub なしでも自分のデータを読めます。
+チャット履歴・ワークフロー・設定・編集履歴は、すべてあなた自身の Google Drive の `gemihub/` フォルダに保存されます。有料RAGではFirestoreに検索用インデックスを保存し、元のファイルから再構築できます。任意でハイブリッド RSA + AES 暗号化を有効にでき、単体で動く Python 復号スクリプトも同梱しているので、GemiHub なしでも自分のデータを読めます。
 
 GemiHub はオフラインファーストです。ファイルは IndexedDB にキャッシュされて即座に開き、ネットがなくても編集でき、同期は Push/Pull で自分のタイミングで行えます。MD5 による競合検出、差分表示付きの解決ダイアログ、選ばなかった方の自動バックアップ付き。同じ `_sync-meta.json` 形式を [Obsidian プラグイン](https://github.com/takeshy/obsidian-gemihub)も扱うため、Vault と GemiHub で同じ Drive フォルダを共有できます。
 
@@ -49,9 +49,11 @@ GemiHub はオフラインファーストです。ファイルは IndexedDB に�
 
 **ダッシュボード** — Undo/Redo・ワンクリック整列・複数ダッシュボード・ホーム固定に対応したドラッグ＆ドロップグリッド · File / Memo List / Base（`.base` クエリをテーブル・カード・リストで表示）/ Kanban（`.kanban` YAML、ドラッグでのステータス変更を Markdown に書き戻し）/ Secret Manager / Timeline / ワークフロー出力（自動更新可）/ Web ウィジェット
 
-**AI チャット** — ファンクションコール・思考表示・画像生成・ファイル添付に対応したストリーミングチャット · `{content}` / `{selection}` / `@file` テンプレートとコマンド別のモデル・ツール上書きを持つスラッシュコマンド · チャットからの `/run @workflow.yaml`
+**AI チャット** — Gemini・OpenAI・OpenRouter・OpenCode Goによるストリーミングチャット（ツール・添付の対応はモデルによる）· 音声選択・割り込み・ミュート・会話記録に対応したOpenAI Live会話モード · Gemini画像生成 · `{content}` / `{selection}` / `@file` テンプレートとコマンド別のモデル・ツール上書きを持つスラッシュコマンド · チャットからの `/run @workflow.yaml`
 
-**ナレッジ** — Drive ファイルへの RAG 意味検索 · チャットごとに選べる OKF ナレッジバンドル · MCP サーバーのツール化（OAuth 対応、インタラクティブな MCP Apps）· Agent Skills（カタログからワンクリック導入できる外部スキルを含む）· GitHub からインストール、あるいはローカル開発できるプラグイン
+**ナレッジ** — 有料ユーザー向けFirestore RAG。RAGごとにGemini／OpenAIのembeddingモデルとTop Kを選択し、任意でJevによる一致判定と「一致するまで検索」を利用可能 · チャットごとに選べる OKF ナレッジバンドル · MCP サーバーのツール化（OAuth 対応、インタラクティブな MCP Apps）· Agent Skills（カタログからワンクリック導入できる外部スキルを含む）· GitHub からインストール、あるいはローカル開発できるプラグイン
+
+**検索** — ファイル名・パス検索と内容検索をタブで切り替え · 単語は端末に保存した本文の通常検索、文章は有料プランでサーバー同期済みRAG検索 · 結果からあいまい検索を追加可能
 
 **編集** — WYSIWYG Markdown エディタ（wysimark-lite）· Obsidian 互換 JSON Canvas · ファイルとワークフローの差分ベース編集履歴 · ドキュメントの公開 URL 発行 · ファイル・チャット履歴・ワークフローログの暗号化
 
@@ -104,7 +106,7 @@ GemiHub はオフラインファーストです。ファイルは IndexedDB に�
 
 ## はじめかた
 
-いちばん手軽なのはホスティング版です。**[gemihub.net](https://gemihub.net)** に Google でサインインし、設定画面で Gemini API キーを入力するだけです。
+いちばん手軽なのはホスティング版です。**[gemihub.net](https://gemihub.net)** に Google でサインインし、**設定 → 一般**で暗号化パスワードを設定し、一番左の**AIプロバイダー**で利用するAPIキーを登録します。使用するプロバイダーは設定タブ上部で選択します。KakerattaとBlueskyは**外部連携**、コマンドとショートカットは同じ設定タブにまとまっています。
 
 自分で動かす場合:
 
@@ -116,19 +118,20 @@ cp .env.example .env   # OAuth 認証情報と SESSION_SECRET を記入
 npm run dev            # http://localhost:8132
 ```
 
-必要なものは Node.js 24+、Google Cloud の OAuth クライアント、Gemini API キーです。Cloud プロジェクトの作成、OAuth 同意画面、`drive.file` スコープの意味、環境変数、Docker / 本番ビルドまでの詳細な手順は **[docs/architecture/self-hosting.md](./docs/architecture/self-hosting.md)** にまとめてあります。
+必要なものは Node.js 24+、Google Cloud の OAuth クライアント、利用するAIプロバイダーの認証情報（または個人Vertex AIの前払い残高）です。有料RAGはGeminiまたはOpenAIのembeddingキーを設定・解除し、**設定 → RAG**でインデックスを作成・同期します。Jevは**AIプロバイダー → Jev**で直接キーまたはOpenRouterを設定し、RAGごとにTop Kと「一致するまで検索」を保存できます。Cloud プロジェクトの作成、OAuth 同意画面、`drive.file` スコープの意味、環境変数、Docker / 本番ビルドまでの詳細な手順は **[docs/architecture/self-hosting.md](./docs/architecture/self-hosting.md)** にまとめてあります。
 
 ## プラン
 
-GemiHub は MIT ライセンスで、自分の Gemini API キーがあれば無料ですべての基本機能を使えます。ホスティング版には有料プランが 3 つあります（詳細は [docs/architecture/premium.md](docs/architecture/premium.md)）。
+GemiHub は MIT ライセンスで、自分のAIプロバイダーのキーで基本機能を無料で使えます。プロバイダーのAPI利用料は別途かかり、Firestore RAGにはGemiHubの有効な有料プランが必要です。ホスティング版には有料プランが 3 つあります（詳細は [docs/architecture/premium.md](docs/architecture/premium.md)）。
 
-| | 無料 | Premium — 月額 ¥300（約 $2） | Pro — 月額 ¥3,000（約 $20） | Business — 月額 ¥7,500（約 $50）／組織単位 |
+| | 無料 | Lite — 月額 ¥300（約 $2） | Pro — 月額 ¥3,000（約 $20） | Business — 月額 ¥7,500（約 $50）／組織単位 |
 |---|---|---|---|---|
-| 上記の全機能 | ✓ | ✓ | ✓ | ✓ |
+| 基本の読書・編集・ダッシュボード・チャット | ✓ | ✓ | ✓ | ✓ |
 | アップロード上限 | 1ファイル20 MB | 1ファイル5 GB | 1ファイル5 GB | 1ファイル5 GB |
 | Gmail 送信・Google カレンダーのワークフローノード | — | ✓ | ✓ | ✓ |
 | PDF 生成・外部同期トークン・一時編集 URL | — | ✓ | ✓ | ✓ |
-| Interactions API チャット（ファンクションツール + RAG + Web 検索の同時利用） | — | ✓ | ✓ | ✓ |
+| Firestore embedding RAG・RAGごとのTop K・任意のJev判定 | — | ✓ | ✓ | ✓ |
+| Interactions API チャット | — | ✓ | ✓ | ✓ |
 | [Kakeratta の担当への回答](docs/integrations/kakeratta.md) | GemiHub の画面を開いている間 | 画面を閉じても動作 | 画面を閉じても動作 | 画面を閉じても動作（個人 Drive） |
 | [Kakeratta と Timeline 同期](docs/integrations/kakeratta.md) | — | 投稿・スレッド・担当名 | 投稿・スレッド・担当名 | 個人 Drive |
 | スケジュール実行 + `web/` からのページ配信（`{slug}.gemihub.net`） | — | — | ✓（自分のDriveから配信） | ✓（CDN・カスタムドメイン・ワークフローAPIも） |
@@ -137,7 +140,7 @@ GemiHub は MIT ライセンスで、自分の Gemini API キーがあれば無�
 
 Gemini API キーを自分で用意したくない場合は、設定で**パーソナル Vertex AI** を有効にすると、GemiHub の Vertex 接続でチャットが動きます。料金は $10（¥1,500）単位で前払いする残高から消費され、有効期限はなく、どのプランでも利用できます。Business の月 $30 の AI 利用枠も同じ方法で追加購入できます。
 
-Business は「すべてがあなたの Drive に残る」唯一の例外です。共有プロジェクトのファイルはマネージドな Cloud Storage に、メタデータは Firestore に置かれ、チャットは Vertex AI 上で動きます。個人のマイドライブ側は従来どおりです（[docs/architecture/mounts.md](docs/architecture/mounts.md)）。
+Businessの共有プロジェクトはCloud Storageにファイル、Firestoreにメタデータを保存し、チャットはVertex AIで動きます。個人の元ファイルはDriveに残り、有料RAGの抜粋とembeddingはFirestoreに保存します。質問と必要な内容は、選択したAI・embeddingプロバイダーと、有効時にはJevまたはOpenRouterへ送信します（[docs/architecture/mounts.md](docs/architecture/mounts.md)）。
 
 ## ドキュメント
 
@@ -171,7 +174,7 @@ Business は「すべてがあなたの Drive に残る」唯一の例外です�
 |---------|------|
 | フロントエンド | React 19, React Router 7, Tailwind CSS v4, Mermaid |
 | バックエンド | React Router サーバー（SSR + API ルート） |
-| AI | Google Gemini API（`@google/genai`）、組織プロジェクトは Vertex AI |
+| AI | Gemini／Vertex AI、OpenAI Responses・Realtime、OpenRouter、OpenCode Go、任意のJevによるRAG一致判定 |
 | ストレージ | Google Drive API（デフォルトマウント）、Cloud Storage（組織プロジェクト）、Firestore |
 | 認証 | Google OAuth 2.0 → セッションクッキー |
 | インフラ | Compute Engine (shared VM), Cloud Build, Artifact Registry, Cloud DNS, Certificate Manager, Cloud Scheduler, Global HTTPS LB + CDN |

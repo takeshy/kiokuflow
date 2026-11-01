@@ -95,7 +95,7 @@ export function CommandsTab({ settings }: CommandsTabProps) {
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState<CommandFormData>({ ...emptyForm });
 
-  const availableModels = getAvailableModels(settings.apiPlan);
+  const availableModels = getAvailableModels(settings.apiPlan, !!settings.openai?.encryptedApiKey && !settings.usePersonalVertex, settings.usePersonalVertex ? undefined : settings.compatibleProviders);
   const enabledMcpServers = getEnabledMcpServers(settings);
 
   const data = fetcher.data as { success?: boolean; message?: string } | undefined;
@@ -291,7 +291,7 @@ export function CommandsTab({ settings }: CommandsTabProps) {
             >
               <option value="">{t("settings.commands.noOverride")}</option>
               <option value="__websearch__">Web Search</option>
-              {(settings.ragFeatureEnabled ? Object.keys(settings.ragSettings) : []).map((name) => (
+              {(settings.ragAvailable && settings.ragFeatureEnabled ? Object.keys(settings.ragSettings) : []).map((name) => (
                 <option key={name} value={name}>
                   RAG: {name}
                 </option>

@@ -15,7 +15,7 @@ function ChatEn() {
       </figure>
       <div className={prose}>
         <p>
-          The Chat panel is your interface for conversing with Google Gemini AI. It supports real-time streaming responses, automatic tool use, file attachments, and custom slash commands.
+          The Chat panel supports Google Gemini and OpenAI, with streaming responses, automatic tool use, file attachments, and custom slash commands. On My Drive, set or verify its password in Settings → General, then save your OpenAI API key in Settings → AI providers → OpenAI to add OpenAI models to the model menu.
         </p>
         <p>
           Switch the right sidebar between normal and wide layouts with one click. Save as note exports compact Markdown named <code>YYYYMMDD-HHmmss_Chat title.md</code>; saving the same chat again updates that file. Automatic history keeps 100 chats by default, or unlimited when set to 0.
@@ -31,13 +31,16 @@ function ChatEn() {
 
         <h2>Model Selection</h2>
         <p>
-          Select a Gemini model from the dropdown. Available models depend on your API plan (Free / Paid). Some models support extended thinking — the AI&apos;s reasoning process is displayed in a collapsible section.
+          Select a model from the dropdown. Gemini availability depends on your API plan (Free / Paid). Configured OpenAI accounts also offer GPT-6.1 Sol, GPT-6.1 Terra, GPT-6 Luna, and other models. Supported reasoning summaries appear in a collapsible section. OpenAI API usage is billed to your account; RAG uses Firestore and Gemini/OpenAI embeddings for paid GemiHub users. Audio/video attachments require Gemini. OpenRouter and OpenCode Go offer the models enabled in AI provider settings.
         </p>
+
+        <h2>Live Voice Conversations</h2>
+        <p>Click <strong>Live</strong> in the chat header, choose a Realtime model and voice, and start a conversation. Allow microphone access over HTTPS or localhost. You can speak naturally, interrupt the AI, mute your microphone, and control audio playback. The voice is AI generated. Ending or closing Live stops the microphone and adds the transcript to chat history. Live is for voice conversations; use text chat for Drive and MCP tools.</p>
 
         <h3>Model-Specific Limitations</h3>
         <ul>
           <li><strong>Gemma models</strong> — Do not support function calling (tool use) or extended thinking. When a Gemma model is selected, all tools (Drive, MCP, RAG, Web Search) are automatically disabled.</li>
-          <li><strong>RAG + tools</strong> — Gemini 3 models can combine RAG File Search with Drive and MCP function tools. Drive search is disabled by default to avoid redundant retrieval, but can be enabled in tool settings.</li>
+          <li><strong>RAG + tools</strong> — Gemini and OpenAI models can use retrieved Firestore RAG context with Drive and MCP function tools. Drive search is disabled by default to avoid redundant retrieval, but can be enabled in tool settings.</li>
         </ul>
 
         <h2>Function Calling (Agentic AI)</h2>
@@ -46,8 +49,8 @@ function ChatEn() {
         </p>
         <ul>
           <li><strong>Drive tools</strong> — Read files, search files, list folders, create and update files on your Drive.</li>
-          <li><strong>Web Search</strong> — Search the internet using Google Search.</li>
-          <li><strong>RAG / File Search</strong> — Semantic search through your RAG-indexed documents.</li>
+          <li><strong>Web Search</strong> — Search using the selected provider: Google Search for Gemini, native web search for OpenAI, or the OpenRouter web plugin.</li>
+          <li><strong>RAG / Vector Search</strong> — Semantic search through your RAG-indexed documents.</li>
           <li><strong>MCP tools</strong> — Tools from connected MCP servers (databases, APIs, etc.).</li>
           <li><strong>Image Generation</strong> — Generate images with compatible models.</li>
         </ul>
@@ -60,7 +63,7 @@ function ChatEn() {
           <img src="/images/rag_web_search_selector.png" alt="RAG and Web Search selector" className="w-full" loading="lazy" />
         </figure>
         <p>
-          When Web Search is enabled, the AI uses Google Search exclusively. <strong>All other tools (Drive, MCP, RAG) are disabled</strong> during Web Search mode, because Google Search is incompatible with other tool types in a single request.
+          Web Search uses the selected provider's search service. Drive, MCP and RAG availability depends on the model and provider. OpenCode Go can use a separately configured web-search MCP tool.
         </p>
 
         <h3>RAG and Drive Search</h3>
@@ -115,7 +118,7 @@ function ChatJa() {
       </figure>
       <div className={prose}>
         <p>
-          チャットパネルは、Google Gemini AIとの対話インターフェースです。リアルタイムストリーミング応答、自動ツール使用、ファイル添付、カスタムスラッシュコマンドに対応しています。
+          チャットパネルはGoogle GeminiとOpenAIに対応し、ストリーミング応答、自動ツール使用、ファイル添付、カスタムスラッシュコマンドを利用できます。マイドライブで「設定 → 一般」でパスワードを設定・確認し、「設定 → AIプロバイダー → OpenAI」でAPIキーを保存すると、モデル一覧にOpenAIが追加されます。
         </p>
         <p>
           右サイドバーは通常幅と拡張幅をワンクリックで切り替えられます。「ノートとして保存」は <code>YYYYMMDD-HHmmss_チャットタイトル.md</code> 形式のコンパクトなMarkdownを出力し、同じチャットの再保存時は上書きします。自動履歴は初期値100件、0で無制限です。
@@ -131,13 +134,16 @@ function ChatJa() {
 
         <h2>モデル選択</h2>
         <p>
-          ドロップダウンからGeminiモデルを選択します。利用可能なモデルはAPIプラン（無料/有料）によって異なります。一部のモデルは拡張思考（Extended Thinking）に対応しており、AIの推論プロセスが折りたたみ可能なセクションに表示されます。
+          ドロップダウンからモデルを選択します。GeminiのモデルはAPIプラン（無料/有料）に応じて表示され、OpenAIを設定するとGPT-6.1 Sol、GPT-6.1 Terra、GPT-6 Lunaなども選択できます。対応モデルの推論要約は折りたたんで表示されます。OpenAIのAPI利用料がかかります。RAGはGemiHubの有料ユーザー向けにFirestoreとGemini／OpenAIのembeddingモデルを使用します。音声・動画の添付にはGeminiを使用してください。OpenRouterとOpenCode GoではAIプロバイダー設定で有効にしたモデルを選べます。
         </p>
+
+        <h2>Live音声会話</h2>
+        <p>チャット上部の<strong>Live</strong>からRealtimeモデルと声を選び、会話を開始します。HTTPSまたはlocalhostでマイクへのアクセスを許可してください。自然に話しかけたり、AIの発話に割り込んだり、マイクをミュートしたりできます。応答音声はAIが生成しています。終了・閉じる操作でマイクを停止し、会話テキストをチャット履歴へ追加します。Liveは音声会話専用です。Drive・MCPツールは通常のチャットを利用してください。</p>
 
         <h3>モデル固有の制限事項</h3>
         <ul>
           <li><strong>Gemmaモデル</strong> — ファンクションコール（ツール使用）および拡張思考に非対応です。Gemmaモデル選択時は、すべてのツール（Drive、MCP、RAG、Web検索）が自動的に無効化されます。</li>
-          <li><strong>RAG＋ツール</strong> — Gemini 3モデルでは、RAG File SearchとDrive・MCPのfunction toolsを併用できます。重複検索を避けるためDrive検索は既定で無効ですが、ツール設定から有効化できます。</li>
+          <li><strong>RAG＋ツール</strong> — GeminiとOpenAIのモデルで、Firestore RAGの検索結果とDrive・MCPツールを併用できます。重複検索を避けるためDrive検索は既定で無効ですが、ツール設定から有効化できます。</li>
         </ul>
 
         <h2>ファンクションコール（エージェント型AI）</h2>
@@ -160,7 +166,7 @@ function ChatJa() {
           <img src="/images/rag_web_search_selector.png" alt="RAGとWeb検索セレクター" className="w-full" loading="lazy" />
         </figure>
         <p>
-          Web検索を有効にすると、AIはGoogle検索のみを使用します。<strong>他のすべてのツール（Drive、MCP、RAG）はWeb検索モード中は無効化</strong>されます。Google検索は1つのリクエスト内で他のツールタイプと併用できないためです。
+          Web検索は選択したプロバイダーの検索機能を使います。GeminiはGoogle検索、OpenAIは組み込みWeb検索、OpenRouterはWebプラグインを利用します。Drive・MCP・RAGの併用可否はモデルとプロバイダーによって異なります。OpenCode Goでは別途設定したWeb検索用MCPツールを利用できます。
         </p>
 
         <h3>RAGとDrive検索</h3>

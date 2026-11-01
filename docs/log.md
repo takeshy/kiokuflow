@@ -1,5 +1,15 @@
 # Update Log
 
+## 2026-11-01
+* **Docs**: Updated both READMEs, the landing page, and manual settings/encryption/chat explanations for multiple AI providers, OpenAI Live, paid Firestore RAG, per-index Top K, optional Jev filtering, search tabs, and the current settings layout.
+* **New**: Jev registration with direct or OpenRouter credentials, per-RAG Top K/relevance preferences, and a repeat-until-match checkbox in content search. Query embedding runs once while Jev checks successive candidate batches; scanned PDFs use page images (`integrations/rag.md`).
+* **Update**: Kakeratta and Bluesky now share an Integrations tab; Commands and Shortcuts share a tab with internal sections. All AI-provider password entry and management moved to General, with API keys/models kept in provider tabs and entered passwords retained only in settings-screen memory.
+* **Update**: File-tree search now asks for file-name or content search. Words use local keyword matching; sentences use paid embedding RAG. Results can be expanded to typo matches and, for paid content search, semantic matches, including after zero hits (`features/search.md`).
+* **New**: OpenRouter and OpenCode Go provider tabs, encrypted per-provider credentials, live model discovery and enablement, and shared streaming/tool execution for chat and workflows. The active provider selector remains independent of settings-tab browsing (`features/chat.md`).
+* **Update**: Replaced Gemini File Search with paid Firestore vector RAG, per-setting Gemini/OpenAI embedding models, workspace isolation, and explicit re-indexing on model changes (`integrations/rag.md`).
+* **New**: OpenAI API support on My Drive with encrypted key settings, Responses streaming, Drive/MCP tools, native Web Search, and current Sol/Terra 6.1 model choices (`features/chat.md`).
+* **New**: Live speech-to-speech conversations through OpenAI Realtime/WebRTC, including voice selection, mute, transcripts, and microphone cleanup on cancellation or disconnect (`features/chat.md`).
+
 ## 2026-10-15
 * **Update**: Opening a Markdown / Base / Dashboard file no longer switches the matching built-in skill on (and others off). The skill selection is restored exactly as last left, including an empty one. The empty chat instead offers the skill that fits the open file — Markdown, Canvas, Base, or Dashboard — with a one-click button (`features/chat.md`, `integrations/skill.md`).
 

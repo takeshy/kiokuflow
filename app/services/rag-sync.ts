@@ -1,3 +1,4 @@
+import { getCachedLoaderDataInMemory } from "./loader-data-memory";
 // Shared RAG registration helpers for sync operations (client-side)
 
 import { isRagEligible } from "~/constants/rag";
@@ -51,6 +52,7 @@ export function ragRegisterNewFile(fileId: string, fileName: string, content?: s
 export function ragRegisterInBackground(
   filesToPush: Array<{ fileId: string; content: string; fileName: string }>
 ): void {
+  if (!getCachedLoaderDataInMemory()?.settings?.ragAvailable) return;
   (async () => {
     const eligibleFiles = filesToPush.filter((f) => isRagEligible(f.fileName));
     if (eligibleFiles.length === 0) return;

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { FILE_SEARCH_EMBEDDING_MODEL } from "~/services/file-search.server";
+import { RAG_EMBEDDING_MODEL } from "~/services/rag-index.server";
 import { handleRagAction } from "~/services/sync-rag.server";
 import { DEFAULT_RAG_SETTING, DEFAULT_RAG_STORE_KEY } from "~/types/settings";
 
@@ -150,7 +150,7 @@ test("excluded pending entries are cleaned and never retried", async () => {
         ...DEFAULT_RAG_SETTING,
         storeName: "stores/test",
         storeId: "stores/test",
-        embeddingModel: FILE_SEARCH_EMBEDDING_MODEL,
+        embeddingModel: RAG_EMBEDDING_MODEL,
         files: {},
       },
     },
@@ -256,7 +256,7 @@ test("ragSave keeps excluded tracking as pending when remote delete fails", asyn
         ...DEFAULT_RAG_SETTING,
         storeName: "stores/test",
         storeId: "stores/test",
-        embeddingModel: FILE_SEARCH_EMBEDDING_MODEL,
+        embeddingModel: RAG_EMBEDDING_MODEL,
         files: {
           "workflows/plan.yaml": {
             checksum: "old-checksum",
@@ -322,7 +322,7 @@ test("ragRetryPending includes excluded registered entries and keeps them pendin
         ...DEFAULT_RAG_SETTING,
         storeName: "stores/test",
         storeId: "stores/test",
-        embeddingModel: FILE_SEARCH_EMBEDDING_MODEL,
+        embeddingModel: RAG_EMBEDDING_MODEL,
         files: {
           "workflows/legacy.yaml": {
             checksum: "old-checksum",
@@ -390,7 +390,7 @@ test("ragSave does not overwrite pending fileId with null pending update", async
         ...DEFAULT_RAG_SETTING,
         storeName: "stores/test",
         storeId: "stores/test",
-        embeddingModel: FILE_SEARCH_EMBEDDING_MODEL,
+        embeddingModel: RAG_EMBEDDING_MODEL,
         files: {
           "docs/spec.md": {
             checksum: "",

@@ -17,6 +17,7 @@ import type {
   PromptCallbacks,
 } from "./types";
 import type { UserSettings } from "~/types/settings";
+import { isExternalChatModel } from "~/types/settings";
 import { getNextNodes, serializeWorkflow } from "./parser";
 import { replaceVariables, parseCondition } from "./handlers/utils";
 import {
@@ -666,14 +667,16 @@ export async function executeWorkflowLocally(
           // Fall back to the in-memory cache (sub-workflow where the parent had
           // no command nodes), then to the session's unlocked key (headless
           // dashboard/silent/skill runs after a reload).
-          const apiKey = options.geminiApiKey || getCachedApiKey() || (await ensureCachedApiKey());
-          if (!apiKey) {
+          const commandModel = replaceVariables(node.properties["model"] || options.settings?.selectedModel || "", context);
+          const openai = isExternalChatModel(commandModel);
+          const apiKey = openai ? "" : options.geminiApiKey || getCachedApiKey() || (await ensureCachedApiKey());
+          if (!apiKey && !openai) {
             throw new Error("Gemini API key not available for local execution");
           }
           const cmdPrompt = (node.properties["prompt"] || "").substring(0, 50);
           log(node.id, node.type, `Executing LLM: ${cmdPrompt}...`, "info");
           const cmdResult = await handleCommandNodeLocal(
-            node, context, apiKey, options.settings, options.abortSignal,
+            node, context, apiKey || "", options.settings, options.abortSignal,
           );
           // Forward drive events
           for (const event of cmdResult.driveEvents) {

@@ -1,3 +1,4 @@
+import { resolveRagTopK } from "~/services/rag-search-options";
 import { useCallback, useMemo, useState } from "react";
 import { useEnterpriseSelection } from "~/contexts/EnterpriseContext";
 import { useSkills } from "~/contexts/SkillContext";
@@ -55,7 +56,7 @@ export function useTimelineAi() {
   const choices = useMemo((): TimelineAiChoices | null => {
     const settings = loaderSettings();
     if (!settings) return null;
-    const models = availableChatModels(projectSelection, settings.apiPlan).filter((m) => !m.isImageModel);
+    const models = availableChatModels(projectSelection, settings.apiPlan, settings).filter((m) => !m.isImageModel);
     const fallback = settings.selectedModel || getDefaultModelForPlan(settings.apiPlan);
     const model = models.find((m) => m.name === aiSettings.model)?.name
       ?? models.find((m) => m.name === fallback)?.name
@@ -65,7 +66,7 @@ export function useTimelineAi() {
       models,
       model,
       webSearch: !!model && supportsWebSearch(model),
-      ragSettings: settings.ragFeatureEnabled ? Object.keys(settings.ragSettings ?? {}) : [],
+      ragSettings: settings.ragAvailable && settings.ragFeatureEnabled ? Object.keys(settings.ragSettings ?? {}) : [],
       mcpServers: getEnabledMcpServers(settings).map((server) => ({ id: server.id || server.name, name: server.name })),
       skills: skills.map((skill) => ({ id: skill.id, name: skill.name })),
     };
@@ -79,10 +80,10 @@ export function useTimelineAi() {
     if (isImageGenerationModel(model)) throw new Error("Choose a text model");
 
     const apiKey = getCachedApiKey() ?? (await ensureCachedApiKey());
-    if (!apiKey && !chatNeedsNoApiKey(settings, projectSelection)) throw new Error("API_KEY_MISSING");
+    if (!apiKey && !chatNeedsNoApiKey(settings, projectSelection, model)) throw new Error("API_KEY_MISSING");
 
     const webSearchEnabled = aiSettings.search === "web" && choices.webSearch;
-    const rag = aiSettings.search.startsWith("rag:") && settings.ragFeatureEnabled
+    const rag = aiSettings.search.startsWith("rag:") && settings.ragAvailable && settings.ragFeatureEnabled
       ? settings.ragSettings[aiSettings.search.slice(4)]
       : undefined;
     const ragStoreIds = rag ? (rag.isExternal ? rag.storeIds : rag.storeId ? [rag.storeId] : []) : [];
@@ -118,7 +119,7 @@ export function useTimelineAi() {
         webSearchEnabled,
         maxFunctionCalls: 20,
         functionCallWarningThreshold: 10,
-        ragTopK: settings.ragTopK,
+        ragTopK: resolveRagTopK(rag, settings.ragTopK),
       },
       {
         onDriveEvent: (event) => { processDriveEvent(event).catch(() => {}); },

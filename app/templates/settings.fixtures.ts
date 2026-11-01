@@ -7,6 +7,7 @@ export const settingsFixture: UserSettings = {
   workflowEnabled: true,
   dashboardEnabled: true,
   ragFeatureEnabled: true,
+  ragAvailable: true,
   webpageBuilderEnabled: true,
   ragTopK: 8,
   ragSettings: {

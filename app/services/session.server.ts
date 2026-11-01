@@ -1,6 +1,6 @@
 import { createCookieSessionStorage, redirect } from "react-router";
 import crypto from "node:crypto";
-import type { ApiPlan } from "~/types/settings";
+import type { ApiPlan, CompatibleProvider } from "~/types/settings";
 
 const rawSessionSecret = process.env.SESSION_SECRET;
 if (!rawSessionSecret && process.env.NODE_ENV === "production") {
@@ -51,8 +51,16 @@ export async function getSession(request: Request) {
   return sessionStorage.getSession(request.headers.get("Cookie"));
 }
 
+// Browsers silently drop a Set-Cookie over ~4 KB, which would log the user out
+// or lose a key unlock. Fail loudly instead so the user can lock a key.
+const MAX_SESSION_COOKIE_BYTES = 4096;
+
 export async function commitSession(session: Awaited<ReturnType<typeof getSession>>) {
-  return sessionStorage.commitSession(session);
+  const cookie = await sessionStorage.commitSession(session);
+  if (cookie.length > MAX_SESSION_COOKIE_BYTES) {
+    throw Response.json({ error: "Too many provider keys are unlocked to fit in the session. Lock a provider key in Settings > General and try again." }, { status: 413 });
+  }
+  return cookie;
 }
 
 export async function destroySession(session: Awaited<ReturnType<typeof getSession>>) {
@@ -71,6 +79,9 @@ export interface SessionTokens {
   /** Empty string for sessions without a Drive root folder. */
   rootFolderId: string;
   geminiApiKey?: string;
+  openaiApiKey?: string;
+  jevApiKey?: string;
+  compatibleApiKeys?: Partial<Record<CompatibleProvider, string>>;
   apiPlan?: ApiPlan;
   selectedModel?: string;
   email?: string;
@@ -108,6 +119,25 @@ export async function getTokens(request: Request): Promise<SessionTokens | null>
   }
 
   let geminiApiKey: string | undefined;
+  let openaiApiKey: string | undefined;
+  const encryptedOpenAIKey = session.get("openaiApiKey") as string | undefined;
+  if (encryptedOpenAIKey && session.get("openaiKeyRootFolderId") === rootFolderId) {
+    try { openaiApiKey = decryptApiKey(encryptedOpenAIKey); } catch { /* locked */ }
+  }
+  let jevApiKey: string | undefined;
+  const encryptedJevKey = session.get("jevApiKey") as string | undefined;
+  if (encryptedJevKey && session.get("jevKeyRootFolderId") === rootFolderId) {
+    try { jevApiKey = decryptApiKey(encryptedJevKey); } catch { /* locked */ }
+  }
+  const compatibleApiKeys: Partial<Record<CompatibleProvider, string>> = {};
+  if (session.get("compatibleKeyRootFolderId") === rootFolderId) {
+    const encrypted = session.get("compatibleApiKeys") as Partial<Record<CompatibleProvider, string>> | undefined;
+    for (const provider of ["openrouter", "opencodego"] as const) {
+      if (encrypted?.[provider]) {
+        try { compatibleApiKeys[provider] = decryptApiKey(encrypted[provider]); } catch { /* locked */ }
+      }
+    }
+  }
   if (encryptedKey) {
     try {
       geminiApiKey = decryptApiKey(encryptedKey);
@@ -130,6 +160,9 @@ export async function getTokens(request: Request): Promise<SessionTokens | null>
     expiryTime: expiryTime ?? 0,
     rootFolderId: rootFolderId ?? "",
     geminiApiKey,
+    openaiApiKey,
+    jevApiKey,
+    compatibleApiKeys,
     apiPlan,
     selectedModel,
     email: sessionEmail,
@@ -146,12 +179,54 @@ export async function setTokens(
   tokens: SessionTokens
 ) {
   const session = await getSession(request);
+  const previousRoot = session.get("rootFolderId");
+  const changedRoot = !!previousRoot && previousRoot !== tokens.rootFolderId;
+  if (previousRoot !== tokens.rootFolderId) {
+    session.unset("jevApiKey");
+    session.unset("jevKeyRootFolderId");
+    session.unset("openaiApiKey");
+    session.unset("openaiKeyRootFolderId");
+    session.unset("compatibleApiKeys");
+    session.unset("compatibleKeyRootFolderId");
+  }
   session.set("accessToken", tokens.accessToken);
   session.set("refreshToken", tokens.refreshToken);
   session.set("expiryTime", tokens.expiryTime);
   session.set("rootFolderId", tokens.rootFolderId);
   if (tokens.geminiApiKey !== undefined) {
     session.set("geminiApiKey", tokens.geminiApiKey ? encryptApiKey(tokens.geminiApiKey) : "");
+  }
+  // Locked keys are unset rather than stored empty to keep the cookie small.
+  if (tokens.openaiApiKey !== undefined && !changedRoot) {
+    if (tokens.openaiApiKey) {
+      session.set("openaiApiKey", encryptApiKey(tokens.openaiApiKey));
+      session.set("openaiKeyRootFolderId", tokens.rootFolderId);
+    } else {
+      session.unset("openaiApiKey");
+      session.unset("openaiKeyRootFolderId");
+    }
+  }
+  if (tokens.jevApiKey !== undefined && !changedRoot) {
+    if (tokens.jevApiKey) {
+      session.set("jevApiKey", encryptApiKey(tokens.jevApiKey));
+      session.set("jevKeyRootFolderId", tokens.rootFolderId);
+    } else {
+      session.unset("jevApiKey");
+      session.unset("jevKeyRootFolderId");
+    }
+  }
+  if (tokens.compatibleApiKeys !== undefined && !changedRoot) {
+    const encrypted: Partial<Record<CompatibleProvider, string>> = {};
+    for (const provider of ["openrouter", "opencodego"] as const) {
+      if (tokens.compatibleApiKeys[provider]) encrypted[provider] = encryptApiKey(tokens.compatibleApiKeys[provider]);
+    }
+    if (Object.keys(encrypted).length) {
+      session.set("compatibleApiKeys", encrypted);
+      session.set("compatibleKeyRootFolderId", tokens.rootFolderId);
+    } else {
+      session.unset("compatibleApiKeys");
+      session.unset("compatibleKeyRootFolderId");
+    }
   }
   if (tokens.apiPlan !== undefined) {
     session.set("apiPlan", tokens.apiPlan);

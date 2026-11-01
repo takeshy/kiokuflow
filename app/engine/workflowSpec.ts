@@ -10,6 +10,8 @@ import { getAvailableModels } from "~/types/settings";
 
 interface WorkflowSpecContext {
   apiPlan?: ApiPlan;
+  openAIEnabled?: boolean;
+  compatibleProviders?: import("~/types/settings").UserSettings["compatibleProviders"];
   mcpServers?: McpServerConfig[];
   ragSettingNames?: string[];
   outputAsMarkdown?: boolean;
@@ -17,7 +19,7 @@ interface WorkflowSpecContext {
 }
 
 export function getWorkflowSpecification(context?: WorkflowSpecContext): string {
-  const models = getAvailableModels(context?.apiPlan ?? "paid");
+  const models = getAvailableModels(context?.apiPlan ?? "paid", context?.openAIEnabled, context?.compatibleProviders);
   const modelList = buildModelList(models);
   const mcpSection = buildMcpSection(context?.mcpServers);
   const mcpServerList = buildMcpServerList(context?.mcpServers);
@@ -401,7 +403,7 @@ Form-data example with file upload:
 
 ${mcpSection}
 #### rag-sync
-Sync a Drive file to a Gemini RAG (File Search) store.
+Index a Drive file with the configured Gemini/OpenAI embedding model in Firestore. Requires a paid GemiHub plan.
 - **path** (required): File path on Drive
 - **ragSetting** (required): RAG setting name${ragSyncSection}
 - **saveTo** (optional): Variable for result JSON: \`{path, ragSetting, fileId, storeName, mode, syncedAt}\`

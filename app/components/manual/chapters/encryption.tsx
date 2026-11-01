@@ -16,7 +16,7 @@ function EncryptionEn() {
       </figure>
       <div className={prose}>
         <p>
-          GemiHub supports client-side encryption using a hybrid RSA+AES scheme. All encryption and decryption happens in your browser — your password is never sent to any server.
+          GemiHub supports client-side encryption using a hybrid RSA+AES scheme. File encryption and decryption happen in your browser. API-key save, unlock and password-change requests are handled by the server; passwords are not persisted.
         </p>
 
         <h2>Setting Up Encryption</h2>
@@ -25,7 +25,7 @@ function EncryptionEn() {
         </figure>)}
         <ol>
           <li>Go to <strong>Settings &gt; General</strong>.</li>
-          <li>In the <strong>API Key &amp; Password</strong> section, set a password (minimum 8 characters).</li>
+          <li>In the <strong>Encryption</strong> section, set a password (minimum 8 characters).</li>
           <li>The password is used to derive encryption keys on the client side.</li>
         </ol>
 
@@ -56,7 +56,7 @@ function EncryptionEn() {
 
         <h2>API Key Protection</h2>
         <p>
-          Your Gemini API key is encrypted with your password and stored securely on Drive. You&apos;ll need to enter your password when starting a new session to unlock the API key.
+          Gemini, OpenAI, OpenRouter, OpenCode Go and direct Jev keys are saved encrypted on Drive. Set, verify, change or unlock provider passwords in Settings &gt; General; enter API keys in AI providers. The unlocked server session also encrypts keys. Entered provider passwords are retained only in settings-screen memory and discarded when you leave.
         </p>
 
         <h2>Important Notes</h2>
@@ -65,12 +65,12 @@ function EncryptionEn() {
             Warning: If you lose your password, there is no way to recover encrypted data.
           </p>
           <p className="!mb-0">
-            The password is used entirely on the client side and is never stored on any server. GemiHub cannot reset or recover your password. Encrypted files, chat history, workflow history, and your API key will all become permanently inaccessible. Always keep your password in a safe place.
+            File encryption happens in the browser. API-key operations send the password to the server, which does not persist it. GemiHub cannot reset or recover your password. Encrypted files, chat history, workflow history, and your API key will all become permanently inaccessible. Always keep your password in a safe place.
           </p>
         </div>
         <ul>
           <li>Encrypted files are stored on Drive in encrypted form — even Google cannot read them.</li>
-          <li>The password is cached in your browser session. You only need to enter it once per session.</li>
+          <li>Provider passwords entered in Settings are cleared when the settings screen closes. Unlocked API keys remain available until locked or the session ends.</li>
           <li>Resetting encryption keys will make all previously encrypted data unreadable.</li>
         </ul>
       </div>
@@ -87,7 +87,7 @@ function EncryptionJa() {
       </figure>
       <div className={prose}>
         <p>
-          GemiHubは、ハイブリッドRSA+AES方式によるクライアントサイド暗号化をサポートしています。すべての暗号化・復号はブラウザ内で行われ、パスワードがサーバーに送信されることはありません。
+          GemiHubは、ハイブリッドRSA+AES方式によるクライアントサイド暗号化をサポートしています。ファイルの暗号化・復号はブラウザ内で行います。APIキーの保存・解除・パスワード変更はサーバーで処理しますが、パスワードは永続保存しません。
         </p>
 
         <h2>暗号化のセットアップ</h2>
@@ -96,7 +96,7 @@ function EncryptionJa() {
         </figure>)}
         <ol>
           <li><strong>設定 &gt; 一般</strong>に移動。</li>
-          <li><strong>APIキー &amp; パスワード</strong>セクションでパスワードを設定（8文字以上）。</li>
+          <li><strong>暗号化</strong>セクションでパスワードを設定（8文字以上）。</li>
           <li>パスワードはクライアントサイドで暗号化キーの生成に使用されます。</li>
         </ol>
 
@@ -127,7 +127,7 @@ function EncryptionJa() {
 
         <h2>APIキーの保護</h2>
         <p>
-          Gemini APIキーはパスワードで暗号化され、Driveに安全に保存されます。新しいセッション開始時にAPIキーを解除するためにパスワードの入力が必要です。
+          Gemini・OpenAI・OpenRouter・OpenCode Go・Jev直接接続のキーは暗号化してDriveに保存します。パスワードの設定・確認・変更・ロック解除は設定 → 一般、APIキーの入力はAIプロバイダーで行います。解除したサーバーセッション内のキーも暗号化します。入力したプロバイダーのパスワードは設定画面のメモリ内だけに保持し、画面を離れると破棄します。
         </p>
 
         <h2>重要な注意事項</h2>
@@ -136,12 +136,12 @@ function EncryptionJa() {
             警告：パスワードを紛失すると、暗号化されたデータを復元する方法はありません。
           </p>
           <p className="!mb-0">
-            パスワードは完全にクライアントサイドで使用され、サーバーには一切保存されません。GemiHubがパスワードをリセットしたり復元することはできません。暗号化されたファイル、チャット履歴、ワークフロー履歴、APIキーのすべてが永久にアクセス不能になります。パスワードは必ず安全な場所に保管してください。
+            ファイルの暗号化はブラウザ内で行います。APIキーの保存・解除・パスワード変更ではサーバーへパスワードを送信しますが、永続保存しません。GemiHubがパスワードをリセットしたり復元することはできません。暗号化されたファイル、チャット履歴、ワークフロー履歴、APIキーのすべてが永久にアクセス不能になります。パスワードは必ず安全な場所に保管してください。
           </p>
         </div>
         <ul>
           <li>暗号化ファイルは暗号化された状態でDriveに保存されます。Googleでさえ読み取れません。</li>
-          <li>パスワードはブラウザセッションにキャッシュされます。セッションごとに1回入力するだけです。</li>
+          <li>設定で入力したプロバイダーのパスワードは、設定画面を閉じると破棄します。解除済みのAPIキーは、ロックまたはセッション終了まで利用できます。</li>
           <li>暗号化キーをリセットすると、以前に暗号化されたすべてのデータが読み取れなくなります。</li>
         </ul>
       </div>

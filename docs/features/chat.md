@@ -1,21 +1,82 @@
 ---
 type: Guide
 title: Chat
-description: AI chat with Gemini streaming, function calling (Drive/MCP/Google Search/RAG), slash commands, file references, attachments, and encrypted history.
+description: AI chat with Gemini, OpenAI, OpenRouter, and OpenCode Go streaming, tool calling, Live voice conversations, slash commands, attachments, and encrypted history.
 tags:
   - chat
 ---
 # Chat
 
-AI chat with Gemini streaming, function calling, RAG, image generation, and MCP integration.
+AI chat with Gemini, OpenAI, OpenRouter, and OpenCode Go streaming, function calling, RAG, image generation, and MCP integration.
+
+## OpenAI and Live voice conversations
+
+On **My Drive**, set or verify the OpenAI encryption password in
+**Settings > General**, then save the API key in **Settings > AI providers > OpenAI**.
+The password must have at least eight characters and is
+separate from the Gemini/file encryption password. The key is encrypted in
+Drive settings; unlocking stores an encrypted copy in the authenticated session.
+The raw OpenAI key is never returned to the browser. Replace or remove the key in the provider tab. Password setup, verification,
+unlocking, locking, and changes are managed in **Settings > General**.
+
+Configured accounts can choose OpenAI models, including **GPT-6.1 Sol**,
+**GPT-6.1 Terra**, **GPT-6 Luna** and **GPT-6 Astra**, from the chat model menu,
+regardless of the Gemini Free/Paid setting. OpenAI uses the Responses API with
+streaming, reasoning summaries, Drive/MCP/skill tools, native Web Search, and
+token usage across tool rounds. Conversation summaries, Timeline answers,
+workflow command nodes, workflow generation, and Base AI editing also support
+OpenAI. API usage is billed to the user's OpenAI account. Organization projects
+and personal Vertex keep their Vertex execution paths.
+
+OpenAI chat accepts images, PDFs and text. RAG uses Gemini or OpenAI embeddings and Firestore and requires a paid GemiHub
+plan. Gemini image generation remains a Gemini feature. Audio/video attachments require Gemini;
+use **Live** for an OpenAI voice conversation. Scheduled/background workflows
+do not store OpenAI, OpenRouter, or OpenCode Go keys outside the user's session.
+
+Click **Live** in the chat header to open a speech-to-speech conversation.
+Choose a Realtime model and voice, optionally include the current text chat as
+context, then click **Start conversation** and grant microphone access. Live
+requires HTTPS (or localhost), WebRTC, and a microphone. The response voice is
+AI generated. The OpenAI Realtime API uses automatic turn detection and supports
+interrupting a response by speaking. Mute/unmute and audio playback controls are
+available during the call. Ending or closing Live disconnects the call and stops
+the microphone; the displayed transcript is appended to the current chat and
+saved through normal chat history. Live is a voice conversation mode; Drive and
+MCP operations use the text chat. Leaving the page ends the call.
+
+Implementation follows the official OpenAI [Responses tool-calling](https://developers.openai.com/api/docs/guides/function-calling)
+and [Realtime WebRTC](https://developers.openai.com/api/docs/guides/voice-webrtc?voice-api=realtime)
+interfaces.
+
+## OpenRouter and OpenCode Go
+
+On **My Drive**, first set or verify the provider-specific encryption password
+in **Settings > General**. Then open **Settings > AI providers > OpenRouter / OpenCode Go**,
+enter the API key, and choose
+**Verify and fetch models**, check the models to enable, then save.
+Choose the provider above the tabs and save to make its selected model the
+default. Browsing settings tabs does not change the active provider.
+Passwords and key unlocking/locking are managed in **Settings > General**.
+Entered passwords stay only in memory while this settings screen is open; they
+are not written to localStorage or IndexedDB. Existing encryption formats and
+provider passwords are preserved.
+
+Enabled models are available in chat, slash commands, Timeline AI, Kakeratta,
+and workflow execution/generation. Requests use a same-origin server proxy,
+with each provider's own key and fixed endpoint. OpenCode Go sends GemiHub's
+user agent and a stable conversation routing ID. Native web search uses
+OpenRouter's web plugin; OpenCode Go can use a web search MCP tool.
+Live voice conversations continue to use the OpenAI Realtime connection.
+RAG keeps its separately configured Gemini/OpenAI embedding provider and
+requires a paid GemiHub account. Organization projects use Vertex AI.
 
 ## Features
 
 - **Streaming Responses**: Real-time text generation via Server-Sent Events (SSE)
-- **Function Calling**: Gemini calls Drive tools, MCP tools, RAG/File Search, and Google Search
+- **Function Calling**: Models call Drive/MCP tools and use retrieved Firestore RAG context or native Web Search
 - **Drive Tool Integration**: Read, search, list, create, update, and rename Drive files from chat
 - **MCP Tools**: Dynamically-discovered tools from MCP servers (prefixed `mcp_{serverId}_{tool}`)
-- **RAG / Web Search**: Retrieval-Augmented Generation via Gemini File Search, or Google Search mode
+- **RAG / Web Search**: Retrieval-Augmented Generation via Firestore vectors (paid GemiHub accounts), or native Web Search
 - **Extended Thinking**: Collapsible thinking/reasoning display for supported models
 - **Image Generation**: Generate images with Imagen-capable models
 - **Chat History**: Auto-saved to Google Drive with optional encryption
@@ -151,17 +212,17 @@ Model selection is per-chat via the dropdown. Slash commands can override the mo
 
 ## RAG & Web Search
 
-### RAG (File Search)
+### RAG (Firestore vector search)
 
-Select a RAG store from the dropdown. Gemini uses Gemini File Search with configured store IDs. Results include source attribution displayed as badges.
+Select a RAG setting from the dropdown. Paid GemiHub accounts retrieve Firestore chunks using the configured Gemini/OpenAI embedding model before chat generation. Results include source paths displayed as badges.
 
 ### Web Search
 
-Select "Web Search" from the dropdown. Uses `googleSearch` tool. Incompatible with function calling and MCP tools (auto-disabled).
+Select "Web Search" from the dropdown. Gemini uses Google Search, OpenAI uses its native web search, and OpenRouter uses its web plugin. OpenCode Go can use an explicitly configured web-search MCP tool. Available tools depend on the selected model and provider.
 
 ### RAG Top-K
 
-Configurable in settings (1-20, default 5). Controls how many search results are considered.
+Saved per RAG in Settings > RAG (1–20, default 5). Chat, timeline answers and workflows use the selected index's value. With Jev enabled, Top K is the candidate batch size; filtering can return fewer results. The saved Search until a match is found option checks subsequent batches until Jev finds a confirmed match or the candidates run out (up to 1,000). Configure direct Jev or OpenRouter credentials under AI providers > Jev and manage passwords under General. See [RAG setup](../integrations/rag.md).
 
 ---
 

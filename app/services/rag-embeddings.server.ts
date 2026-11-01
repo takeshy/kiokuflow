@@ -89,6 +89,8 @@ export async function generateEmbeddings(
     try {
       const response = await ai.models.embedContent({
         model: EMBEDDING_MODEL,
+        // Keep the original format: existing project indexes were embedded
+        // this way, and changing it would mix embedding regimes.
         contents: toEmbeddingContents(texts[i]),
         config: {
           taskType,

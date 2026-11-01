@@ -242,6 +242,9 @@ export interface ServiceContext {
   driveRootFolderId: string;
   driveHistoryFolderId: string;
   geminiApiKey?: string;
+  openaiApiKey?: string;
+  jevApiKey?: string;
+  compatibleApiKeys?: Partial<Record<import("~/types/settings").CompatibleProvider, string>>;
   /**
    * Personal (non-org) Vertex AI for the user who selected it in settings.
    * When set, AI nodes run on this tenant and ignore `geminiApiKey`; the

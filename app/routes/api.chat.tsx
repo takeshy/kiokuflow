@@ -1,3 +1,7 @@
+import { getChatApiKey } from "~/types/settings";
+import { retrievePersonalRagForChat } from "~/services/rag-index.server";
+import { serverCompatibleOptions } from "~/services/compatible-provider.server";
+import { formatRagContext } from "~/services/rag-context";
 import { streamMcpApproval, rememberMcpTool } from "~/services/mcp-approval.server";
 import { isReadOnlyDriveTool } from "~/services/drive-tool-definitions";
 import type { Route } from "./+types/api.chat";
@@ -12,6 +16,8 @@ import { getDriveToolModeConstraint, getEnabledMcpServers, isImageGenerationMode
 import type { ToolDefinition, McpServerConfig, ModelType } from "~/types/settings";
 import type { Message, StreamChunk } from "~/types/chat";
 import { createLogContext, emitLog } from "~/services/logger.server";
+import { isExternalChatModel } from "~/types/settings";
+import { openAIChatWithToolsStream } from "~/services/openai-chat";
 
 const ChatRequestSchema = z.object({
   messages: z.array(z.object({
@@ -88,11 +94,12 @@ export async function action({ request }: Route.ActionArgs) {
     }
   }
 
-  const apiKey = validTokens.geminiApiKey;
+  const openai = typeof rawBody?.model === "string" && isExternalChatModel(rawBody.model);
+  const apiKey = getChatApiKey(String(rawBody?.model || ""), validTokens);
   if (!apiKey) {
     emitLog(logCtx, 400, { error: "Gemini API key not configured" });
     return new Response(
-      JSON.stringify({ error: "Gemini API key not configured" }),
+      JSON.stringify({ error: openai ? "AI provider key is locked. Unlock it in Settings > General." : "Gemini API key not configured" }),
       { status: 400, headers: { "Content-Type": "application/json", ...responseHeaders } }
     );
   }
@@ -109,8 +116,18 @@ export async function action({ request }: Route.ActionArgs) {
   const validData = parsed.data;
   const messages = validData.messages as unknown as Message[];
   const model = validData.model as ModelType;
-  const systemPrompt = validData.systemPrompt;
+  let systemPrompt = validData.systemPrompt;
   const ragStoreIds = validData.ragStoreIds;
+  const { rag: retrievedRag, error: ragError } = await retrievePersonalRagForChat(validTokens, ragStoreIds, validData.messages, validData.settings?.ragTopK, request.signal);
+  if (ragError) {
+    emitLog(logCtx, 400, { error: ragError });
+    return new Response(
+      JSON.stringify({ error: ragError }),
+      { status: 400, headers: { "Content-Type": "application/json", ...responseHeaders } },
+    );
+  }
+  if (retrievedRag) systemPrompt = [systemPrompt, formatRagContext(retrievedRag)].filter(Boolean).join("\n\n");
+
   const enableDriveTools = validData.enableDriveTools;
   const rawDriveToolMode = validData.driveToolMode;
   const enableMcp = validData.enableMcp;
@@ -284,6 +301,7 @@ export async function action({ request }: Route.ActionArgs) {
       };
 
       try {
+        if (retrievedRag) sendChunk({ type: "rag_used", ragSources: retrievedRag.sources });
         let generator: AsyncGenerator<StreamChunk>;
 
         if (isImageGenerationModel(model)) {
@@ -294,6 +312,11 @@ export async function action({ request }: Route.ActionArgs) {
             model,
             systemPrompt
           );
+        } else if (openai) {
+          generator = openAIChatWithToolsStream(model, messages, tools, systemPrompt, executeToolCall, {
+            serverApiKey: apiKey, serverCompatible: await serverCompatibleOptions(model, validTokens), abortSignal: request.signal, webSearchEnabled, reasoningEffort,
+            functionCallLimits: { maxFunctionCalls: 50 },
+          });
         } else {
           // Chat with tools mode
           generator = chatWithToolsStream(
@@ -303,7 +326,7 @@ export async function action({ request }: Route.ActionArgs) {
             tools,
             systemPrompt,
             tools.length > 0 ? executeToolCall : undefined,
-            ragStoreIds,
+            undefined,
             {
               ragTopK: requestSettings?.ragTopK,
               functionCallLimits: {

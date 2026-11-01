@@ -109,7 +109,6 @@ export interface ChatWithToolsOptions {
 
 const DEFAULT_MAX_FUNCTION_CALLS = 50;
 const DEFAULT_WARNING_THRESHOLD = 10;
-const DEFAULT_RAG_TOP_K = 5;
 const FILE_SEARCH_STORE_PREFIX = "fileSearchStores/";
 
 async function maybeExtendFunctionCallLimit(
@@ -480,8 +479,6 @@ export async function* chatWithToolsStream(
     options?.functionCallLimits?.functionCallWarningThreshold ?? DEFAULT_WARNING_THRESHOLD,
     maxFunctionCalls
   );
-  const rawTopK = options?.ragTopK ?? DEFAULT_RAG_TOP_K;
-  const clampedTopK = Number.isFinite(rawTopK) ? Math.min(20, Math.max(1, rawTopK)) : DEFAULT_RAG_TOP_K;
   let functionCallCount = 0;
   let lastLimitExtensionPromptLimit: number | null = null;
   let geminiTools: Tool[] | undefined;
@@ -506,17 +503,7 @@ export async function* chatWithToolsStream(
     if (tools.length > 0) {
       geminiTools = toolsToGeminiFormat(tools);
     }
-    if (normalizedRagStoreIds && normalizedRagStoreIds.length > 0) {
-      if (!geminiTools) {
-        geminiTools = [];
-      }
-      geminiTools.push({
-        fileSearch: {
-          fileSearchStoreNames: normalizedRagStoreIds,
-          topK: clampedTopK,
-        },
-      });
-    }
+    if (normalizedRagStoreIds?.length) throw new Error("Use the authenticated Firestore RAG context endpoint before calling the model.");
   }
 
   const historyMessages = messages.slice(0, -1);

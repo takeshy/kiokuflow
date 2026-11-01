@@ -33,7 +33,7 @@ with no Google Cloud credentials) never sees any of the organization surface.
 
 ### Customer-owned Vertex AI (Drive mount)
 
-"My Google Cloud project" in Settings > General > Vertex AI mirrors the
+"My Google Cloud project" in Settings > AI providers > Vertex AI mirrors the
 desktop app's two-step flow: the user first uploads a **Web application**
 OAuth client JSON exported from their own Google Cloud project (`POST
 /api/personal-vertex/connection`, validated by `parseVertexOAuthClientInput`

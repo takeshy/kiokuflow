@@ -1,3 +1,5 @@
+import { hasJevConfiguration, normalizeRagSettings, resolveRagTopK } from "~/services/rag-search-options";
+import { EMBEDDING_MODELS, embeddingConfig } from "~/services/rag-config";
 import { useState, useCallback, useEffect } from "react";
 import { useFetcher } from "react-router";
 import {
@@ -35,10 +37,11 @@ export function RagTab({
   disabledByApiKey?: boolean;
 }) {
   const fetcher = useFetcher();
-  const { t } = useI18n();
+  const { t, language } = useI18n();
 
-  const [ragTopK, setRagTopK] = useState(settings.ragTopK);
-  const [ragSettings, setRagSettings] = useState<Record<string, RagSetting>>(settings.ragSettings);
+  const ragTopK = settings.ragTopK;
+  const jevConfigured = hasJevConfiguration(settings);
+  const [ragSettings, setRagSettings] = useState<Record<string, RagSetting>>(Object.fromEntries(Object.entries(normalizeRagSettings(settings.ragSettings, settings.ragTopK)).map(([key, value]) => [key, { ...value, isExternal: false, storeIds: [] }])));
   const [selectedRagSetting, setSelectedRagSetting] = useState<string | null>(
     settings.ragSettings[DEFAULT_RAG_STORE_KEY] ? DEFAULT_RAG_STORE_KEY : settings.selectedRagSetting
   );
@@ -49,8 +52,6 @@ export function RagTab({
   const [renameValue, setRenameValue] = useState("");
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [copiedStoreId, setCopiedStoreId] = useState<string | null>(null);
-  const [editingTopK, setEditingTopK] = useState(false);
-  const [topKDraft, setTopKDraft] = useState(settings.ragTopK);
   const [showAutoRagModal, setShowAutoRagModal] = useState(false);
   const [okfRoot, setOkfRoot] = useState(settings.okfRoot || DEFAULT_OKF_ROOT);
   const [savedOkfRoot, setSavedOkfRoot] = useState(normalizeOkfRoot(settings.okfRoot || DEFAULT_OKF_ROOT));
@@ -287,14 +288,14 @@ export function RagTab({
     return { total, registered, pending: total - registered };
   }, [ragSettings]);
 
-  if (disabledByApiKey) {
+  if (!settings.ragAvailable || disabledByApiKey) {
     return (
       <SectionCard>
         <div className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
           <Database size={18} className="mt-0.5 flex-shrink-0" />
           <div>
-            <p className="font-semibold">{t("settings.rag.aqKeyUnsupportedTitle")}</p>
-            <p className="mt-1">{t("settings.rag.aqKeyUnsupportedDescription")}</p>
+            <p className="font-semibold">{language === "ja" ? "RAGは有料プラン限定です" : "RAG requires a paid plan"}</p>
+            <p className="mt-1">{language === "ja" ? "有効なGemiHubの有料プランとFirestoreが必要です。" : "An active paid GemiHub plan and Firestore are required."}</p>
           </div>
         </div>
       </SectionCard>
@@ -447,75 +448,6 @@ export function RagTab({
           </div>
         </div>
       )}
-
-      {/* Top-K inline edit */}
-      <div className="mb-6">
-        {editingTopK ? (
-          <div className="flex items-center gap-2">
-            <Label>{t("settings.rag.topK")}:</Label>
-            <input
-              type="number"
-              min={1}
-              max={20}
-              value={topKDraft}
-              onChange={(e) => setTopKDraft(Math.min(20, Math.max(1, Number(e.target.value) || 1)))}
-              className={inputClass + " max-w-[80px]"}
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  setRagTopK(topKDraft);
-                  saveRagSettings({ ragTopK: topKDraft });
-                  setEditingTopK(false);
-                }
-                if (e.key === "Escape") setEditingTopK(false);
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => {
-                setRagTopK(topKDraft);
-                saveRagSettings({ ragTopK: topKDraft });
-                setEditingTopK(false);
-              }}
-              className="p-1 rounded text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
-              title="Apply"
-            >
-              <Check size={16} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditingTopK(false)}
-              className="p-1 rounded text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-              title="Cancel"
-            >
-              <X size={16} />
-            </button>
-          </div>
-        ) : (
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-700 dark:text-gray-300">
-                {t("settings.rag.topK")}: <span className="font-medium">{ragTopK}</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setTopKDraft(ragTopK);
-                  setEditingTopK(true);
-                }}
-                className="p-1 rounded text-gray-400 hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-800"
-                title="Edit"
-              >
-                <Pencil size={14} />
-              </button>
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              {t("settings.rag.topKDescription")}
-            </p>
-          </div>
-        )}
-      </div>
 
       {/* RAG settings list */}
       <div className="mb-6">
@@ -687,30 +619,33 @@ export function RagTab({
                   </div>
 
                   {/* Expanded editor */}
+                  <div className="space-y-3 border-t border-gray-100 px-4 py-3 dark:border-gray-800" aria-label={`${name} search options`}>
+                    <label className="flex items-center gap-3 text-sm" htmlFor={`rag-top-k-${name}`}>Top K<input id={`rag-top-k-${name}`} type="number" min={1} max={20} value={resolveRagTopK(s, settings.ragTopK)} onChange={event => updateCurrentSettingByKey(name, { topK: Math.min(20, Math.max(1, Number(event.target.value) || 1)) })} className={inputClass + " max-w-[90px]"} /></label>
+                    <label className="flex items-center gap-2 text-sm"><input type="checkbox" disabled={!jevConfigured} checked={jevConfigured && s.jevRagFilterEnabled !== false} onChange={event => updateCurrentSettingByKey(name, { jevRagFilterEnabled: event.target.checked })} />{language === "ja" ? "Jevで一致を判定する" : "Check relevance with Jev"}</label>
+                    {jevConfigured && s.jevRagFilterEnabled !== false ? <p className="text-xs text-gray-500">{language === "ja" ? "Top Kは1回にJevが判定する候補数です。判定後の件数は少なくなることがあります。" : "Top K is the number of candidates judged per batch. Fewer may remain after filtering."}</p> : !jevConfigured ? <p className="text-xs text-gray-500">{language === "ja" ? "Jevの登録は「AIプロバイダー → Jev」で行えます。" : "Configure Jev in AI providers > Jev."}</p> : null}
+                    <label className="flex items-center gap-2 text-sm"><input type="checkbox" disabled={!jevConfigured || s.jevRagFilterEnabled === false} checked={s.searchUntilMatch === true} onChange={event => updateCurrentSettingByKey(name, { searchUntilMatch: event.target.checked })} />{language === "ja" ? "一致するまで検索" : "Search until a match is found"}</label>
+                    <p className="text-xs text-gray-500">{language === "ja" ? "有効時は、一致が見つかるか候補が尽きるまでTop K件ずつ判定します（最大1000候補）。" : "Judge successive Top K batches until a match is found or candidates run out (up to 1,000 candidates)."}</p>
+                    <button type="button" onClick={() => {
+                      const persisted = settings.ragSettings[name] || s;
+                      saveRagSettings({ ragSettings: { ...settings.ragSettings, [name]: { ...persisted, topK: resolveRagTopK(s, settings.ragTopK), jevRagFilterEnabled: s.jevRagFilterEnabled ?? true, searchUntilMatch: s.searchUntilMatch ?? false } } });
+                    }} className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white">{language === "ja" ? "検索設定を保存" : "Save search options"}</button>
+                  </div>
+
                   {isEditing && (
                     <div className="px-4 py-4 bg-gray-50 dark:bg-gray-800/50 space-y-4 border-t border-gray-200 dark:border-gray-700">
-                      {/* Internal / External toggle */}
-                      <div>
-                        <Label>{t("settings.rag.type")}</Label>
-                        <div className="flex gap-4 mt-1">
-                          {[
-                            { value: false, label: t("settings.rag.typeInternal") },
-                            { value: true, label: t("settings.rag.typeExternal") },
-                          ].map((opt) => (
-                            <label
-                              key={String(opt.value)}
-                              className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
-                            >
-                              <input
-                                type="radio"
-                                checked={s.isExternal === opt.value}
-                                onChange={() => updateCurrentSettingByKey(name, { isExternal: opt.value })}
-                                className="text-blue-600 focus:ring-blue-500"
-                              />
-                              {opt.label}
-                            </label>
-                          ))}
-                        </div>
+                      <div className="space-y-3">
+                        <Label>{language === "ja" ? "Embedding プロバイダー" : "Embedding provider"}</Label>
+                        <select className={inputClass} value={embeddingConfig(s).provider} onChange={(event) => {
+                          const provider = event.target.value as "gemini" | "openai";
+                          updateCurrentSettingByKey(name, { embeddingProvider: provider, embeddingModel: EMBEDDING_MODELS[provider][0], isExternal: false });
+                        }}><option value="gemini">Gemini</option><option value="openai">OpenAI</option></select>
+                        <Label>{language === "ja" ? "Embedding モデル" : "Embedding model"}</Label>
+                        <select className={inputClass} value={embeddingConfig(s).model} onChange={(event) => updateCurrentSettingByKey(name, { embeddingModel: event.target.value })}>
+                          {EMBEDDING_MODELS[embeddingConfig(s).provider].map((model) => <option key={model}>{model}</option>)}
+                        </select>
+                        <p className="text-xs text-gray-500">{language === "ja" ? "Firestoreに保存します。モデル変更後は同期して再インデックスしてください。OpenAIはテキストと文字を抽出できるPDF、Gemini Embedding 2は画像・スキャンPDFにも対応します。" : "Stored in Firestore. Sync to rebuild after changing models. OpenAI supports text and text PDFs; Gemini Embedding 2 also supports images and scanned PDFs."}</p>
+                        <label className="block text-sm">Chunk size<input className={inputClass} type="number" min={100} max={5000} value={s.chunkSize || 1500} onChange={(event) => updateCurrentSettingByKey(name, { chunkSize: Number(event.target.value) })} /></label>
+                        <label className="block text-sm">Chunk overlap<input className={inputClass} type="number" min={0} max={(s.chunkSize || 1500) - 1} value={s.chunkOverlap ?? 150} onChange={(event) => updateCurrentSettingByKey(name, { chunkOverlap: Number(event.target.value) })} /></label>
                       </div>
 
                       {s.isExternal ? (

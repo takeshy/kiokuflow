@@ -1,4 +1,6 @@
 import { SHOW_WEBPAGE_BUILDER } from "~/config/feature-visibility";
+import { hasJevConfiguration, resolveRagTopK } from "~/services/rag-search-options";
+import { canUseRag } from "~/services/rag-access.server";
 import { KakerattaConnection } from "~/components/KakerattaConnection";
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { data, redirect, useLoaderData } from "react-router";
@@ -115,7 +117,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     }
     const acceptLanguage = request.headers.get("Accept-Language");
     return data({
-      settings: { ...DEFAULT_USER_SETTINGS, language: resolveLanguage(null, acceptLanguage) } as UserSettings,
+      settings: { ...DEFAULT_USER_SETTINGS, ragAvailable: await canUseRag("", enterprise.currentOrgId || undefined), language: resolveLanguage(null, acceptLanguage) } as UserSettings,
       hasGeminiApiKey: false,
       hasEncryptedApiKey: false,
       rootFolderId: "",
@@ -214,7 +216,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     const cookie = setCookieHeader ?? selectionCookie;
     return data(
       {
-        settings: { ...settings, language: effectiveLanguage } as UserSettings,
+        settings: { ...settings, ragAvailable: await canUseRag(validTokens.rootFolderId, enterprise.selection?.orgId), language: effectiveLanguage } as UserSettings,
         hasGeminiApiKey: !!validTokens.geminiApiKey,
         hasEncryptedApiKey: !!settings.encryptedApiKey,
         rootFolderId: validTokens.rootFolderId,
@@ -231,7 +233,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     // so the client can fall back to IndexedDB-cached settings.
     const acceptLanguage = request.headers.get("Accept-Language");
     return data({
-      settings: { ...DEFAULT_USER_SETTINGS, language: resolveLanguage(null, acceptLanguage) } as UserSettings,
+      settings: { ...DEFAULT_USER_SETTINGS, ragAvailable: false, language: resolveLanguage(null, acceptLanguage) } as UserSettings,
       hasGeminiApiKey: !!tokens.geminiApiKey,
       hasEncryptedApiKey: false,
       rootFolderId: tokens.rootFolderId,
@@ -330,7 +332,7 @@ export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs) {
     // redirecting to /lp (which also fails offline and shows a blank page)
     if (!navigator.onLine) {
       cachedLoaderData = applyLocalStorageLanguage({
-        settings: { ...DEFAULT_USER_SETTINGS, language: resolveLanguage(null, navigator.language) } as LoaderData["settings"],
+        settings: { ...DEFAULT_USER_SETTINGS, ragAvailable: false, language: resolveLanguage(null, navigator.language) } as LoaderData["settings"],
         hasGeminiApiKey: false,
         hasEncryptedApiKey: false,
         rootFolderId: "",
@@ -832,10 +834,10 @@ function IDEContent({
   }, [activeFileId, fileList]);
 
   const ragStoreIds = useMemo(() => {
-    const rs = settings.ragSettings?.["gemihub"];
-    if (!rs?.storeId) return [];
+    const rs = settings.ragSettings?.[settings.selectedRagSetting || "gemihub"];
+    if (!settings.ragAvailable || !settings.ragFeatureEnabled || !rs?.storeId) return [];
     return [rs.storeId];
-  }, [settings.ragSettings]);
+  }, [settings.ragSettings, settings.selectedRagSetting, settings.ragAvailable, settings.ragFeatureEnabled]);
 
   // Silent workflow execution status (for shortcut-triggered background execution)
   const [silentExecStatus, setSilentExecStatus] = useState<{ id: string; name: string; state: "running" | "done" | "error" } | null>(null);
@@ -1278,9 +1280,15 @@ function IDEContent({
 
   const searchPanelContent = (
     <SearchPanel
+      key={projectSelection ? `gcs:${projectSelection.orgId}/${projectSelection.projectId}` : rootFolderId}
+      workspaceKey={projectSelection ? `gcs:${projectSelection.orgId}/${projectSelection.projectId}` : rootFolderId}
+      ragAvailable={!!settings.ragAvailable}
+      ragSettingName={settings.ragFeatureEnabled ? settings.selectedRagSetting || "gemihub" : ""}
       apiPlan={settings.apiPlan}
       ragStoreIds={ragStoreIds}
-      ragTopK={settings.ragTopK}
+      ragTopK={resolveRagTopK(settings.ragSettings?.[settings.selectedRagSetting || "gemihub"], settings.ragTopK)}
+      ragSettings={settings.ragFeatureEnabled ? settings.ragSettings : undefined}
+      jevAvailable={hasJevConfiguration(settings)}
       fileList={fileList}
       onSelectFile={isMobile ? handleSelectFileMobile : handleSelectFile}
       onClose={() => setShowSearch(false)}
@@ -1716,6 +1724,8 @@ function IDEContent({
           currentName={aiDialog.currentName}
           workflowId={aiDialog.currentFileId}
           apiPlan={settings.apiPlan}
+          compatibleProviders={!settings?.usePersonalVertex && !projectSelection ? settings?.compatibleProviders : undefined}
+          openAIEnabled={!!settings.openai?.encryptedApiKey && !settings.usePersonalVertex && !projectSelection}
           encryptedPrivateKey={settings.encryption?.encryptedPrivateKey}
           salt={settings.encryption?.salt}
           forceSkill={aiDialog.forceSkill}

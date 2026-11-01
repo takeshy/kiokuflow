@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useFetcher } from "react-router";
 import { KeyRound, Lock, Check, Zap } from "lucide-react";
 import { useI18n } from "~/i18n/context";
+import { clearCachedApiKey } from "~/services/api-key-cache";
 import { invalidateIndexCache } from "~/utils/index-cache";
 import {
   SectionCard,
@@ -24,6 +25,11 @@ import {
   getAvailableModels,
   getDefaultModelForPlan,
   isModelAllowedForPlan,
+  isOpenAIModel,
+  isExternalChatModel,
+  parseCompatibleModel,
+  COMPATIBLE_PROVIDERS,
+  OPENAI_MODELS,
   SUPPORTED_LANGUAGES,
   FONT_SIZE_OPTIONS,
   THEME_OPTIONS,
@@ -35,7 +41,13 @@ import {
   VERTEX_TOPUP_UNIT_USD,
 } from "~/types/hubwork";
 import { hasVertexPrice } from "~/services/ai/models";
+import { CompatibleProviderSettings } from "./CompatibleProviderSettings";
+import { ProviderPasswordSettings } from "./ProviderPasswordSettings";
+import { useProviderPasswords } from "./ProviderPasswords";
+import { JevSettings } from "./JevSettings";
+import { OpenAISettings } from "./OpenAISettings";
 
+type AiTab = "apikey" | "openai" | "vertex" | "openrouter" | "opencodego" | "jev";
 
 interface PersonalVertexOAuthStatus {
   connected: boolean;
@@ -61,13 +73,20 @@ export function GeneralTab({
   maskedKey,
   onLanguageChange,
   hideGeminiSettings = false,
+  section = "general",
+  onOpenGeneral,
 }: {
   settings: UserSettings;
   hasApiKey: boolean;
   maskedKey: string | null;
   onLanguageChange: (lang: Language) => void;
   hideGeminiSettings?: boolean;
+  section?: "general" | "ai";
+  onOpenGeneral?: () => void;
 }) {
+  const showAi = section === "ai";
+  const { passwords, setPassword: rememberPassword } = useProviderPasswords();
+  const submittedPasswordRef = useRef("");
   const fetcher = useFetcher();
   const loading = fetcher.state !== "idle";
   const { t, language } = useI18n();
@@ -84,7 +103,6 @@ export function GeneralTab({
   const [workflowEnabled, setWorkflowEnabled] = useState(settings.workflowEnabled ?? false);
   const [ragFeatureEnabled, setRagFeatureEnabled] = useState(settings.ragFeatureEnabled ?? false);
   const [webpageBuilderEnabled, setWebpageBuilderEnabled] = useState(settings.webpageBuilderEnabled ?? false);
-  const [usePersonalVertex, setUsePersonalVertex] = useState(settings.usePersonalVertex ?? false);
   const [personalVertexSource, setPersonalVertexSource] = useState<"prepaid" | "own">(settings.personalVertexSource === "own" ? "own" : "prepaid");
   const [personalVertexProjectId, setPersonalVertexProjectId] = useState(settings.personalVertexProjectId || "");
   const [personalVertexLocation, setPersonalVertexLocation] = useState(settings.personalVertexLocation || "global");
@@ -99,12 +117,8 @@ export function GeneralTab({
   const [fontSize, setFontSize] = useState<FontSize>(settings.fontSize);
   const [theme, setTheme] = useState<Theme>(settings.theme || "system");
   const availableModels = getAvailableModels(apiPlan);
-  // Personal Vertex has neither Gemini File Search (that needs the user's own
-  // API key) nor a project vector index, so RAG cannot work there. A disabled
-  // checkbox submits nothing, which is exactly the "off" we want persisted.
-  // Only on the Drive mount: an org project's chat also runs on Vertex, but
-  // there RAG is the Firestore vector index and works fine.
-  const ragBlockedByVertex = !hideGeminiSettings && usePersonalVertex;
+  // RAG entitlement is independent of the chat provider and Gemini API tier.
+  const ragBlockedByVertex = !settings.ragAvailable;
 
   // Top-ups are sold in the currency of the UI language, so the amount is one
   // choice instead of two.
@@ -139,49 +153,87 @@ export function GeneralTab({
   // made the panel claim "API Key & Encryption configured" while the field
   // below invited the user to enter a key they had already saved.
   const hasStoredApiKey = !!settings.encryptedApiKey;
-  const isEncryptionSetup = hasStoredApiKey;
+  const isEncryptionSetup = hasStoredApiKey || !!settings.encryption.encryptedPrivateKey;
 
   // AI provider sub-tab. The balance arrives after mount, so it cannot take
   // part in the initial value — only the saved opt-in can.
   const hasVertexBalance = personalBalance != null && personalBalance > 0;
-  const [aiTab, setAiTab] = useState<"apikey" | "vertex">(
-    settings.usePersonalVertex === true ? "vertex" : "apikey",
+  const [aiTab, setAiTab] = useState<AiTab>(
+    settings.usePersonalVertex === true ? "vertex" : parseCompatibleModel(settings.selectedModel || "")?.provider || (isOpenAIModel(settings.selectedModel || "") ? "openai" : "apikey"),
   );
+  const [activeProvider, setActiveProvider] = useState<AiTab>(aiTab);
+  const [providerModels, setProviderModels] = useState<Record<AiTab, ModelType | "">>({
+    apikey: settings.selectedModel && !isExternalChatModel(settings.selectedModel) ? settings.selectedModel : "",
+    vertex: settings.selectedModel && !isExternalChatModel(settings.selectedModel) ? settings.selectedModel : "",
+    openai: settings.selectedModel && isOpenAIModel(settings.selectedModel) ? settings.selectedModel : "gpt-6.1-sol",
+    jev: "",
+    openrouter: parseCompatibleModel(settings.selectedModel || "")?.provider === "openrouter" ? settings.selectedModel || "" : "",
+    opencodego: parseCompatibleModel(settings.selectedModel || "")?.provider === "opencodego" ? settings.selectedModel || "" : "",
+  });
+  const modelForProvider = (provider: AiTab): ModelType | "" => {
+    const candidate = provider === aiTab ? selectedModel : providerModels[provider];
+    if (provider === "openrouter" || provider === "opencodego") {
+      const enabled = settings.compatibleProviders?.[provider]?.enabledModels || [];
+      return enabled.some(model => candidate === `${provider}:${model}`) ? candidate : enabled[0] ? `${provider}:${enabled[0]}` : "";
+    }
+    return candidate;
+  };
+  const selectAiTab = (next: AiTab) => {
+    if (next === aiTab) return;
+    setProviderModels((models) => ({ ...models, [aiTab]: selectedModel }));
+    setAiTab(next);
+    setSelectedModel(providerModels[next] || ((next === "openrouter" || next === "opencodego") && settings.compatibleProviders?.[next]?.enabledModels[0] ? `${next}:${settings.compatibleProviders[next]!.enabledModels[0]}` : ""));
+  };
 
+
+  useEffect(() => {
+    if (activeProvider === "openai" && !settings.openai?.encryptedApiKey) setActiveProvider("apikey");
+  }, [activeProvider, settings.openai?.encryptedApiKey]);
+
+  useEffect(() => {
+    if (aiTab !== "openrouter" && aiTab !== "opencodego") return;
+    const enabled = settings.compatibleProviders?.[aiTab]?.enabledModels || [];
+    if (enabled.length && !enabled.some(model => selectedModel === `${aiTab}:${model}`)) setSelectedModel(`${aiTab}:${enabled[0]}`);
+  }, [aiTab, selectedModel, settings.compatibleProviders]);
+
+  useEffect(() => {
+    if (activeProvider !== "openrouter" && activeProvider !== "opencodego") return;
+    if (!settings.compatibleProviders?.[activeProvider]?.encryptedApiKey) setActiveProvider("apikey");
+  }, [activeProvider, settings.compatibleProviders]);
 
   // When plan changes, reset model if it's not available
   useEffect(() => {
+    if (aiTab === "jev" || aiTab === "openai" || aiTab === "openrouter" || aiTab === "opencodego") return;
     if (selectedModel && !isModelAllowedForPlan(apiPlan, selectedModel as ModelType)) {
       setSelectedModel(getDefaultModelForPlan(apiPlan));
     }
-  }, [apiPlan, selectedModel]);
+  }, [apiPlan, selectedModel, aiTab]);
 
   // Load personal Vertex balance and history (always, so the sub-tab can
   // show data even before the user switches to it)
   useEffect(() => {
+    if (!showAi || hideGeminiSettings) return;
     fetch("/api/personal-vertex/balance")
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (!data) { setVertexAvailable(false); return; }
         setVertexAvailable(data.available !== false);
         if (data.balanceUsd != null) setPersonalBalance(data.balanceUsd);
-        // Nothing here can run on Vertex, so do not leave the user parked on
-        // a tab whose only outcome is a failing chat.
-        if (data.available === false) { setAiTab("apikey"); setUsePersonalVertex(false); }
       })
       .catch(() => setVertexAvailable(false));
     fetch("/api/personal-vertex/history")
       .then((r) => r.ok ? r.json() : null)
       .then((data) => { if (data?.events) setTopupHistory(data.events); })
       .catch(() => {});
-  }, []);
+  }, [showAi, hideGeminiSettings]);
 
   useEffect(() => {
+    if (!showAi || hideGeminiSettings) return;
     fetch("/api/personal-vertex/connection")
       .then((response) => response.ok ? response.json() : null)
       .then((data) => setPersonalVertexOAuth(data?.oauthStatus ?? null))
       .catch(() => setPersonalVertexOAuth(null));
-  }, []);
+  }, [showAi, hideGeminiSettings]);
 
   const uploadPersonalVertexOAuthJson = async (file: File) => {
     setPersonalVertexBusy(true);
@@ -219,7 +271,7 @@ export function GeneralTab({
     }
   };
 
-  // Show error dialog, reload confirm (API key change), or success banner.
+  // Show an error dialog or success banner, keeping settings-only passwords in memory.
   // Use a ref for `t` so the effect only re-runs when fetcher.data changes,
   // preventing stale error data from being reprocessed when `t` updates.
   const tRef = useRef(t);
@@ -228,6 +280,10 @@ export function GeneralTab({
   useEffect(() => {
     if (!fetcherData) return;
     if (fetcherData.success) {
+      if (!showAi && submittedPasswordRef.current) {
+        rememberPassword("gemini", submittedPasswordRef.current);
+        submittedPasswordRef.current = "";
+      }
       // Clear sensitive fields on success
       setGeminiApiKey("");
       setApiKeyEdited(false);
@@ -235,22 +291,21 @@ export function GeneralTab({
       setConfirmPassword("");
       setCurrentPassword("");
       setNewPassword("");
+      setShowPasswordChange(false);
       invalidateIndexCache();
-      if (fetcherData.apiKeyUpdated) {
-        window.location.href = "/";
-      }
+      if (fetcherData.apiKeyUpdated) clearCachedApiKey();
     } else if (fetcherData.message) {
       const key = `settings.general.${fetcherData.message}` as Parameters<typeof t>[0];
       const translated = tRef.current(key);
       setErrorMessage(translated !== key ? translated : fetcherData.message);
     }
-  }, [fetcherData]);
+  }, [fetcherData, showAi, rememberPassword]);
 
 
   return (
     <SectionCard>
-      {/* Success banner (non-API-key saves only; API key saves redirect) */}
-      {fetcherData?.success && !fetcherData.apiKeyUpdated && (
+      {/* Success banner */}
+      {fetcherData?.success && (
         <div className="mb-6 p-3 rounded-md border text-sm bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300">
           <div className="flex items-center gap-2">
             <Check size={16} />
@@ -264,28 +319,63 @@ export function GeneralTab({
         <NotifyDialog message={errorMessage} variant="error" onClose={() => setErrorMessage(null)} />
       )}
 
-      <fetcher.Form method="post">
+      <fetcher.Form method="post" onSubmit={event => {
+        if (!showAi) submittedPasswordRef.current = newPassword || currentPassword || password;
+        if (showAi && geminiApiKey && !passwords.gemini) {
+          event.preventDefault();
+          setErrorMessage(language === "ja" ? "一般設定でGeminiの暗号化パスワードを設定・確認してください。" : "Set or verify the Gemini encryption password in General settings.");
+        }
+      }}>
         <input type="hidden" name="_action" value="saveGeneral" />
+        <input type="hidden" name="settingsSection" value={section} />
         <input type="hidden" name="apiKeyEdited" value={apiKeyEdited ? "true" : "false"} />
 
-        {!hideGeminiSettings && <>
+        {showAi && !hideGeminiSettings && <>
+        <div className="mb-6">
+          <Label htmlFor="activeAiProvider">{t("settings.ai.activeProvider")}</Label>
+          <select id="activeAiProvider" value={activeProvider} onChange={(event) => setActiveProvider(event.target.value as AiTab)} className={inputClass}>
+            <option value="apikey">Gemini</option>
+            <option value="openai" disabled={!settings.openai?.encryptedApiKey}>OpenAI</option>
+            {(["openrouter", "opencodego"] as const).map(provider => <option key={provider} value={provider} disabled={!settings.compatibleProviders?.[provider]?.enabledModels.length}>{COMPATIBLE_PROVIDERS[provider].name}</option>)}
+            {(vertexAvailable !== false || activeProvider === "vertex" || aiTab === "vertex") && <option value="vertex">Vertex AI</option>}
+          </select>
+          <p className="mt-1 text-xs text-gray-500">{t("settings.ai.activeProviderHint")}</p>
+        </div>
+        <input type="hidden" name="selectedModel" value={modelForProvider(activeProvider)} />
+        <input type="hidden" name="apiPlan" value={apiPlan} />
         {/* AI Provider Sub-Tabs */}
         <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
           <KeyRound size={16} />
           {t("settings.general.aiProvider")}
         </h3>
-        <div className="mb-4 flex gap-1 border-b border-gray-200 dark:border-gray-700">
+        <div role="tablist" aria-label={t("settings.general.aiProvider")} className="mb-4 flex gap-1 overflow-x-auto border-b border-gray-200 dark:border-gray-700" onKeyDown={(event) => {
+          if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+          const tabs = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+          const current = tabs.findIndex((tab) => tab === document.activeElement);
+          const next = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : (current + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+          event.preventDefault(); tabs[next]?.focus(); tabs[next]?.click();
+        }}>
           <button
             type="button"
-            onClick={() => { setAiTab("apikey"); setUsePersonalVertex(false); }}
+            role="tab" id="ai-provider-apikey" aria-controls="ai-panel-apikey" aria-selected={aiTab === "apikey"} tabIndex={aiTab === "apikey" ? 0 : -1}
+            onClick={() => selectAiTab("apikey")}
             className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm ${aiTab === "apikey" ? "border-blue-500 font-medium text-blue-600" : "border-transparent text-gray-500"}`}
           >
             {t("settings.general.tabApikey")}
           </button>
-          {vertexAvailable !== false && (
+          <button
+            type="button"
+            role="tab" id="ai-provider-openai" aria-controls="ai-panel-openai" aria-selected={aiTab === "openai"} tabIndex={aiTab === "openai" ? 0 : -1}
+            onClick={() => selectAiTab("openai")}
+            className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm ${aiTab === "openai" ? "border-blue-500 font-medium text-blue-600" : "border-transparent text-gray-500"}`}
+          >OpenAI</button>
+          <button type="button" role="tab" id="ai-provider-jev" aria-controls="ai-panel-jev" aria-selected={aiTab === "jev"} tabIndex={aiTab === "jev" ? 0 : -1} onClick={() => selectAiTab("jev")} className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm ${aiTab === "jev" ? "border-blue-500 font-medium text-blue-600" : "border-transparent text-gray-500"}`}>Jev</button>
+          {(["openrouter", "opencodego"] as const).map(provider => <button key={provider} type="button" role="tab" id={`ai-provider-${provider}`} aria-controls={`ai-panel-${provider}`} aria-selected={aiTab === provider} tabIndex={aiTab === provider ? 0 : -1} onClick={() => selectAiTab(provider)} className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm ${aiTab === provider ? "border-blue-500 font-medium text-blue-600" : "border-transparent text-gray-500"}`}>{COMPATIBLE_PROVIDERS[provider].name}</button>)}
+          {(vertexAvailable !== false || activeProvider === "vertex" || aiTab === "vertex") && (
             <button
               type="button"
-              onClick={() => { setAiTab("vertex"); setUsePersonalVertex(true); }}
+              role="tab" id="ai-provider-vertex" aria-controls="ai-panel-vertex" aria-selected={aiTab === "vertex"} tabIndex={aiTab === "vertex" ? 0 : -1}
+              onClick={() => selectAiTab("vertex")}
               className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm ${aiTab === "vertex" ? "border-blue-500 font-medium text-blue-600" : "border-transparent text-gray-500"}`}
             >
               <Zap size={12} className="inline mr-1" />
@@ -296,12 +386,12 @@ export function GeneralTab({
             </button>
           )}
         </div>
-        <input type="hidden" name="usePersonalVertex" value={usePersonalVertex ? "on" : ""} />
+        <input type="hidden" name="usePersonalVertex" value={activeProvider === "vertex" ? "on" : ""} />
         <input type="hidden" name="personalVertexSource" value={personalVertexSource} />
         <input type="hidden" name="personalVertexProjectId" value={personalVertexProjectId} />
         <input type="hidden" name="personalVertexLocation" value={personalVertexLocation} />
 
-        {aiTab === "apikey" && <>
+        {aiTab === "apikey" && <div role="tabpanel" id="ai-panel-apikey" aria-labelledby="ai-provider-apikey">
         {!isEncryptionSetup && (
           <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
             {t("settings.general.apiKeyOptional")}
@@ -335,6 +425,7 @@ export function GeneralTab({
           <input
             type="password"
             id="geminiApiKey"
+            disabled={!passwords.gemini}
             name="geminiApiKey"
             value={geminiApiKey}
             onChange={(e) => {
@@ -347,123 +438,11 @@ export function GeneralTab({
           />
         </div>
 
-        {/* Password fields */}
-        {!isEncryptionSetup ? (
-          /* Initial setup: password + confirm */
-          <>
-            <div className="mb-4">
-              <Label htmlFor="password">
-                {t("settings.general.password")}
-                {geminiApiKey && <span className="text-red-500 ml-1">*</span>}
-              </Label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="new-password"
-                placeholder={t("settings.general.password")}
-                className={inputClass}
-              />
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                {t("settings.general.passwordRequired")}
-              </p>
-            </div>
-            <div className="mb-6">
-              <Label htmlFor="confirmPassword">
-                {t("settings.general.confirmPassword")}
-                <span className="text-red-500 ml-1">*</span>
-              </Label>
-              <input
-                type="password"
-                id="confirmPassword"
-                name="confirmPassword"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                autoComplete="new-password"
-                placeholder={t("settings.general.confirmPassword")}
-                className={inputClass}
-              />
-            </div>
-          </>
-        ) : (
-          /* Already setup: show configured status, current password, and password change option */
-          <div className="mb-6">
-            <div className="mb-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
-              <p className="text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
-                <Check size={16} />
-                {t("settings.general.configured")}
-              </p>
-            </div>
-            <div className="mb-4">
-              <Label htmlFor="currentPassword">{t("settings.general.currentPassword")}</Label>
-              <input
-                type="password"
-                id="currentPassword"
-                name="currentPassword"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                autoComplete="current-password"
-                placeholder={t("settings.general.currentPassword")}
-                className={inputClass}
-              />
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                {t("settings.general.currentPasswordRequired")}
-              </p>
-            </div>
-            {!showPasswordChange ? (
-              <button
-                type="button"
-                onClick={() => setShowPasswordChange(true)}
-                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                {t("settings.general.changePassword")}
-              </button>
-            ) : (
-              <div className="space-y-3 p-4 border border-gray-200 dark:border-gray-700 rounded-md">
-                <div>
-                  <Label htmlFor="newPassword">{t("settings.general.newPassword")}</Label>
-                  <input
-                    type="password"
-                    id="newPassword"
-                    name="newPassword"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    autoComplete="new-password"
-                    placeholder={t("settings.general.newPassword")}
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="confirmPassword">{t("settings.general.confirmPassword")}</Label>
-                  <input
-                    type="password"
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    autoComplete="new-password"
-                    placeholder={t("settings.general.confirmPassword")}
-                    className={inputClass}
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowPasswordChange(false);
-                    setCurrentPassword("");
-                    setNewPassword("");
-                    setConfirmPassword("");
-                  }}
-                  className="text-sm text-gray-500 dark:text-gray-400 hover:underline"
-                >
-                  {t("common.cancel")}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+        <input type="hidden" name="currentPassword" value={passwords.gemini || ""} />
+        <div className="mb-6">
+          {!passwords.gemini && <p className="mb-2 text-sm text-gray-500">{t("settings.ai.setupEncryption")}</p>}
+          {onOpenGeneral && <button type="button" onClick={onOpenGeneral} className="text-sm text-blue-600 hover:underline">{language === "ja" ? "一般設定でパスワードを管理" : "Manage password in General"}</button>}
+        </div>
 
         <hr className="my-6 border-gray-200 dark:border-gray-700" />
 
@@ -475,7 +454,7 @@ export function GeneralTab({
               <label key={plan} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
                 <input
                   type="radio"
-                  name="apiPlan"
+                  name="geminiApiPlan"
                   value={plan}
                   checked={apiPlan === plan}
                   onChange={() => setApiPlan(plan)}
@@ -487,38 +466,11 @@ export function GeneralTab({
           </div>
         </div>
 
-        <div className="mb-6 rounded-md border border-gray-200 p-4 dark:border-gray-700">
-          <h3 className="mb-3 text-sm font-semibold">{t("settings.general.chatSettings")}</h3>
-          <Label htmlFor="maxSavedChatHistories">{t("settings.general.maxSavedChatHistories")}</Label>
-          <input
-            id="maxSavedChatHistories"
-            name="maxSavedChatHistories"
-            type="number"
-            min={0}
-            step={1}
-            value={maxSavedChatHistories}
-            onChange={(e) => setMaxSavedChatHistories(Math.max(0, Number.parseInt(e.target.value, 10) || 0))}
-            className={inputClass}
-          />
-          <p className="mb-3 text-xs text-gray-500">{t("settings.general.maxSavedChatHistoriesDescription")}</p>
-          <Label htmlFor="manualChatSaveFolder">{t("settings.general.manualChatSaveFolder")}</Label>
-          <input
-            id="manualChatSaveFolder"
-            name="manualChatSaveFolder"
-            value={manualChatSaveFolder}
-            onChange={(e) => setManualChatSaveFolder(e.target.value)}
-            placeholder={t("settings.general.driveRoot")}
-            className={inputClass}
-          />
-          <p className="text-xs text-gray-500">{t("settings.general.manualChatSaveFolderDescription")}</p>
-        </div>
-
         {/* Model */}
         <div className="mb-6">
           <Label htmlFor="selectedModel">{t("settings.general.defaultModel")}</Label>
           <select
             id="selectedModel"
-            name="selectedModel"
             value={selectedModel}
             onChange={(e) => setSelectedModel(e.target.value as ModelType)}
             className={inputClass}
@@ -531,10 +483,32 @@ export function GeneralTab({
             ))}
           </select>
         </div>
-        </>}
+        </div>}
+
+        {aiTab === "openai" && <div role="tabpanel" id="ai-panel-openai" aria-labelledby="ai-provider-openai">
+          <OpenAISettings settings={settings} onOpenGeneral={onOpenGeneral} />
+          <div className="mb-6">
+            <Label htmlFor="openaiSelectedModel">{t("settings.general.defaultModel")}</Label>
+            <select id="openaiSelectedModel" value={selectedModel} disabled={!settings.openai?.encryptedApiKey} onChange={(event) => setSelectedModel(event.target.value as ModelType)} className={inputClass}>
+              {OPENAI_MODELS.map((model) => <option key={model.name} value={model.name}>{model.displayName}</option>)}
+            </select>
+          </div>
+        </div>}
+
+        {aiTab === "jev" && <div role="tabpanel" id="ai-panel-jev" aria-labelledby="ai-provider-jev"><JevSettings settings={settings} onOpenGeneral={onOpenGeneral} /></div>}
+        {(aiTab === "openrouter" || aiTab === "opencodego") && <div role="tabpanel" id={`ai-panel-${aiTab}`} aria-labelledby={`ai-provider-${aiTab}`}>
+          <CompatibleProviderSettings key={aiTab} provider={aiTab} settings={settings} onOpenGeneral={onOpenGeneral} />
+          <div className="mb-6">
+            <Label htmlFor="compatibleSelectedModel">{t("settings.general.defaultModel")}</Label>
+            <select id="compatibleSelectedModel" className={inputClass} value={selectedModel} disabled={!settings.compatibleProviders?.[aiTab]?.enabledModels.length} onChange={event => setSelectedModel(event.target.value as ModelType)}>
+              {!settings.compatibleProviders?.[aiTab]?.enabledModels.length && <option value="">{language === "ja" ? "モデルを取得・選択して保存してください" : "Fetch, select, and save models first"}</option>}
+              {settings.compatibleProviders?.[aiTab]?.enabledModels.map(model => <option key={model} value={`${aiTab}:${model}`}>{model}</option>)}
+            </select>
+          </div>
+        </div>}
 
         {aiTab === "vertex" && (
-          <div className="mb-6">
+          <div role="tabpanel" id="ai-panel-vertex" aria-labelledby="ai-provider-vertex" className="mb-6">
             <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">
               {t("settings.general.enableVertexAiDescription")}
             </p>
@@ -606,7 +580,6 @@ export function GeneralTab({
               <Label htmlFor="vertexSelectedModel">{t("settings.general.defaultModel")}</Label>
               <select
                 id="vertexSelectedModel"
-                name="selectedModel"
                 value={selectedModel}
                 onChange={(e) => setSelectedModel(e.target.value as ModelType)}
                 className={inputClass}
@@ -641,18 +614,18 @@ export function GeneralTab({
             {/* Top-up form — one amount dropdown. The currency follows the UI
                 language rather than asking, which made a two-dropdown form out
                 of a single choice. */}
-            <form method="POST" action="/hubwork/api/stripe/checkout" className="mb-2 flex flex-wrap items-center gap-2">
-              <input type="hidden" name="plan" value="personal-vertex-topup" />
-              <input type="hidden" name="currency" value={topUpCurrency} />
-              <select name="units" className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-900" defaultValue="1">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <input form="vertex-topup" type="hidden" name="plan" value="personal-vertex-topup" />
+              <input form="vertex-topup" type="hidden" name="currency" value={topUpCurrency} />
+              <select form="vertex-topup" name="units" className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-900" defaultValue="1">
                 {VERTEX_TOPUP_UNIT_CHOICES.map((n) => (
                   <option key={n} value={n}>{formatTopUpAmount(n)}</option>
                 ))}
               </select>
-              <button type="submit" className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">
+              <button form="vertex-topup" type="submit" className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">
                 {t("settings.general.buyVertexCredit")}
               </button>
-            </form>
+            </div>
             <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">
               {t("settings.general.vertexTopupCreditNote")}
             </p>
@@ -692,6 +665,38 @@ export function GeneralTab({
           <hr className="my-6 border-gray-200 dark:border-gray-700" />
         )}
         </>}
+
+        {!showAi && <>
+        <div className="mb-6 rounded-md border border-gray-200 p-4 dark:border-gray-700">
+          <h3 className="mb-3 text-sm font-semibold">{t("settings.general.chatSettings")}</h3>
+          <Label htmlFor="maxSavedChatHistories">{t("settings.general.maxSavedChatHistories")}</Label>
+          <input
+            id="maxSavedChatHistories"
+            name="maxSavedChatHistories"
+            type="number"
+            min={0}
+            step={1}
+            value={maxSavedChatHistories}
+            onChange={(e) => setMaxSavedChatHistories(Math.max(0, Number.parseInt(e.target.value, 10) || 0))}
+            className={inputClass}
+          />
+          <p className="mb-3 text-xs text-gray-500">{t("settings.general.maxSavedChatHistoriesDescription")}</p>
+          <Label htmlFor="manualChatSaveFolder">{t("settings.general.manualChatSaveFolder")}</Label>
+          <input
+            id="manualChatSaveFolder"
+            name="manualChatSaveFolder"
+            value={manualChatSaveFolder}
+            onChange={(e) => setManualChatSaveFolder(e.target.value)}
+            placeholder={t("settings.general.driveRoot")}
+            className={inputClass}
+          />
+          <p className="text-xs text-gray-500">{t("settings.general.manualChatSaveFolderDescription")}</p>
+        </div>
+
+        <div className="mb-6">
+          <Label htmlFor="okfRoot">{language === "ja" ? "OKFナレッジフォルダ" : "OKF knowledge folder"}</Label>
+          <input id="okfRoot" name="okfRoot" defaultValue={settings.okfRoot || "Knowledge"} className={inputClass} />
+        </div>
 
         <div className="mb-6">
           <Label htmlFor="systemPrompt">{t("settings.general.systemPrompt")}</Label>
@@ -779,7 +784,7 @@ export function GeneralTab({
                 <Label htmlFor="ragFeatureEnabled">{t("settings.general.enableRag")}</Label>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {ragBlockedByVertex
-                    ? t("settings.general.ragUnavailableOnVertex")
+                    ? (language === "ja" ? "RAGは有料プラン限定です。" : "RAG requires an active paid GemiHub plan.")
                     : t("settings.general.enableRagDescription")}
                 </p>
               </div>
@@ -812,6 +817,128 @@ export function GeneralTab({
           <Lock size={16} />
           {t("settings.general.encryptionSection")}
         </h3>
+
+        {/* Password fields */}
+        {!isEncryptionSetup ? (
+          /* Initial setup: password + confirm */
+          <>
+            <div className="mb-4">
+              <Label htmlFor="password">
+                {t("settings.general.password")}
+              </Label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
+                placeholder={t("settings.general.password")}
+                className={inputClass}
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {t("settings.general.passwordRequired")}
+              </p>
+            </div>
+            <div className="mb-6">
+              <Label htmlFor="confirmPassword">
+                {t("settings.general.confirmPassword")}
+                {password && <span className="text-red-500 ml-1">*</span>}
+              </Label>
+              <input
+                type="password"
+                id="confirmPassword"
+                name="confirmPassword"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
+                placeholder={t("settings.general.confirmPassword")}
+                className={inputClass}
+              />
+            </div>
+          </>
+        ) : (
+          /* Already setup: show configured status, current password, and password change option */
+          <div className="mb-6">
+            <div className="mb-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
+              <p className="text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
+                <Check size={16} />
+                {t("settings.general.configured")}
+              </p>
+            </div>
+            {!showPasswordChange ? (
+              <button
+                type="button"
+                onClick={() => setShowPasswordChange(true)}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                {t("settings.general.changePassword")}
+              </button>
+            ) : (
+              <div className="space-y-3 p-4 border border-gray-200 dark:border-gray-700 rounded-md">
+                <div className="mb-4">
+                  <Label htmlFor="currentPassword">{t("settings.general.currentPassword")}</Label>
+                  <input
+                    type="password"
+                    id="currentPassword"
+                    name="currentPassword"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    autoComplete="current-password"
+                    placeholder={t("settings.general.currentPassword")}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="newPassword">{t("settings.general.newPassword")}</Label>
+                  <input
+                    type="password"
+                    id="newPassword"
+                    name="newPassword"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    autoComplete="new-password"
+                    placeholder={t("settings.general.newPassword")}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="confirmPassword">{t("settings.general.confirmPassword")}</Label>
+                  <input
+                    type="password"
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    autoComplete="new-password"
+                    placeholder={t("settings.general.confirmPassword")}
+                    className={inputClass}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPasswordChange(false);
+                    setCurrentPassword("");
+                    setNewPassword("");
+                    setConfirmPassword("");
+                  }}
+                  className="text-sm text-gray-500 dark:text-gray-400 hover:underline"
+                >
+                  {t("common.cancel")}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {!hideGeminiSettings && <>
+          {isEncryptionSetup && <ProviderPasswordSettings provider="gemini" settings={settings} />}
+          <ProviderPasswordSettings provider="jev" settings={settings} />
+          <ProviderPasswordSettings provider="openai" settings={settings} />
+          <ProviderPasswordSettings provider="openrouter" settings={settings} />
+          <ProviderPasswordSettings provider="opencodego" settings={settings} />
+        </>}
 
         <div className="mb-4">
           <Label htmlFor="secretManagerFolder">{t("secretManager.folder")}</Label>
@@ -905,16 +1032,23 @@ export function GeneralTab({
           </select>
         </div>
 
+        </>}
+
         <SaveButton loading={loading} />
       </fetcher.Form>
-      <details className="mt-6 rounded-md border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800/50">
+      {showAi && aiTab === "vertex" && personalVertexSource === "prepaid" && <form id="vertex-topup" method="POST" action="/hubwork/api/stripe/checkout" />}
+      {!showAi && <details className="mt-6 rounded-md border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800/50">
         <summary className="cursor-pointer text-sm font-semibold text-gray-800 dark:text-gray-200">
           {language === "ja" ? "第三者ライセンス通知" : "Third-party notices"}
         </summary>
         <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap text-xs leading-relaxed text-gray-600 dark:text-gray-400">
           {THIRD_PARTY_NOTICES}
         </pre>
-      </details>
+      </details>}
     </SectionCard>
   );
+}
+
+export function AiProvidersTab(props: Omit<Parameters<typeof GeneralTab>[0], "section">) {
+  return <GeneralTab {...props} section="ai" />;
 }

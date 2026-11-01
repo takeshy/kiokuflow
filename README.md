@@ -1,8 +1,8 @@
 # GemiHub
 
-**Read your documents, mark them up, and ask Gemini about them — all inside your own Google Drive.**
+**Read your documents, mark them up, and ask your chosen AI about them — all inside your own Google Drive.**
 
-Open a PDF, EPUB, or Markdown note from your Drive, highlight a passage, and pin a memo to it. Highlights, memos, dashboards, chat history, and workflows are all plain files in *your* Drive — so the AI can read every one of them, and you can walk away with everything at any time. No external database. Self-hostable.
+Open a PDF, EPUB, or Markdown note from your Drive, highlight a passage, and pin a memo to it. Highlights, memos, dashboards, chat history, and workflows are all plain files in *your* Drive — so the AI can read every one of them, and you can walk away with everything at any time. Paid RAG stores searchable excerpts and embeddings in Firestore. Self-hostable.
 
 **[Try GemiHub at gemihub.net →](https://gemihub.net)** · [日本語版 README](./README_ja.md)
 
@@ -31,13 +31,13 @@ The home screen is a drag-and-drop widget grid: file viewers with their memos, a
 
 ### AI that already has the context
 
-Chat streams from Gemini with function calling, thinking display, and image generation, and it reaches straight into your files: read, search, create, and update. Add semantic search over your Drive with **RAG**, curated Markdown knowledge bases with **OKF bundles**, external tools over **MCP**, and reusable **Agent Skills** — then automate the whole thing with visual **workflows** that run in the browser and stream their output live.
+Choose Gemini, OpenAI, OpenRouter, or OpenCode Go for streaming chat, with tools and attachments supported by the selected model. Gemini also supports image generation. Chat reaches straight into your files: read, search, create, and update. Add semantic search over your Drive with **RAG**, curated Markdown knowledge bases with **OKF bundles**, external tools over **MCP**, and reusable **Agent Skills** — then automate the whole thing with visual **workflows** that run in the browser and stream their output live.
 
 ![Visual Workflow Editor](./public/images/visual_workflow.png)
 
 ### Your data, your control
 
-Everything lives in a `gemihub/` folder in your own Google Drive: chat history, workflows, settings, edit history. No proprietary database, no lock-in. Optional hybrid RSA + AES encryption protects sensitive files, and a standalone Python decryption script ships with the repo so you can always read your own data without GemiHub.
+Personal chat history, workflows, settings and edit history live in a `gemihub/` folder in your own Google Drive. Paid RAG adds a Firestore search index that can be rebuilt from the source files. Optional hybrid RSA + AES encryption protects sensitive files, and a standalone Python decryption script ships with the repo so you can always read your own data without GemiHub.
 
 GemiHub is offline-first: files are cached in IndexedDB and load instantly, edits work with no connection, and Push/Pull syncs on your terms — with MD5 conflict detection, a diff-based resolution dialog, and a backup of whatever you did not keep. The same `_sync-meta.json` format is spoken by the [Obsidian plugin](https://github.com/takeshy/obsidian-gemihub), so a vault and GemiHub can share one Drive folder.
 
@@ -49,9 +49,11 @@ GemiHub is offline-first: files are cached in IndexedDB and load instantly, edit
 
 **Dashboard** — Drag-and-drop grid with undo/redo, one-click column/row alignment, multiple dashboards and a pinned home · File, Memo List, Base (Obsidian `.base` queries as table/cards/list), Kanban (`.kanban` YAML, drag-to-restatus written back to Markdown), Secret Manager, Timeline, Workflow output (with auto-refresh), and Web widgets
 
-**AI chat** — Streaming Gemini chat with function calling, thinking display, image generation, and attachments · user-defined slash commands with `{content}` / `{selection}` / `@file` templates and per-command model and tool overrides · `/run @workflow.yaml` from chat
+**AI chat** — Gemini, OpenAI, OpenRouter, and OpenCode Go streaming chat with model-dependent tools and attachments · OpenAI Live voice conversations with voice selection, interruption, mute, and transcripts · Gemini image generation · user-defined slash commands with `{content}` / `{selection}` / `@file` templates and per-command model and tool overrides · `/run @workflow.yaml` from chat
 
-**Knowledge** — RAG semantic search over Drive files · OKF knowledge bundles selectable per chat · MCP servers as tools (OAuth support, interactive MCP Apps) · Agent Skills, including one-click external skills from the catalog · plugins installed from GitHub or developed locally
+**Knowledge** — Paid Firestore RAG using per-index Gemini/OpenAI embedding models, Top K, and optional Jev relevance filtering with search until a match is found · OKF knowledge bundles selectable per chat · MCP servers as tools (OAuth support, interactive MCP Apps) · Agent Skills, including one-click external skills from the catalog · plugins installed from GitHub or developed locally
+
+**Search** — Switch between file-name/path and content tabs · words use keyword search over cached text; sentences use the synchronized server RAG index on paid plans · optionally expand results with fuzzy matching
 
 **Editing** — WYSIWYG Markdown editor (wysimark-lite) · Obsidian-compatible JSON Canvas · unified-diff edit history for files and workflows · publish any document to a public URL · encrypted files, chat history, and workflow logs
 
@@ -104,7 +106,7 @@ GemiHub is offline-first: files are cached in IndexedDB and load instantly, edit
 
 ## Getting Started
 
-The fastest path is the hosted app: **[gemihub.net](https://gemihub.net)** — sign in with Google and add your Gemini API key in Settings.
+The fastest path is the hosted app: **[gemihub.net](https://gemihub.net)** — sign in with Google, set an encryption password in **Settings > General**, and register your chosen API key in the leftmost **AI providers** tab. Choose the active provider above its configuration tabs. Kakeratta and Bluesky share **Integrations**; commands and shortcuts share one settings tab.
 
 To run it yourself:
 
@@ -116,19 +118,20 @@ cp .env.example .env   # fill in OAuth credentials and SESSION_SECRET
 npm run dev            # http://localhost:8132
 ```
 
-You need Node.js 24+, a Google Cloud OAuth client, and a Gemini API key. The full walkthrough — creating the Cloud project, the OAuth consent screen, the `drive.file` scope and what it implies, environment variables, and Docker/production builds — is in **[docs/architecture/self-hosting.md](./docs/architecture/self-hosting.md)**.
+You need Node.js 24+, a Google Cloud OAuth client, and credentials for your chosen AI provider (or prepaid personal Vertex AI). For paid RAG, configure and unlock a Gemini or OpenAI embedding key, then create and sync an index in **Settings > RAG**. Configure optional Jev directly or through OpenRouter under **AI providers > Jev**; each RAG has its own Top K and repeat-until-match preference. The full walkthrough — creating the Cloud project, the OAuth consent screen, the `drive.file` scope and what it implies, environment variables, and Docker/production builds — is in **[docs/architecture/self-hosting.md](./docs/architecture/self-hosting.md)**.
 
 ## Plans
 
-GemiHub is MIT-licensed and fully usable for free with your own Gemini API key. The hosted service adds three paid plans; see [docs/architecture/premium.md](docs/architecture/premium.md) for details.
+GemiHub is MIT-licensed and offers free core features with your own AI-provider key; provider API usage is billed separately. Firestore RAG requires an active paid GemiHub plan. The hosted service adds three paid plans; see [docs/architecture/premium.md](docs/architecture/premium.md) for details.
 
-| | Free | Premium — ¥300/month (≈$2) | Pro — ¥3,000/month (≈$20) | Business — ¥7,500/month (≈$50), per organization |
+| | Free | Lite — ¥300/month (≈$2) | Pro — ¥3,000/month (≈$20) | Business — ¥7,500/month (≈$50), per organization |
 |---|---|---|---|---|
-| Everything above | ✓ | ✓ | ✓ | ✓ |
+| Core reading, editing, dashboard and chat | ✓ | ✓ | ✓ | ✓ |
 | Upload limit | 20 MB/file | 5 GB/file | 5 GB/file | 5 GB/file |
 | Gmail send and Google Calendar workflow nodes | — | ✓ | ✓ | ✓ |
 | PDF generation, external sync token, temp edit URL | — | ✓ | ✓ | ✓ |
-| Interactions API chat (function tools + RAG + Web Search together) | — | ✓ | ✓ | ✓ |
+| Firestore embedding RAG, per-index Top K and optional Jev | — | ✓ | ✓ | ✓ |
+| Interactions API chat | — | ✓ | ✓ | ✓ |
 | [Kakeratta persona answers](docs/integrations/kakeratta.md) | While GemiHub is open | Also while closed | Also while closed | Also while closed (personal Drive) |
 | [Kakeratta Timeline synchronization](docs/integrations/kakeratta.md) | — | Posts, threads and author names | Posts, threads and author names | Personal Drive |
 | Scheduled workflows + page hosting from `web/` (`{slug}.gemihub.net`) | — | — | ✓, served from your own Drive | ✓, plus CDN, custom domains, workflow APIs |
@@ -137,7 +140,7 @@ GemiHub is MIT-licensed and fully usable for free with your own Gemini API key. 
 
 Don't want to manage a Gemini API key? Turn on **personal Vertex AI** in Settings and chat runs on GemiHub's Vertex connection against a prepaid balance you top up in $10 (¥1,500) units — no expiry, available on any plan. A Business organization's included $30/month AI budget can be topped up the same way.
 
-Business is the one exception to "everything stays in your Drive": a shared project's files live in managed Cloud Storage with Firestore metadata, and its chat runs on Vertex AI. Personal My Drive work is unaffected. See [docs/architecture/mounts.md](docs/architecture/mounts.md).
+Business shared projects store files in managed Cloud Storage with Firestore metadata and use Vertex AI for chat. Personal source files stay in Drive; paid RAG stores excerpts and embeddings in Firestore. Queries and relevant content are sent to the selected AI/embedding provider and, when enabled, Jev or OpenRouter. See [docs/architecture/mounts.md](docs/architecture/mounts.md).
 
 ## Documentation
 
@@ -171,7 +174,7 @@ Documentation lives in [`docs/`](./docs/) as an OKF bundle — [docs/index.md](.
 |-------|------|
 | Frontend | React 19, React Router 7, Tailwind CSS v4, Mermaid |
 | Backend | React Router server (SSR + API routes) |
-| AI | Google Gemini API (`@google/genai`); Vertex AI for organization projects |
+| AI | Gemini / Vertex AI, OpenAI Responses and Realtime, OpenRouter, OpenCode Go; optional Jev RAG relevance filtering |
 | Storage | Google Drive API (default mount), Cloud Storage (organization projects), Firestore |
 | Auth | Google OAuth 2.0 → session cookies |
 | Infrastructure | Compute Engine (shared VM), Cloud Build, Artifact Registry, Cloud DNS, Certificate Manager, Cloud Scheduler, Global HTTPS LB + CDN |

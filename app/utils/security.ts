@@ -66,3 +66,21 @@ export function validateOrigin(request: Request): void {
     throw new Response("Forbidden: invalid origin", { status: 403 });
   }
 }
+
+/**
+ * True when a provider request payload references remote content the provider
+ * would fetch on the user's key (remote image/file URLs or stored file ids).
+ * The app only sends inline `data:` URLs, so anything else is rejected.
+ */
+export function hasRemoteProviderReference(value: unknown): boolean {
+  if (Array.isArray(value)) return value.some(hasRemoteProviderReference);
+  if (!value || typeof value !== "object") return false;
+  for (const [key, item] of Object.entries(value)) {
+    if (key === "file_url" || key === "file_id") return true;
+    if (key === "image_url" || key === "file_data") {
+      const url = typeof item === "string" ? item : (item as { url?: unknown } | null)?.url;
+      if (typeof url !== "string" || !url.startsWith("data:")) return true;
+    } else if (hasRemoteProviderReference(item)) return true;
+  }
+  return false;
+}

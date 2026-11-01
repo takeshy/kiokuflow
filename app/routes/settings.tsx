@@ -34,18 +34,15 @@ import {
 import { I18nProvider } from "~/i18n/context";
 import { useApplySettings } from "~/hooks/useApplySettings";
 import { getLocalPlugins } from "~/services/local-plugins.server";
-import {
-  encryptPrivateKey,
-  decryptPrivateKey,
-  generateKeyPair,
-} from "~/services/crypto-core";
+import { updateSettingsEncryption } from "~/services/settings-encryption.server";
 import { buildEncryptedAuthFile, encodeMigrationToken } from "gemihub-sync-core/auth";
 import { EnterpriseProvider } from "~/contexts/EnterpriseContext";
 import type { EnterpriseSessionContext } from "~/types/enterprise";
 import { PluginProvider } from "~/contexts/PluginContext";
 import { isActivePremiumAccount } from "~/types/hubwork";
 import { resolveSubmittedGeminiApiKey } from "~/utils/settings-api-key";
-import { isUnsupportedFileSearchApiKey } from "~/services/file-search.server";
+import { preserveOtherSettingsSection } from "~/utils/settings-form-sections";
+import { assertRagAccess, canUseRag } from "~/services/rag-access.server";
 import {
   SettingsTemplate,
   isSettingsTabId,
@@ -122,6 +119,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
   const settings = {
     ...driveSettings,
+    ragAvailable: await canUseRag(validTokens.rootFolderId),
     hubwork: hubworkAccount?.plan
       ? {
           ...driveSettings.hubwork,
@@ -227,7 +225,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     {
       settings: { ...mergedSettings, language: effectiveLanguage },
       hasApiKey: !!validTokens.geminiApiKey,
-      hasUnsupportedRagApiKey: isUnsupportedFileSearchApiKey(validTokens.geminiApiKey),
+      hasUnsupportedRagApiKey: false,
       maskedKey: validTokens.geminiApiKey ? maskApiKey(validTokens.geminiApiKey) : null,
       hasHubworkScopes,
       rootFolderId: validTokens.rootFolderId,
@@ -300,6 +298,7 @@ export async function action({ request }: Route.ActionArgs) {
         return jsonWithCookie({ success: true, message: "Kakeratta settings saved." });
       }
       case "saveGeneral": {
+        preserveOtherSettingsSection(formData, currentSettings);
         const apiPlan = (formData.get("apiPlan") as ApiPlan) || currentSettings.apiPlan;
         // GeneralTab hides the whole Gemini block (the model <select> included)
         // on an organization mount, so an absent field means "not editable
@@ -335,9 +334,12 @@ export async function action({ request }: Route.ActionArgs) {
             ? "シークレットフォルダを指定してください。"
             : "Specify a secrets folder." });
         }
+        const okfRoot = String(formData.get("okfRoot") ?? currentSettings.okfRoot ?? "Knowledge").trim().replace(/^\/+|\/+$/g, "") || "Knowledge";
+        if (okfRoot.split("/").some((part) => part === "." || part === "..")) return jsonWithCookie({ success: false, message: "Invalid OKF folder" });
         const dashboardEnabled = formData.get("dashboardEnabled") === "on";
         const workflowEnabled = formData.get("workflowEnabled") === "on";
         const ragFeatureEnabled = formData.get("ragFeatureEnabled") === "on";
+        if (ragFeatureEnabled && !currentSettings.ragFeatureEnabled) await assertRagAccess(validTokens.rootFolderId);
         const webpageBuilderEnabled = formData.get("webpageBuilderEnabled") === "on";
         // Same absent-vs-cleared distinction as selectedModel above: the whole
         // AI provider block is hidden on an org mount, so a missing field
@@ -362,14 +364,6 @@ export async function action({ request }: Route.ActionArgs) {
         const encryptChatHistory = formData.get("encryptChatHistory") === "on";
         const encryptWorkflowHistory = formData.get("encryptWorkflowHistory") === "on";
 
-        // The Gemini API key is OPTIONAL: an organization project runs on the
-        // tenant's Vertex AI, and a user may only want the editor, dashboard,
-        // or sync. A password is required only when a key is actually being
-        // stored, because the key is kept encrypted at rest.
-        if (!currentSettings.encryptedApiKey && geminiApiKey && !password) {
-          return jsonWithCookie({ success: false, message: "passwordRequiredError" });
-        }
-
         // Validate API key by calling Gemini API
         if (geminiApiKey) {
           try {
@@ -384,7 +378,7 @@ export async function action({ request }: Route.ActionArgs) {
         const updatedSettings: UserSettings = {
           ...currentSettings,
           apiPlan,
-          selectedModel: selectedModel && isModelAllowedForPlan(apiPlan, selectedModel)
+          selectedModel: selectedModel && isModelAllowedForPlan(apiPlan, selectedModel, !!currentSettings.openai?.encryptedApiKey, currentSettings.compatibleProviders)
             ? selectedModel
             : getDefaultModelForPlan(apiPlan),
           systemPrompt,
@@ -395,6 +389,7 @@ export async function action({ request }: Route.ActionArgs) {
           maxSavedChatHistories,
           manualChatSaveFolder,
           secretManagerFolder,
+          okfRoot,
           dashboardEnabled,
           workflowEnabled,
           ragFeatureEnabled,
@@ -412,87 +407,19 @@ export async function action({ request }: Route.ActionArgs) {
           encryptWorkflowHistory,
         };
 
-        let effectiveApiKey = geminiApiKey;
-
-        const isInitialSetup = !currentSettings.encryptedApiKey && geminiApiKey && password;
-        const isPasswordChange = !!currentSettings.encryptedApiKey && currentPassword && newPassword;
-        const isApiKeyChangeOnly = !!currentSettings.encryptedApiKey && geminiApiKey && !newPassword;
-
-        if (isApiKeyChangeOnly && !currentPassword) {
-          return jsonWithCookie({ success: false, message: "currentPasswordRequired" });
-        }
-
-        if (isInitialSetup) {
-          // Initial setup: encrypt API key + generate RSA key pair
-          if (password !== confirmPassword) {
-            return jsonWithCookie({ success: false, message: "Passwords do not match." });
-          }
-          if (password.length < 8) {
-            return jsonWithCookie({ success: false, message: "Password must be at least 8 characters." });
-          }
-
-          const { encryptedPrivateKey: encApiKey, salt: apiSalt } = await encryptPrivateKey(geminiApiKey, password);
-          updatedSettings.encryptedApiKey = encApiKey;
-          updatedSettings.apiKeySalt = apiSalt;
-
-          // Generate RSA key pair
-          const keyPair = await generateKeyPair();
-          const { encryptedPrivateKey: encRsaKey, salt: rsaSalt } = await encryptPrivateKey(keyPair.privateKey, password);
+        let effectiveApiKey: string;
+        try {
+          const encrypted = await updateSettingsEncryption(currentSettings, {
+            geminiApiKey, password, confirmPassword, currentPassword, newPassword,
+          });
+          effectiveApiKey = encrypted.effectiveApiKey;
+          updatedSettings.encryptedApiKey = encrypted.encryptedApiKey;
+          updatedSettings.apiKeySalt = encrypted.apiKeySalt;
           updatedSettings.encryption = {
-            ...updatedSettings.encryption,
-            enabled: true,
-            publicKey: keyPair.publicKey,
-            encryptedPrivateKey: encRsaKey,
-            salt: rsaSalt,
+            ...encrypted.encryption, encryptChatHistory, encryptWorkflowHistory,
           };
-        } else if (isPasswordChange) {
-          // Password change: decrypt with old, re-encrypt with new
-          if (newPassword !== confirmPassword) {
-            return jsonWithCookie({ success: false, message: "Passwords do not match." });
-          }
-          if (newPassword.length < 8) {
-            return jsonWithCookie({ success: false, message: "Password must be at least 8 characters." });
-          }
-
-          try {
-            const decryptedApiKey = await decryptPrivateKey(
-              currentSettings.encryptedApiKey, currentSettings.apiKeySalt, currentPassword
-            );
-            effectiveApiKey = geminiApiKey || decryptedApiKey;
-
-            const { encryptedPrivateKey: encApiKey, salt: apiSalt } = await encryptPrivateKey(effectiveApiKey, newPassword);
-            updatedSettings.encryptedApiKey = encApiKey;
-            updatedSettings.apiKeySalt = apiSalt;
-
-            // Re-encrypt RSA private key if exists
-            if (currentSettings.encryption.encryptedPrivateKey && currentSettings.encryption.salt) {
-              const rsaPrivateKey = await decryptPrivateKey(
-                currentSettings.encryption.encryptedPrivateKey, currentSettings.encryption.salt, currentPassword
-              );
-              const { encryptedPrivateKey: encRsaKey, salt: rsaSalt } = await encryptPrivateKey(rsaPrivateKey, newPassword);
-              updatedSettings.encryption = {
-                ...updatedSettings.encryption,
-                encryptedPrivateKey: encRsaKey,
-                salt: rsaSalt,
-              };
-            }
-          } catch {
-            return jsonWithCookie({ success: false, message: "Current password is incorrect." });
-          }
-        } else if (isApiKeyChangeOnly) {
-          // API key change only: re-encrypt new API key with current password
-          try {
-            // Verify current password by decrypting existing key
-            await decryptPrivateKey(
-              currentSettings.encryptedApiKey, currentSettings.apiKeySalt, currentPassword
-            );
-
-            const { encryptedPrivateKey: encApiKey, salt: apiSalt } = await encryptPrivateKey(geminiApiKey, currentPassword);
-            updatedSettings.encryptedApiKey = encApiKey;
-            updatedSettings.apiKeySalt = apiSalt;
-          } catch {
-            return jsonWithCookie({ success: false, message: "Current password is incorrect." });
-          }
+        } catch (error) {
+          return jsonWithCookie({ success: false, message: describeError(error) });
         }
 
         await saveSettings(validTokens.accessToken, validTokens.rootFolderId, updatedSettings);
@@ -560,15 +487,7 @@ export async function action({ request }: Route.ActionArgs) {
       }
 
       case "saveRag": {
-        if (isUnsupportedFileSearchApiKey(validTokens.geminiApiKey)) {
-          return jsonWithCookie(
-            {
-              success: false,
-              message: "RAG is unavailable because Gemini File Search does not currently accept AQ-format authorization keys.",
-            },
-            { status: 400 },
-          );
-        }
+        await assertRagAccess(validTokens.rootFolderId);
         const ragTopK = Math.min(20, Math.max(1, Number(formData.get("ragTopK")) || 5));
         const ragSettingsJson = formData.get("ragSettings") as string;
         let ragSettings: Record<string, RagSetting>;
@@ -578,6 +497,25 @@ export async function action({ request }: Route.ActionArgs) {
             : currentSettings.ragSettings;
         } catch {
           return jsonWithCookie({ success: false, message: "Invalid RAG settings JSON." });
+        }
+        const { embeddingConfig } = await import("~/services/rag-config");
+        for (const setting of Object.values(ragSettings)) {
+          const config = embeddingConfig(setting);
+          setting.embeddingProvider = config.provider;
+          setting.embeddingModel = config.model;
+          setting.topK = Math.min(20, Math.max(1, Math.trunc(Number(setting.topK ?? currentSettings.ragTopK) || 5)));
+          setting.jevRagFilterEnabled = setting.jevRagFilterEnabled !== false;
+          setting.searchUntilMatch = setting.searchUntilMatch === true;
+          setting.isExternal = false;
+          setting.storeIds = [];
+          setting.chunkSize = Math.max(100, Math.min(5000, Number(setting.chunkSize) || 1500));
+          setting.chunkOverlap = Math.max(0, Math.min(setting.chunkSize - 1, Number(setting.chunkOverlap ?? 150) || 0));
+        }
+        const removedIndexes: string[] = [];
+        for (const [name, old] of Object.entries(currentSettings.ragSettings)) {
+          if (!ragSettings[name] && !Object.values(ragSettings).some((setting) => setting.storeName === old.storeName)) {
+            for (const index of [old.storeName, ...(old.retiredIndexes || [])]) if (index) removedIndexes.push(index);
+          }
         }
         const selectedRagSetting = (formData.get("selectedRagSetting") as string) || null;
         const ragRegistrationOnPush = formData.get("ragRegistrationOnPush") === "on";
@@ -592,6 +530,15 @@ export async function action({ request }: Route.ActionArgs) {
           okfRoot,
         };
         await saveSettings(validTokens.accessToken, validTokens.rootFolderId, updatedSettings);
+        // Delete chunks only after settings no longer reference them, so a failed
+        // save never leaves settings pointing at a deleted index.
+        if (removedIndexes.length) {
+          const { deleteStore } = await import("~/services/rag-index.server");
+          for (const index of removedIndexes) {
+            try { await deleteStore(index, validTokens.rootFolderId); }
+            catch (error) { console.warn("[settings] Failed to delete RAG index:", describeError(error)); }
+          }
+        }
         return jsonWithCookie({ success: true, message: "RAG settings saved." });
       }
 
@@ -887,7 +834,7 @@ clientLoader.hydrate = true as const;
 export default function Settings() {
   const { settings, hasApiKey, hasUnsupportedRagApiKey, maskedKey, hasHubworkScopes, rootFolderId, enterprise, hasOrganizations, showEnterpriseTab, enterpriseError } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<SettingsTabId>("general");
+  const [activeTab, setActiveTab] = useState<SettingsTabId>("ai");
 
   const [currentLang, setCurrentLang] = useState<Language>(settings.language ?? "en");
   useApplySettings(currentLang, settings.fontSize, settings.theme);

@@ -6,7 +6,7 @@ import { encryptFileContent } from "~/services/crypto.server";
 import { renderMarkdownToPrintableHtml, renderHtmlToPrintableHtml } from "~/services/markdown-pdf.server";
 import { getSettings, saveSettings } from "~/services/user-settings.server";
 import { upsertFileInMeta, setFileSharedInMeta, readRemoteSyncMeta } from "~/services/sync-meta.server";
-import { deleteSingleFileFromRag } from "~/services/file-search.server";
+import { deleteSingleFileFromRag } from "~/services/rag-index.server";
 import { publicFilePath } from "~/services/public-link.server";
 import { DEFAULT_RAG_STORE_KEY } from "~/types/settings";
 
@@ -67,8 +67,8 @@ export async function handleGemihubCommandNode(
         const ragFile = ragSetting?.files?.[file.name];
         if (ragFile) {
           let canRemove = !ragFile.fileId;
-          if (ragFile.fileId && serviceContext.geminiApiKey) {
-            canRemove = await deleteSingleFileFromRag(serviceContext.geminiApiKey, ragFile.fileId);
+          if (ragFile.fileId) {
+            canRemove = await deleteSingleFileFromRag(serviceContext.geminiApiKey || "", ragFile.fileId, { rootFolderId: serviceContext.driveRootFolderId });
           }
           if (canRemove) {
             delete ragSetting.files[file.name];
