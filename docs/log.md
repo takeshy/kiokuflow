@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-11-01
+* **Update**: General now has one common encryption password for every API provider and file encryption. One verification unlocks all keys; one change re-encrypts all keys while preserving the RSA identity, with no per-provider password fields.
 * **Docs**: Updated both READMEs, the landing page, and manual settings/encryption/chat explanations for multiple AI providers, OpenAI Live, paid Firestore RAG, per-index Top K, optional Jev filtering, search tabs, and the current settings layout.
 * **New**: Jev registration with direct or OpenRouter credentials, per-RAG Top K/relevance preferences, and a repeat-until-match checkbox in content search. Query embedding runs once while Jev checks successive candidate batches; scanned PDFs use page images (`integrations/rag.md`).
 * **Update**: Kakeratta and Bluesky now share an Integrations tab; Commands and Shortcuts share a tab with internal sections. All AI-provider password entry and management moved to General, with API keys/models kept in provider tabs and entered passwords retained only in settings-screen memory.

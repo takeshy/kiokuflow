@@ -11,10 +11,9 @@ AI chat with Gemini, OpenAI, OpenRouter, and OpenCode Go streaming, function cal
 
 ## OpenAI and Live voice conversations
 
-On **My Drive**, set or verify the OpenAI encryption password in
+On **My Drive**, set or verify the common encryption password in
 **Settings > General**, then save the API key in **Settings > AI providers > OpenAI**.
-The password must have at least eight characters and is
-separate from the Gemini/file encryption password. The key is encrypted in
+The password has at least eight characters and is shared with Gemini, OpenRouter, OpenCode Go, direct Jev keys and file encryption. The key is encrypted in
 Drive settings; unlocking stores an encrypted copy in the authenticated session.
 The raw OpenAI key is never returned to the browser. Replace or remove the key in the provider tab. Password setup, verification,
 unlocking, locking, and changes are managed in **Settings > General**.
@@ -50,16 +49,13 @@ interfaces.
 
 ## OpenRouter and OpenCode Go
 
-On **My Drive**, first set or verify the provider-specific encryption password
+On **My Drive**, first set or verify the common encryption password
 in **Settings > General**. Then open **Settings > AI providers > OpenRouter / OpenCode Go**,
 enter the API key, and choose
 **Verify and fetch models**, check the models to enable, then save.
 Choose the provider above the tabs and save to make its selected model the
 default. Browsing settings tabs does not change the active provider.
-Passwords and key unlocking/locking are managed in **Settings > General**.
-Entered passwords stay only in memory while this settings screen is open; they
-are not written to localStorage or IndexedDB. Existing encryption formats and
-provider passwords are preserved.
+Enter the common password once in **Settings > General** to unlock all saved provider keys. Changes re-encrypt all keys and the existing RSA private key together; locking clears all provider keys from the session. The entered password stays only in settings-screen memory and is not written to localStorage or IndexedDB. Existing encryption formats and RSA identity are preserved. A legacy key that cannot be decrypted with the entered password causes an error before any keys are changed.
 
 Enabled models are available in chat, slash commands, Timeline AI, Kakeratta,
 and workflow execution/generation. Requests use a same-origin server proxy,

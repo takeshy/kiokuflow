@@ -90,6 +90,7 @@ export default [
   route("api/settings/mcp-oauth-token", "routes/api.settings.mcp-oauth-token.tsx"),
   route("auth/mcp-oauth-callback", "routes/auth.mcp-oauth-callback.tsx"),
   route("api/settings/rag-sync", "routes/api.settings.rag-sync.tsx"),
+  route("api/settings/api-key-password", "routes/api.settings.api-key-password.tsx"),
   route("api/settings/encryption", "routes/api.settings.encryption.tsx"),
   route("api/settings/edit-history", "routes/api.settings.edit-history.tsx"),
   route("api/settings/edit-history-stats", "routes/api.settings.edit-history-stats.tsx"),

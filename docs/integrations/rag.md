@@ -64,7 +64,7 @@ Configure Jev under Settings > AI providers > Jev, using an official API key fro
 the [TypeSafe console](https://console.typesafe.ai/) or the configured OpenRouter
 key. Direct requests use `https://api.typesafe.ai/v1/systemone`, as documented in
 the [official API reference](https://docs.typesafe.ai/api/system-one).
-Manage encryption passwords and key unlocking under
+Manage the common encryption password and unlock all provider keys together under
 General. Direct Jev keys are encrypted in settings and in the session; no key is
 stored in a RAG chunk. This service receives the query and candidate excerpts
 (or matched PDF/image content) and incurs separate API usage charges.

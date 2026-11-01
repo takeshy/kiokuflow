@@ -357,10 +357,10 @@ export async function action({ request }: Route.ActionArgs) {
         }
 
         // Encryption-related fields
-        const password = (formData.get("password") as string)?.trim() || "";
-        const confirmPassword = (formData.get("confirmPassword") as string)?.trim() || "";
-        const currentPassword = (formData.get("currentPassword") as string)?.trim() || "";
-        const newPassword = (formData.get("newPassword") as string)?.trim() || "";
+        const password = (formData.get("password") as string) || "";
+        const confirmPassword = (formData.get("confirmPassword") as string) || "";
+        const currentPassword = (formData.get("currentPassword") as string) || "";
+        const newPassword = (formData.get("newPassword") as string) || "";
         const encryptChatHistory = formData.get("encryptChatHistory") === "on";
         const encryptWorkflowHistory = formData.get("encryptWorkflowHistory") === "on";
 
@@ -415,6 +415,9 @@ export async function action({ request }: Route.ActionArgs) {
           effectiveApiKey = encrypted.effectiveApiKey;
           updatedSettings.encryptedApiKey = encrypted.encryptedApiKey;
           updatedSettings.apiKeySalt = encrypted.apiKeySalt;
+          updatedSettings.openai = encrypted.openai;
+          updatedSettings.jev = encrypted.jev;
+          updatedSettings.compatibleProviders = encrypted.compatibleProviders;
           updatedSettings.encryption = {
             ...encrypted.encryption, encryptChatHistory, encryptWorkflowHistory,
           };

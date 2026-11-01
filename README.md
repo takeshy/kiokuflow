@@ -106,7 +106,7 @@ GemiHub is offline-first: files are cached in IndexedDB and load instantly, edit
 
 ## Getting Started
 
-The fastest path is the hosted app: **[gemihub.net](https://gemihub.net)** — sign in with Google, set an encryption password in **Settings > General**, and register your chosen API key in the leftmost **AI providers** tab. Choose the active provider above its configuration tabs. Kakeratta and Bluesky share **Integrations**; commands and shortcuts share one settings tab.
+The fastest path is the hosted app: **[gemihub.net](https://gemihub.net)** — sign in with Google, set one common encryption password for all API keys in **Settings > General**, and register your chosen API key in the leftmost **AI providers** tab. Choose the active provider above its configuration tabs. Kakeratta and Bluesky share **Integrations**; commands and shortcuts share one settings tab.
 
 To run it yourself:
 

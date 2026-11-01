@@ -31,3 +31,15 @@ export async function encryptProviderKey(key: string, body: { password?: unknown
   const encrypted = await encryptPrivateKey(key, password);
   return { encryptedApiKey: encrypted.encryptedPrivateKey, salt: encrypted.salt };
 }
+
+/** Provider tabs may save keys, while common password changes belong to General. */
+export async function prepareCommonKeySettings(settings: import("~/types/settings").UserSettings, body: { password?: unknown; newPassword?: unknown }, headers: HeadersInit = PROVIDER_KEY_HEADERS) {
+  const password = typeof body.password === "string" ? body.password : "";
+  if (body.newPassword && body.newPassword !== password) throw Response.json({ error: "Change the common encryption password in Settings > General." }, { status: 400, headers });
+  try {
+    const { configureCommonPassword } = await import("./api-key-password.server");
+    return (await configureCommonPassword(settings, password)).settings;
+  } catch (error) {
+    throw Response.json({ error: error instanceof Error ? error.message : "Incorrect common encryption password." }, { status: 401, headers });
+  }
+}

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { action as configure } from "~/routes/api.jev.settings";
+import { action as configurePassword } from "~/routes/api.settings.api-key-password";
 import { getTokens, setTokens, commitSession, type SessionTokens } from "./session.server";
 import { clearSettingsCache } from "./user-settings.server";
 import { decryptPrivateKey } from "./crypto-core";
@@ -36,7 +37,9 @@ test("Jev key is encrypted, rotates passwords, locks independently, and is isola
   const lockedTokens = (await responseTokens(locked))!;
   assert.equal(lockedTokens.jevApiKey, undefined); assert.equal(lockedTokens.compatibleApiKeys?.openrouter, "synthetic-router");
   assert.equal((await configure(args(await request({ action: "unlock", password: "wrong" })))).status, 401);
-  const rotated = await configure(args(await request({ action: "save", password: "jev-password", newPassword: "new-password" })));
+  const rejected = await configure(args(await request({ action: "save", password: "jev-password", newPassword: "new-password" })));
+  assert.equal(rejected.status, 400);
+  const rotated = await configurePassword(args(await request({ action: "change", password: "jev-password", newPassword: "new-password", confirmPassword: "new-password" })));
   assert.equal(rotated.status, 200);
   assert.equal(await decryptPrivateKey(settings.jev!.encryptedApiKey!, settings.jev!.salt!, "new-password"), "synthetic-jev");
   assert.equal((await configure(args(await request({ action: "unlock", password: "jev-password" })))).status, 401);

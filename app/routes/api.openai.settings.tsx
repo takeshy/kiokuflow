@@ -2,7 +2,7 @@ import type { Route } from "./+types/api.openai.settings";
 import { requireAuth, setTokens, commitSession } from "~/services/session.server";
 import { getValidTokens } from "~/services/google-auth.server";
 import { getSettings, saveSettings } from "~/services/user-settings.server";
-import { decryptSavedProviderKey, encryptProviderKey, requestedProviderKey, PROVIDER_KEY_HEADERS as noStore } from "~/services/provider-key-settings.server";
+import { decryptSavedProviderKey, prepareCommonKeySettings, encryptProviderKey, requestedProviderKey, PROVIDER_KEY_HEADERS as noStore } from "~/services/provider-key-settings.server";
 import { validateOrigin } from "~/utils/security";
 import { getDefaultModelForPlan, isOpenAIModel } from "~/types/settings";
 
@@ -34,12 +34,14 @@ export async function action({ request }: Route.ActionArgs) {
       openaiApiKey = previousKey;
     } else if (body.action === "save") {
       openaiApiKey = requestedProviderKey(body.apiKey, previousKey);
+      const commonSettings = await prepareCommonKeySettings(settings, body);
       await saveSettings(validTokens.accessToken, validTokens.rootFolderId, {
-        ...settings, openai: await encryptProviderKey(openaiApiKey, body),
+        ...commonSettings, openai: await encryptProviderKey(openaiApiKey, body),
       });
     } else if (body.action === "remove") {
+      const commonSettings = await prepareCommonKeySettings(settings, body);
       await saveSettings(validTokens.accessToken, validTokens.rootFolderId, {
-        ...settings, openai: undefined,
+        ...commonSettings, openai: undefined,
         selectedModel: settings.selectedModel && isOpenAIModel(settings.selectedModel)
           ? getDefaultModelForPlan(settings.apiPlan) : settings.selectedModel,
       });

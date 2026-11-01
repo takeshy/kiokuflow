@@ -2,9 +2,12 @@ import type { Route } from "./+types/api.auth.unlock";
 import { requireAuth, commitSession, setTokens } from "~/services/session.server";
 import { getValidTokens } from "~/services/google-auth.server";
 import { getSettings } from "~/services/user-settings.server";
-import { decryptPrivateKey } from "~/services/crypto-core";
+import { unlockSettingsKeys } from "~/services/api-key-password.server";
+import { validateOrigin } from "~/utils/security";
 
 export async function action({ request }: Route.ActionArgs) {
+  if (request.method !== "POST") return new Response("Method not allowed", { status: 405 });
+  validateOrigin(request);
   const tokens = await requireAuth(request);
   const { tokens: validTokens } = await getValidTokens(request, tokens);
   const settings = await getSettings(validTokens.accessToken, validTokens.rootFolderId);
@@ -19,8 +22,9 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    const apiKey = await decryptPrivateKey(settings.encryptedApiKey, settings.apiKeySalt, password);
-    const session = await setTokens(request, { ...validTokens, geminiApiKey: apiKey });
+    const { keys } = await unlockSettingsKeys(settings, password);
+    const apiKey = keys.geminiApiKey!;
+    const session = await setTokens(request, { ...validTokens, ...keys });
 
     // Refresh the server-side encrypted API key in Firestore only if the user
     // has scheduled workflows registered (the Scheduler needs it). Otherwise,

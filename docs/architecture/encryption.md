@@ -9,6 +9,16 @@ tags:
 
 Hybrid RSA+AES encryption for protecting files stored on Google Drive.
 
+## Common API-key password
+
+Set or verify one password under Settings > General for Gemini, OpenAI,
+OpenRouter, OpenCode Go, direct Jev credentials and the file-encryption private
+key. One verification unlocks all saved API keys, and one change re-encrypts all
+of them while preserving the RSA key pair. All secrets are decrypted before a
+single settings write; a wrong password leaves every saved key intact. Provider
+tabs contain API keys and models, with no separate password entry. Passwords stay
+only in settings-screen memory, while unlocked session keys are encrypted.
+
 ## Features
 
 - **Hybrid Encryption**: RSA-OAEP (2048-bit) + AES-256-GCM for each file

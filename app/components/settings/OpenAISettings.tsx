@@ -9,8 +9,7 @@ import { useProviderPasswords } from "./ProviderPasswords";
 export function OpenAISettings({ settings, onOpenGeneral }: { settings: UserSettings; onOpenGeneral?: () => void }) {
   const ja = useI18n().language === "ja";
   const revalidator = useRevalidator();
-  const { passwords, setPassword } = useProviderPasswords();
-  const password = passwords.openai || "";
+  const { password } = useProviderPasswords();
   const stored = !!settings.openai?.encryptedApiKey;
   const [unlocked, setUnlocked] = useState(false);
   const [apiKey, setApiKey] = useState("");
@@ -22,14 +21,13 @@ export function OpenAISettings({ settings, onOpenGeneral }: { settings: UserSett
     return () => controller.abort();
   }, []);
   const submit = async (action: "save" | "remove") => {
-    if (!password) { setNotice(ja ? "一般設定でOpenAIのパスワードを設定・確認してください。" : "Set or verify the OpenAI password in General settings."); return; }
+    if (!password) { setNotice(ja ? "一般設定で共通パスワードを設定・確認してください。" : "Set or verify the common password in General settings."); return; }
     setBusy(true); setNotice("");
     try {
       const response = await fetch("/api/openai/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, apiKey, password }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
       setUnlocked(data.unlocked); setApiKey("");
-      if (action === "remove") setPassword("openai", "");
       setNotice(ja ? "保存しました。" : "Saved."); invalidateIndexCache(); revalidator.revalidate();
     } catch (error) { setNotice(error instanceof Error ? error.message : String(error)); }
     finally { setBusy(false); }

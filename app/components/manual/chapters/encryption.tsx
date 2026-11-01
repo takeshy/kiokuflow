@@ -56,7 +56,7 @@ function EncryptionEn() {
 
         <h2>API Key Protection</h2>
         <p>
-          Gemini, OpenAI, OpenRouter, OpenCode Go and direct Jev keys are saved encrypted on Drive. Set, verify, change or unlock provider passwords in Settings &gt; General; enter API keys in AI providers. The unlocked server session also encrypts keys. Entered provider passwords are retained only in settings-screen memory and discarded when you leave.
+          Gemini, OpenAI, OpenRouter, OpenCode Go and direct Jev keys are saved encrypted on Drive. Set or verify the single common password in Settings &gt; General to unlock every provider together. Change it there to re-encrypt all keys together; enter API keys in AI providers. The unlocked server session also encrypts keys. The entered common password is retained only in settings-screen memory and discarded when you leave.
         </p>
 
         <h2>Important Notes</h2>
@@ -70,7 +70,7 @@ function EncryptionEn() {
         </div>
         <ul>
           <li>Encrypted files are stored on Drive in encrypted form — even Google cannot read them.</li>
-          <li>Provider passwords entered in Settings are cleared when the settings screen closes. Unlocked API keys remain available until locked or the session ends.</li>
+          <li>The common password entered in Settings is cleared when the settings screen closes. Unlocked API keys remain available until locked or the session ends.</li>
           <li>Resetting encryption keys will make all previously encrypted data unreadable.</li>
         </ul>
       </div>
@@ -127,7 +127,7 @@ function EncryptionJa() {
 
         <h2>APIキーの保護</h2>
         <p>
-          Gemini・OpenAI・OpenRouter・OpenCode Go・Jev直接接続のキーは暗号化してDriveに保存します。パスワードの設定・確認・変更・ロック解除は設定 → 一般、APIキーの入力はAIプロバイダーで行います。解除したサーバーセッション内のキーも暗号化します。入力したプロバイダーのパスワードは設定画面のメモリ内だけに保持し、画面を離れると破棄します。
+          Gemini・OpenAI・OpenRouter・OpenCode Go・Jev直接接続のキーは暗号化してDriveに保存します。APIキーとファイル暗号化のパスワードは共通の1つです。設定 → 一般で一度入力すると、全プロバイダーのキーをまとめて解除できます。変更・ロックも全キーに適用します。APIキーの入力はAIプロバイダーで行います。解除したサーバーセッション内のキーも暗号化します。入力した共通パスワードは設定画面のメモリ内だけに保持し、画面を離れると破棄します。
         </p>
 
         <h2>重要な注意事項</h2>
@@ -141,7 +141,7 @@ function EncryptionJa() {
         </div>
         <ul>
           <li>暗号化ファイルは暗号化された状態でDriveに保存されます。Googleでさえ読み取れません。</li>
-          <li>設定で入力したプロバイダーのパスワードは、設定画面を閉じると破棄します。解除済みのAPIキーは、ロックまたはセッション終了まで利用できます。</li>
+          <li>設定で入力した共通パスワードは、設定画面を閉じると破棄します。解除済みのAPIキーは、ロックまたはセッション終了まで利用できます。</li>
           <li>暗号化キーをリセットすると、以前に暗号化されたすべてのデータが読み取れなくなります。</li>
         </ul>
       </div>

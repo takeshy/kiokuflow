@@ -32,7 +32,7 @@ function SettingsEn() {
           <li><strong>Optional advanced features</strong> — Enable Dashboard, Workflow, and RAG. Disabled features remain hidden from navigation and settings.</li>
         </ul>
         <p>
-          Kakeratta and Bluesky share the Integrations tab. Commands and Shortcuts share a tab with separate internal tabs. API-provider passwords are set, verified, and changed in General; provider tabs contain API keys and model settings. Recommended order: complete General first, enable only the optional features you need, configure Sync, and then set up integrations such as MCP and RAG. Organization and plan tabs appear only for eligible accounts.
+          Kakeratta and Bluesky share the Integrations tab. Commands and Shortcuts share a tab with separate internal tabs. One common encryption password is set, verified, and changed in General for all API providers and file encryption; provider tabs contain API keys and model settings. Recommended order: complete General first, enable only the optional features you need, configure Sync, and then set up integrations such as MCP and RAG. Organization and plan tabs appear only for eligible accounts.
         </p>
 
         <h2>MCP Servers</h2>
@@ -153,7 +153,7 @@ function SettingsJa() {
           <li><strong>任意の上級機能</strong> — ダッシュボード、ワークフロー、RAGを有効化。無効な機能はナビゲーションと設定から隠れます。</li>
         </ul>
         <p>
-          KakerattaとBlueskyは「外部連携」、コマンドとショートカットは「コマンド・ショートカット」の内部タブから設定します。AIプロバイダーのパスワード設定・確認・変更は一般設定にまとめています。推奨順序は、まず一般設定を完了し、必要な上級機能だけを有効にしてから同期を設定し、その後にMCPやRAGなどの連携を設定します。組織・プラン関連タブは対象アカウントにのみ表示されます。
+          KakerattaとBlueskyは「外部連携」、コマンドとショートカットは「コマンド・ショートカット」の内部タブから設定します。APIキーとファイル暗号化のパスワードは共通の1つで、一般設定で一度入力すれば全プロバイダーをまとめて解除・変更・ロックできます。推奨順序は、まず一般設定を完了し、必要な上級機能だけを有効にしてから同期を設定し、その後にMCPやRAGなどの連携を設定します。組織・プラン関連タブは対象アカウントにのみ表示されます。
         </p>
 
         <h2>MCPサーバー</h2>

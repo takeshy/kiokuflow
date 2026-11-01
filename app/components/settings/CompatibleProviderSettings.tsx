@@ -14,8 +14,7 @@ export function CompatibleProviderSettings({ provider, settings, onOpenGeneral }
   const revalidator = useRevalidator();
   const [unlocked, setUnlocked] = useState(false);
   const [apiKey, setApiKey] = useState("");
-  const { passwords, setPassword } = useProviderPasswords();
-  const password = passwords[provider] || "";
+  const { password } = useProviderPasswords();
   const [models, setModels] = useState(config?.availableModels || []);
   const [enabledModels, setEnabledModels] = useState(config?.enabledModels || []);
   const [filter, setFilter] = useState("");
@@ -41,7 +40,6 @@ export function CompatibleProviderSettings({ provider, settings, onOpenGeneral }
         setNotice(ja ? `${data.models.length}モデルを取得しました。使用するモデルを選択して保存してください。` : `Found ${data.models.length} models. Select models and save.`);
       } else {
         setUnlocked(data.unlocked); setApiKey("");
-        if (action === "remove") setPassword(provider, "");
         setNotice(ja ? "保存しました。" : "Saved."); invalidateIndexCache(); revalidator.revalidate();
       }
     } catch (error) { setNotice(error instanceof Error ? error.message : String(error)); }

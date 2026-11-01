@@ -2,11 +2,9 @@ import type { Route } from "./+types/api.settings.encryption";
 import { requireAuth } from "~/services/session.server";
 import { getValidTokens } from "~/services/google-auth.server";
 import { getSettings, saveSettings } from "~/services/user-settings.server";
-import {
-  generateKeyPair,
-  encryptPrivateKey,
-  verifyPassword,
-} from "~/services/crypto.server";
+import { verifyPassword } from "~/services/crypto.server";
+import { configureCommonPassword } from "~/services/api-key-password.server";
+import { validateOrigin } from "~/utils/security";
 
 
 // ---------------------------------------------------------------------------
@@ -18,7 +16,9 @@ export async function action({ request }: Route.ActionArgs) {
     return Response.json({ error: "Method not allowed" }, { status: 405 });
   }
 
+  validateOrigin(request);
   const tokens = await requireAuth(request);
+  if (!tokens.accessToken || !tokens.rootFolderId || tokens.currentProjectId) return Response.json({ error: "Select My Drive." }, { status: 403 });
   const { tokens: validTokens, setCookieHeader } = await getValidTokens(request, tokens);
   const responseHeaders = setCookieHeader ? { "Set-Cookie": setCookieHeader } : undefined;
 
@@ -53,40 +53,11 @@ export async function action({ request }: Route.ActionArgs) {
       }
 
       try {
-        const keyPair = await generateKeyPair();
-        const { encryptedPrivateKey, salt } = await encryptPrivateKey(
-          keyPair.privateKey,
-          password
-        );
-
-        const encryptionSettings = {
-          ...settings.encryption,
-          enabled: true,
-          publicKey: keyPair.publicKey,
-          encryptedPrivateKey,
-          salt,
-        };
-
-        // Save to settings
-        const updatedSettings = {
-          ...settings,
-          encryption: encryptionSettings,
-        };
-        await saveSettings(
-          validTokens.accessToken,
-          validTokens.rootFolderId,
-          updatedSettings
-        );
-
-        return Response.json(
-          {
-            success: true,
-            publicKey: keyPair.publicKey,
-            encryptedPrivateKey,
-            salt,
-          },
-          { headers: responseHeaders }
-        );
+        // Reuse the existing RSA key and validate every provider key; never reset
+        // file encryption or introduce a second API-key password here.
+        const common = await configureCommonPassword(settings, password);
+        await saveSettings(validTokens.accessToken, validTokens.rootFolderId, common.settings);
+        return Response.json({ success: true, publicKey: common.settings.encryption.publicKey, encryptedPrivateKey: common.settings.encryption.encryptedPrivateKey, salt: common.settings.encryption.salt }, { headers: responseHeaders });
       } catch (error) {
         return Response.json(
           {

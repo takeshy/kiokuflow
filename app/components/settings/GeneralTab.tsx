@@ -85,8 +85,7 @@ export function GeneralTab({
   onOpenGeneral?: () => void;
 }) {
   const showAi = section === "ai";
-  const { passwords, setPassword: rememberPassword } = useProviderPasswords();
-  const submittedPasswordRef = useRef("");
+  const { password: encryptionPassword } = useProviderPasswords();
   const fetcher = useFetcher();
   const loading = fetcher.state !== "idle";
   const { t, language } = useI18n();
@@ -135,15 +134,10 @@ export function GeneralTab({
   // Sensitive field state (controlled to survive re-renders after fetcher submission)
   const [geminiApiKey, setGeminiApiKey] = useState("");
   const [apiKeyEdited, setApiKeyEdited] = useState(false);
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
 
   // Encryption state
   const [encryptChatHistory, setEncryptChatHistory] = useState(settings.encryption.encryptChatHistory);
   const [encryptWorkflowHistory, setEncryptWorkflowHistory] = useState(settings.encryption.encryptWorkflowHistory);
-  const [showPasswordChange, setShowPasswordChange] = useState(false);
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -280,18 +274,9 @@ export function GeneralTab({
   useEffect(() => {
     if (!fetcherData) return;
     if (fetcherData.success) {
-      if (!showAi && submittedPasswordRef.current) {
-        rememberPassword("gemini", submittedPasswordRef.current);
-        submittedPasswordRef.current = "";
-      }
       // Clear sensitive fields on success
       setGeminiApiKey("");
       setApiKeyEdited(false);
-      setPassword("");
-      setConfirmPassword("");
-      setCurrentPassword("");
-      setNewPassword("");
-      setShowPasswordChange(false);
       invalidateIndexCache();
       if (fetcherData.apiKeyUpdated) clearCachedApiKey();
     } else if (fetcherData.message) {
@@ -299,7 +284,7 @@ export function GeneralTab({
       const translated = tRef.current(key);
       setErrorMessage(translated !== key ? translated : fetcherData.message);
     }
-  }, [fetcherData, showAi, rememberPassword]);
+  }, [fetcherData]);
 
 
   return (
@@ -320,10 +305,9 @@ export function GeneralTab({
       )}
 
       <fetcher.Form method="post" onSubmit={event => {
-        if (!showAi) submittedPasswordRef.current = newPassword || currentPassword || password;
-        if (showAi && geminiApiKey && !passwords.gemini) {
+        if (showAi && geminiApiKey && !encryptionPassword) {
           event.preventDefault();
-          setErrorMessage(language === "ja" ? "一般設定でGeminiの暗号化パスワードを設定・確認してください。" : "Set or verify the Gemini encryption password in General settings.");
+          setErrorMessage(language === "ja" ? "一般設定で共通の暗号化パスワードを設定・確認してください。" : "Set or verify the common encryption password in General settings.");
         }
       }}>
         <input type="hidden" name="_action" value="saveGeneral" />
@@ -425,7 +409,7 @@ export function GeneralTab({
           <input
             type="password"
             id="geminiApiKey"
-            disabled={!passwords.gemini}
+            disabled={!encryptionPassword}
             name="geminiApiKey"
             value={geminiApiKey}
             onChange={(e) => {
@@ -438,9 +422,9 @@ export function GeneralTab({
           />
         </div>
 
-        <input type="hidden" name="currentPassword" value={passwords.gemini || ""} />
+        <input type="hidden" name="currentPassword" value={encryptionPassword || ""} />
         <div className="mb-6">
-          {!passwords.gemini && <p className="mb-2 text-sm text-gray-500">{t("settings.ai.setupEncryption")}</p>}
+          {!encryptionPassword && <p className="mb-2 text-sm text-gray-500">{t("settings.ai.setupEncryption")}</p>}
           {onOpenGeneral && <button type="button" onClick={onOpenGeneral} className="text-sm text-blue-600 hover:underline">{language === "ja" ? "一般設定でパスワードを管理" : "Manage password in General"}</button>}
         </div>
 
@@ -818,127 +802,7 @@ export function GeneralTab({
           {t("settings.general.encryptionSection")}
         </h3>
 
-        {/* Password fields */}
-        {!isEncryptionSetup ? (
-          /* Initial setup: password + confirm */
-          <>
-            <div className="mb-4">
-              <Label htmlFor="password">
-                {t("settings.general.password")}
-              </Label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="new-password"
-                placeholder={t("settings.general.password")}
-                className={inputClass}
-              />
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                {t("settings.general.passwordRequired")}
-              </p>
-            </div>
-            <div className="mb-6">
-              <Label htmlFor="confirmPassword">
-                {t("settings.general.confirmPassword")}
-                {password && <span className="text-red-500 ml-1">*</span>}
-              </Label>
-              <input
-                type="password"
-                id="confirmPassword"
-                name="confirmPassword"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                autoComplete="new-password"
-                placeholder={t("settings.general.confirmPassword")}
-                className={inputClass}
-              />
-            </div>
-          </>
-        ) : (
-          /* Already setup: show configured status, current password, and password change option */
-          <div className="mb-6">
-            <div className="mb-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
-              <p className="text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
-                <Check size={16} />
-                {t("settings.general.configured")}
-              </p>
-            </div>
-            {!showPasswordChange ? (
-              <button
-                type="button"
-                onClick={() => setShowPasswordChange(true)}
-                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                {t("settings.general.changePassword")}
-              </button>
-            ) : (
-              <div className="space-y-3 p-4 border border-gray-200 dark:border-gray-700 rounded-md">
-                <div className="mb-4">
-                  <Label htmlFor="currentPassword">{t("settings.general.currentPassword")}</Label>
-                  <input
-                    type="password"
-                    id="currentPassword"
-                    name="currentPassword"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    autoComplete="current-password"
-                    placeholder={t("settings.general.currentPassword")}
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="newPassword">{t("settings.general.newPassword")}</Label>
-                  <input
-                    type="password"
-                    id="newPassword"
-                    name="newPassword"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    autoComplete="new-password"
-                    placeholder={t("settings.general.newPassword")}
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="confirmPassword">{t("settings.general.confirmPassword")}</Label>
-                  <input
-                    type="password"
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    autoComplete="new-password"
-                    placeholder={t("settings.general.confirmPassword")}
-                    className={inputClass}
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowPasswordChange(false);
-                    setCurrentPassword("");
-                    setNewPassword("");
-                    setConfirmPassword("");
-                  }}
-                  className="text-sm text-gray-500 dark:text-gray-400 hover:underline"
-                >
-                  {t("common.cancel")}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {!hideGeminiSettings && <>
-          {isEncryptionSetup && <ProviderPasswordSettings provider="gemini" settings={settings} />}
-          <ProviderPasswordSettings provider="jev" settings={settings} />
-          <ProviderPasswordSettings provider="openai" settings={settings} />
-          <ProviderPasswordSettings provider="openrouter" settings={settings} />
-          <ProviderPasswordSettings provider="opencodego" settings={settings} />
-        </>}
+        {!hideGeminiSettings && <ProviderPasswordSettings settings={settings} />}
 
         <div className="mb-4">
           <Label htmlFor="secretManagerFolder">{t("secretManager.folder")}</Label>

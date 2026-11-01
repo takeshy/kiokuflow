@@ -2,7 +2,7 @@ import type { Route } from "./+types/api.jev.settings";
 import { requireAuth, setTokens, commitSession } from "~/services/session.server";
 import { getValidTokens } from "~/services/google-auth.server";
 import { getSettings, saveSettings } from "~/services/user-settings.server";
-import { decryptSavedProviderKey, encryptProviderKey, requestedProviderKey, PROVIDER_KEY_HEADERS as defaultHeaders } from "~/services/provider-key-settings.server";
+import { decryptSavedProviderKey, prepareCommonKeySettings, encryptProviderKey, requestedProviderKey, PROVIDER_KEY_HEADERS as defaultHeaders } from "~/services/provider-key-settings.server";
 import { jevDecide } from "~/services/jev-rag.server";
 import { validateOrigin } from "~/utils/security";
 
@@ -41,9 +41,11 @@ export async function action({ request }: Route.ActionArgs) {
         key = previous;
       } else if (body.action === "save") {
         key = requestedProviderKey(body.apiKey, previous);
-        await saveSettings(valid.accessToken, valid.rootFolderId, { ...settings, jev: { useOpenRouter: settings.jev?.useOpenRouter ?? false, ...await encryptProviderKey(key, body, headers) } });
+        const commonSettings = await prepareCommonKeySettings(settings, body, headers);
+        await saveSettings(valid.accessToken, valid.rootFolderId, { ...commonSettings, jev: { useOpenRouter: settings.jev?.useOpenRouter ?? false, ...await encryptProviderKey(key, body, headers) } });
       } else if (body.action === "remove") {
-        await saveSettings(valid.accessToken, valid.rootFolderId, { ...settings, jev: { useOpenRouter: settings.jev?.useOpenRouter ?? false } });
+        const commonSettings = await prepareCommonKeySettings(settings, body, headers);
+        await saveSettings(valid.accessToken, valid.rootFolderId, { ...commonSettings, jev: { useOpenRouter: settings.jev?.useOpenRouter ?? false } });
       }
     }
     const session = await setTokens(request, { ...valid, jevApiKey: key });

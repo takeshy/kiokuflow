@@ -2,7 +2,7 @@ import type { Route } from "./+types/api.ai-providers.$provider.settings";
 import { requireAuth, setTokens, commitSession } from "~/services/session.server";
 import { getValidTokens } from "~/services/google-auth.server";
 import { getSettings, saveSettings } from "~/services/user-settings.server";
-import { decryptSavedProviderKey, encryptProviderKey, requestedProviderKey, PROVIDER_KEY_HEADERS as headers } from "~/services/provider-key-settings.server";
+import { decryptSavedProviderKey, prepareCommonKeySettings, encryptProviderKey, requestedProviderKey, PROVIDER_KEY_HEADERS as headers } from "~/services/provider-key-settings.server";
 import { validateOrigin } from "~/utils/security";
 import { getDefaultModelForPlan, parseCompatibleModel } from "~/types/settings";
 import { compatibleSessionId, discoverCompatibleModels, requireCompatibleProvider } from "~/services/compatible-provider.server";
@@ -33,6 +33,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       const key = requestedProviderKey(body.apiKey, previous || keys[provider] || "");
       if (!key || key.length > 1024 || /[\r\n]/.test(key)) return Response.json({ error: "Enter an API key or unlock the saved key." }, { status: 400, headers });
       if (body.action === "verify" || body.action === "save") {
+        const commonSettings = body.action === "save" ? await prepareCommonKeySettings(settings, body) : settings;
         const models = await discoverCompatibleModels(provider, key, compatibleSessionId(tokens.rootFolderId, "verify"), request.signal);
         if (body.action === "verify") return Response.json({ models }, { headers });
         const available = new Set(models.map(model => model.id));
@@ -41,7 +42,7 @@ export async function action({ request, params }: Route.ActionArgs) {
         const encrypted = await encryptProviderKey(key, body);
         const selected = parseCompatibleModel(settings.selectedModel || "");
         await saveSettings(validTokens.accessToken, validTokens.rootFolderId, {
-          ...settings,
+          ...commonSettings,
           compatibleProviders: { ...settings.compatibleProviders, [provider]: { ...encrypted, availableModels: models, enabledModels } },
           selectedModel: selected?.provider === provider && !enabledModels.includes(selected.model) ? `${provider}:${enabledModels[0]}` : settings.selectedModel,
         });
