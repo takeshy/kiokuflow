@@ -87,6 +87,21 @@ export function isMigrationSystemFile(path: string): boolean {
   return ["settings.json", "_sync-meta.json", "_encrypted-auth.json"].includes(path);
 }
 
+export function isMigrationGoogleFile(file: Pick<MigrationFile, "mimeType">): boolean {
+  return file.mimeType.startsWith("application/vnd.google-apps.") && file.mimeType !== MIGRATION_FOLDER_MIME;
+}
+
+/** Consume verified source files; Google-native items stay in the old folder. */
+export function verifyMigrationSourceFiles(expected: Map<string, MigrationFile>, files: MigrationFile[], root: boolean): void {
+  for (const file of files) {
+    const original = expected.get(file.id);
+    if (!original && (isMigrationGoogleFile(file) || (root && ["_sync-meta.json", "_encrypted-auth.json"].includes(file.name)))) continue;
+    if (!original) throw new Error("移行元に新しいファイルがあります。旧環境での編集を止めてから確認してください。");
+    assertMigrationFileUnchanged(original, file);
+    expected.delete(file.id);
+  }
+}
+
 /** Only exact JSON references are changed; note bodies/ciphertext are not rewritten. */
 export function remapMigrationReferences(value: unknown, ids: ReadonlyMap<string, string>): unknown {
   if (typeof value === "string") return ids.get(value) ?? value;

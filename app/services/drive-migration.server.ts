@@ -10,7 +10,7 @@ import type { UserSettings } from "~/types/settings";
 import { rebuildSyncMeta } from "./sync-meta.server";
 import { clearSettingsCache } from "./user-settings.server";
 import { createFile, findFileByExactName, updateFile } from "./google-drive.server";
-import { MIGRATION_FOLDER_MIME, assertMigrationOwner, migrationEmail, isMigrationSystemFile,
+import { MIGRATION_FOLDER_MIME, assertMigrationOwner, migrationEmail, isMigrationSystemFile, isMigrationGoogleFile, verifyMigrationSourceFiles,
   migrateDriveSettings, remapMigrationReferences, assertMigrationFileUnchanged,
   MigrationOwnerError, planMigrationTargets, type MigrationEntry, type MigrationFile } from "./drive-migration";
 import { migrationDriveEmail, migrationList, migrationMetadata, migrationReadText, migrationGenerateIds,
@@ -153,9 +153,7 @@ async function prepare(job: MigrationJob, ref: FirebaseFirestore.DocumentReferen
         settings = file;
       }
       if (isMigrationSystemFile(path)) continue;
-      if (file.mimeType.startsWith("application/vnd.google-apps.") && file.mimeType !== MIGRATION_FOLDER_MIME) {
-        throw new Error("旧フォルダにGoogleドキュメント等が含まれています。通常のノート形式へ書き出してから引き継いでください。");
-      }
+      if (isMigrationGoogleFile(file)) continue;
       if (file.mimeType !== MIGRATION_FOLDER_MIME && (!file.md5Checksum || !Number.isSafeInteger(Number(file.size)))) {
         throw new Error("移行元のファイルのサイズまたはチェックサムが取得できませんでした。");
       }
@@ -233,17 +231,11 @@ async function finish(job: MigrationJob, ref: FirebaseFirestore.DocumentReferenc
   }
   const entries = (await ref.collection("files").get()).docs.map(doc => doc.data() as MigrationEntry);
   if (entries.length !== job.total || entries.some(entry => !entry.done) || !job.sourceSettings || !job.targetSettingsId) throw new Error("未完了のファイルがあります。");
-  // A newly added/deleted/edited source file must not be silently omitted.
+  // Verify planned items and reject newly added copyable files.
   const expected = new Map(entries.map(entry => [entry.source.id, entry.source]));
   expected.set(job.sourceSettings.id, job.sourceSettings);
   for (const parent of [job.sourceRoot, ...entries.filter(e => e.source.mimeType === MIGRATION_FOLDER_MIME).map(e => e.source.id)]) {
-    for (const file of await migrationList(sourceToken, parent)) {
-      if (parent === job.sourceRoot && ["_sync-meta.json", "_encrypted-auth.json"].includes(file.name)) continue;
-      const original = expected.get(file.id);
-      if (!original) throw new Error("移行元に新しいファイルがあります。旧環境での編集を止めてから確認してください。");
-      assertMigrationFileUnchanged(original, file);
-      expected.delete(file.id);
-    }
+    verifyMigrationSourceFiles(expected, await migrationList(sourceToken, parent), parent === job.sourceRoot);
   }
   if (expected.size) throw new Error("移行元のファイルが削除または移動されています。引き継ぎを停止しました。");
   assertMigrationFileUnchanged(job.sourceSettings, await migrationMetadata(sourceToken, job.sourceSettings.id));

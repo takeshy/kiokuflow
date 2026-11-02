@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { assertMigrationOwner, assertMigrationFileUnchanged, migrateDriveSettings,
-  remapMigrationReferences, completedUploadBytes, planMigrationTargets, MIGRATION_FOLDER_MIME, type MigrationEntry, type MigrationFile } from "./drive-migration";
+  remapMigrationReferences, completedUploadBytes, planMigrationTargets, isMigrationGoogleFile, verifyMigrationSourceFiles,
+  MIGRATION_FOLDER_MIME, type MigrationEntry, type MigrationFile } from "./drive-migration";
 import { assertMigrationUploadUrl, assertCopiedMigrationFile, migrationCopyChunk, migrationTrashOldSettings,
   migratedTarget, migrationBeginUpload, migrationCreateFolderOrEmpty } from "./drive-migration-drive.server";
 
@@ -30,6 +31,33 @@ test("history metadata remaps dictionary keys and exact file references, leaving
 });
 
 const source: MigrationFile = { id: "old-file", name: "note.md", mimeType: "text/plain", size: "6", md5Checksum: "md5", modifiedTime: "original" };
+
+test("Google-native documents and shortcuts are skipped while folders and ordinary files remain eligible", () => {
+  for (const type of ["document", "spreadsheet", "presentation", "drawing", "form", "shortcut"]) {
+    assert.equal(isMigrationGoogleFile({ mimeType: `application/vnd.google-apps.${type}` }), true);
+  }
+  for (const mimeType of [MIGRATION_FOLDER_MIME, "text/plain", "text/markdown", "application/pdf", "image/png", "application/json"]) {
+    assert.equal(isMigrationGoogleFile({ mimeType }), false);
+  }
+});
+
+test("final verification ignores Google-native files in root and nested folders without ignoring changed copied files", () => {
+  const folder = { id: "old-history", name: "history", mimeType: MIGRATION_FOLDER_MIME };
+  const settings = { ...source, id: "old-settings", name: "settings.json" };
+  const doc = { id: "google-doc", name: "document", mimeType: "application/vnd.google-apps.document" };
+  const shortcut = { ...doc, id: "shortcut", mimeType: "application/vnd.google-apps.shortcut" };
+  const expected = new Map([folder, settings, source].map(file => [file.id, file]));
+  verifyMigrationSourceFiles(expected, [folder, settings, doc, { ...doc, id: "sync", name: "_sync-meta.json", mimeType: "application/json" }], true);
+  verifyMigrationSourceFiles(expected, [source, shortcut, { ...doc, id: "nested-sheet", mimeType: "application/vnd.google-apps.spreadsheet" }], false);
+  assert.equal(expected.size, 0);
+  const expectedNote = () => new Map([[source.id, source]]);
+  assert.throws(() => verifyMigrationSourceFiles(expectedNote(), [{ ...doc, id: source.id }], false), /移行元のファイルが変更/);
+  assert.throws(() => verifyMigrationSourceFiles(expectedNote(), [{ ...source, md5Checksum: "edited" }], false), /移行元のファイルが変更/);
+  assert.throws(() => verifyMigrationSourceFiles(expectedNote(), [{ ...source, id: "new-note" }], false), /新しいファイル/);
+  const missing = expectedNote();
+  verifyMigrationSourceFiles(missing, [doc, shortcut], false);
+  assert.equal(missing.size, 1, "a missing copied file must still block completion");
+});
 
 test("planning merges existing history and nested folders and overwrites matching files by ID", async () => {
   const history = { id: "old-history", name: "history", mimeType: MIGRATION_FOLDER_MIME };
