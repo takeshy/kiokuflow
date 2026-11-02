@@ -93,36 +93,49 @@ export async function migratedTarget(token: string, entry: MigrationEntry, paren
   if (response.status === 404) { await response.body?.cancel(); return null; }
   if (!response.ok) { await response.body?.cancel(); throw new Error("移行先の状態確認に失敗しました。"); }
   const file = await response.json() as MigrationFile;
-  if (file.appProperties?.kiokuflowMigration !== marker || file.appProperties?.migrationSource !== entry.source.id
-    || !file.parents?.includes(parent) || file.name !== entry.source.name || file.mimeType !== entry.source.mimeType) {
-    throw new Error("移行先のファイルが変更されています。上書きを停止しました。");
+  const marked = file.appProperties?.kiokuflowMigration === marker && file.appProperties?.migrationSource === entry.source.id;
+  const matches = !file.trashed && file.parents?.includes(parent) && file.name === entry.source.name && file.mimeType === entry.source.mimeType;
+  if (marked && matches && (!entry.overwrite || entry.source.mimeType === MIGRATION_FOLDER_MIME
+    || (file.md5Checksum === entry.source.md5Checksum && Number(file.size) === Number(entry.source.size)))) return file;
+  if (entry.overwrite && !file.trashed && file.parents?.includes(parent)) {
+    try {
+      assertMigrationFileUnchanged(entry.overwrite, file);
+      return null; // The original destination still exists; replace it on this step.
+    } catch { /* Report a destination error rather than a source change. */ }
   }
-  return file;
+  throw new Error("移行先のファイルが変更されています。上書きを停止しました。");
+}
+
+function targetMetadata(entry: MigrationEntry, parent: string, marker: string) {
+  return { name: entry.source.name, mimeType: entry.source.mimeType,
+    ...(!entry.overwrite ? { id: entry.targetId, parents: [parent] } : {}),
+    appProperties: { kiokuflowMigration: marker, migrationSource: entry.source.id } };
 }
 
 export async function migrationCreateFolderOrEmpty(token: string, entry: MigrationEntry, parent: string, marker: string): Promise<void> {
-  const metadata = JSON.stringify({ id: entry.targetId, name: entry.source.name, mimeType: entry.source.mimeType, parents: [parent],
-    appProperties: { kiokuflowMigration: marker, migrationSource: entry.source.id } });
+  const metadata = JSON.stringify(targetMetadata(entry, parent, marker));
+  const suffix = entry.overwrite ? `/${encodeURIComponent(entry.targetId)}` : "";
+  const method = entry.overwrite ? "PATCH" : "POST";
   let response: Response;
   if (entry.source.mimeType === MIGRATION_FOLDER_MIME) {
-    response = await request(token, `${API}/files?fields=id`, { method: "POST", headers: { "Content-Type": "application/json" }, body: metadata });
+    response = await request(token, `${API}/files${suffix}?fields=id`, { method, headers: { "Content-Type": "application/json" }, body: metadata });
   } else {
     // Explicitly upload a zero-byte binary body instead of creating a metadata-only file.
     const boundary = `migration-${randomUUID()}`;
     const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: application/octet-stream\r\n\r\n\r\n--${boundary}--\r\n`;
-    response = await request(token, `${UPLOAD}/files?uploadType=multipart&fields=id`, {
-      method: "POST", headers: { "Content-Type": `multipart/related; boundary=${boundary}` }, body,
+    response = await request(token, `${UPLOAD}/files${suffix}?uploadType=multipart&fields=id`, {
+      method, headers: { "Content-Type": `multipart/related; boundary=${boundary}` }, body,
     });
   }
   await response.body?.cancel();
 }
 
 export async function migrationBeginUpload(token: string, entry: MigrationEntry, parent: string, marker: string): Promise<string> {
-  const response = await request(token, `${UPLOAD}/files?uploadType=resumable&fields=${FIELDS}`, {
-    method: "POST", headers: { "Content-Type": "application/json", "X-Upload-Content-Type": entry.source.mimeType,
+  const suffix = entry.overwrite ? `/${encodeURIComponent(entry.targetId)}` : "";
+  const response = await request(token, `${UPLOAD}/files${suffix}?uploadType=resumable&fields=${FIELDS}`, {
+    method: entry.overwrite ? "PATCH" : "POST", headers: { "Content-Type": "application/json", "X-Upload-Content-Type": entry.source.mimeType,
       "X-Upload-Content-Length": entry.source.size ?? "0" },
-    body: JSON.stringify({ id: entry.targetId, name: entry.source.name, parents: [parent], mimeType: entry.source.mimeType,
-      appProperties: { kiokuflowMigration: marker, migrationSource: entry.source.id } }),
+    body: JSON.stringify(targetMetadata(entry, parent, marker)),
   });
   const location = response.headers.get("Location");
   if (!location) throw new Error("アップロードを開始できませんでした。");

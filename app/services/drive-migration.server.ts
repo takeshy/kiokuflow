@@ -12,7 +12,7 @@ import { clearSettingsCache } from "./user-settings.server";
 import { createFile, findFileByExactName, updateFile } from "./google-drive.server";
 import { MIGRATION_FOLDER_MIME, assertMigrationOwner, migrationEmail, isMigrationSystemFile,
   migrateDriveSettings, remapMigrationReferences, assertMigrationFileUnchanged,
-  MigrationOwnerError, type MigrationEntry, type MigrationFile } from "./drive-migration";
+  MigrationOwnerError, planMigrationTargets, type MigrationEntry, type MigrationFile } from "./drive-migration";
 import { migrationDriveEmail, migrationList, migrationMetadata, migrationReadText, migrationGenerateIds,
   migrationMarker, migratedTarget, migrationCreateFolderOrEmpty, migrationBeginUpload, migrationCopyChunk,
   assertCopiedMigrationFile, migrationWriteJson, migrationTrashOldSettings } from "./drive-migration-drive.server";
@@ -136,9 +136,6 @@ async function prepare(job: MigrationJob, ref: FirebaseFirestore.DocumentReferen
   const root = await migrationMetadata(sourceToken, job.sourceRoot);
   if (root.mimeType !== MIGRATION_FOLDER_MIME) throw new Error("移行元のフォルダが見つかりません。");
   const targetFiles = await migrationList(tokens.accessToken, job.targetRoot);
-  if (targetFiles.some(f => !["settings.json", "_sync-meta.json", "_encrypted-auth.json"].includes(f.name))) {
-    throw new Error("引き継ぎ先に既存のファイルがあります。データを保護するため、空の新しいワークスペースにのみ引き継げます。");
-  }
   const settingsTargets = targetFiles.filter(f => f.name === "settings.json");
   if (settingsTargets.length !== 1) throw new Error("新環境の設定ファイルを一意に確認できません。");
   const pending = [{ id: job.sourceRoot, path: "", depth: 0 }];
@@ -170,13 +167,15 @@ async function prepare(job: MigrationJob, ref: FirebaseFirestore.DocumentReferen
   if (!settings) throw new Error("旧GemiHubの設定ファイルが見つかりません。");
   // Parse before copying anything, so a corrupt settings file cannot strand a partial migration.
   migrateDriveSettings(await migrationReadText(sourceToken, settings.id), new Map());
-  const ids = await migrationGenerateIds(tokens.accessToken, entries.length);
+  const planned = await planMigrationTargets(entries, job.sourceRoot, job.targetRoot,
+    parent => parent === job.targetRoot ? Promise.resolve(targetFiles) : migrationList(tokens.accessToken, parent),
+    count => migrationGenerateIds(tokens.accessToken, count));
   const prior = await ref.collection("files").get();
   // Interrupted planning does not create any Drive files. Rebuild its incomplete manifest.
   const operations = [
     ...prior.docs.map(doc => ({ remove: doc.ref })),
-    ...entries.map((entry, i) => ({ set: ref.collection("files").doc(entry.source.id), entry: {
-      ...entry, targetId: ids[i], nextSourceId: entries[i + 1]?.source.id ?? null,
+    ...planned.map((entry, i) => ({ set: ref.collection("files").doc(entry.source.id), entry: {
+      ...entry, nextSourceId: planned[i + 1]?.source.id ?? null,
     } })),
   ];
   for (let i = 0; i < operations.length; i += 400) {

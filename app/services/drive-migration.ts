@@ -28,6 +28,42 @@ export interface MigrationEntry {
   done: boolean;
   upload?: string;
   nextSourceId?: string | null;
+  /** Existing destination, captured before its contents are replaced. */
+  overwrite?: MigrationFile;
+}
+
+/** Merge matching directories and overwrite matching files without creating duplicate names. */
+export async function planMigrationTargets(
+  entries: Omit<MigrationEntry, "targetId">[], sourceRoot: string, targetRoot: string,
+  list: (parent: string) => Promise<MigrationFile[]>, generateIds: (count: number) => Promise<string[]>,
+): Promise<MigrationEntry[]> {
+  const parents = new Map<string, string | null>([[sourceRoot, targetRoot]]);
+  const children = new Map<string, MigrationFile[]>();
+  const paths = new Set<string>();
+  const planned: MigrationEntry[] = [];
+  for (const entry of entries) {
+    if (paths.has(entry.path)) throw new Error(`移行元に同名のファイルが複数あります: ${entry.path}`);
+    paths.add(entry.path);
+    if (!parents.has(entry.parent)) throw new Error("移行先の親フォルダを確認できません。");
+    const parent = parents.get(entry.parent);
+    if (parent && !children.has(parent)) children.set(parent, await list(parent));
+    const matches = parent ? children.get(parent)!.filter(file => file.name === entry.source.name) : [];
+    if (matches.length > 1) throw new Error(`引き継ぎ先に同名のファイルが複数あります: ${entry.path}`);
+    const existing = matches[0];
+    if (existing && ((existing.mimeType === MIGRATION_FOLDER_MIME) !== (entry.source.mimeType === MIGRATION_FOLDER_MIME)
+      || (existing.mimeType.startsWith("application/vnd.google-apps.") && existing.mimeType !== MIGRATION_FOLDER_MIME))) {
+      throw new Error(`引き継ぎ先のファイル形式が異なるため上書きできません: ${entry.path}`);
+    }
+    planned.push({ ...entry, targetId: existing?.id ?? "", ...(existing ? { overwrite: existing } : {}) });
+    if (entry.source.mimeType === MIGRATION_FOLDER_MIME) parents.set(entry.source.id, existing?.id ?? null);
+  }
+  const ids = await generateIds(planned.filter(entry => !entry.targetId).length);
+  let next = 0;
+  for (const entry of planned) if (!entry.targetId) {
+    if (!ids[next]) throw new Error("移行先のファイルIDを取得できませんでした。");
+    entry.targetId = ids[next++];
+  }
+  return planned;
 }
 
 export function migrationEmail(email: string): string {
