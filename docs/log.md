@@ -1,7 +1,8 @@
 # Update Log
 
 ## 2026-11-02
-* **Version**: `1.0.2`
+* **Version**: `1.0.3`
+* **Update**: Completed the production domain/OAuth separation and first GemiHub booking deployment. Public pages, mobile layouts, runtime Firestore/Vertex connectivity and old-worker retirement were checked. Owner consent and actual Drive migration remain interactive. Old Google sessions must reauthorize; background workflows pause until authorization and migration are complete (`architecture/rebranding.md`).
 * **New**: Added Settings → Bring your existing workspace for the separate OAuth project. Only an accessible legacy notes workspace owned by the same Google account triggers migration. The resumable copy preserves the RSA identity, remaps history indexes, rebuilds sync metadata and resets workspace-owned RAG indexes. After verifying every copied file and the new settings, the old `settings.json` is moved to Trash; original notes and attachments remain. GemiHub shop onboarding stays blocked until it confirms legacy settings are gone.
 * **Removed**: Google Calendar and Gmail integrations, their chat/plugin tools, email notifications and extra OAuth scopes. Sign-in now requests only the non-sensitive `drive.file` scope. Local calendar/timeline notes remain available; legacy integration endpoints/workflows fail explicitly. The separate Web Builder service continues as GemiHub. Scope verification and optional OAuth brand verification are distinct.
 * **Update**: Renamed the service to **kiokuflow** with **kiokuflow.net** as the public domain. Updated the UI, metadata, landing pages, manuals, README, notifications, generated templates and SDK examples. Existing Drive folders, encrypted credentials, RAG indexes, published applications and legacy domain routes remain compatible. Added an old-domain migration notice and additive DNS/certificate configuration; production cutover still requires DNS, OAuth and runtime updates (`architecture/rebranding.md`).
