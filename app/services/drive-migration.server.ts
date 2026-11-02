@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { google } from "googleapis";
 import { FieldValue, type Firestore } from "@google-cloud/firestore";
 import { buildEncryptedAuthFile } from "gemihub-sync-core/auth";
-import { getFirestore } from "./firestore.server";
+import { getFirestore, DRIVE_OAUTH_MIGRATIONS } from "./firestore.server";
 import { getAccountByEmail, getStoredRefreshToken, encryptOAuthRefreshToken } from "./hubwork-accounts.server";
 import type { HubworkAccount } from "~/types/hubwork";
 import type { SessionTokens } from "./session.server";
@@ -17,7 +17,7 @@ import { migrationDriveEmail, migrationList, migrationMetadata, migrationReadTex
   migrationMarker, migratedTarget, migrationCreateFolderOrEmpty, migrationBeginUpload, migrationCopyChunk,
   assertCopiedMigrationFile, migrationWriteJson, migrationTrashOldSettings } from "./drive-migration-drive.server";
 
-const COLLECTION = "drive-oauth-migrations";
+const COLLECTION = DRIVE_OAUTH_MIGRATIONS;
 const digest = (value: string) => createHash("sha256").update(value).digest("hex");
 const sourceTokenCache = new Map<string, { token: string; expires: number }>();
 interface MigrationJob {

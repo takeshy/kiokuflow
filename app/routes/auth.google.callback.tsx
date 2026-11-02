@@ -3,7 +3,7 @@ import type { Route } from "./+types/auth.google.callback";
 import {
   exchangeCode,
 } from "~/services/google-auth.server";
-import { getSession, setTokens, commitSession, safeReturnTo } from "~/services/session.server";
+import { getSession, setTokens, commitSession, safeReturnTo, markGoogleOAuthSession } from "~/services/session.server";
 import { ensureRootFolder } from "~/services/google-drive.server";
 import { ensureSettingsFile } from "~/services/user-settings.server";
 import { captureLegacyDriveMigration, driveMigrationEnabled } from "~/services/drive-migration.server";
@@ -110,12 +110,16 @@ export async function loader({ request }: Route.LoaderArgs) {
     email,
     grantedScopes: scope,
   });
+  markGoogleOAuthSession(session);
+  session.set("authMethod", "google");
+  session.unset("oidcSub");
+  session.unset("oauthState");
+  session.unset("oauthCodeVerifier");
+  session.unset("oauthReturnTo");
   if (migrationRequired) {
     // This is a personal Drive migration, independent of a previously selected org.
-    session.set("authMethod", "google");
     session.unset("currentOrgId");
     session.unset("currentProjectId");
-    session.unset("oidcSub");
   }
 
   return redirect(migrationRequired ? "/settings/migration" : returnTo, {

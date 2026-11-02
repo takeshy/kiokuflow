@@ -1,7 +1,8 @@
 import crypto from "node:crypto";
 import { google } from "googleapis";
 import { FieldValue, Timestamp } from "@google-cloud/firestore";
-import { getFirestore, HUBWORK_ACCOUNTS } from "./firestore.server";
+import { getFirestore, HUBWORK_ACCOUNTS, DRIVE_OAUTH_MIGRATIONS } from "./firestore.server";
+import { googleOAuthClientFingerprint } from "./session.server";
 import type {
   HubworkAccount,
   HubworkAccountPlan,
@@ -138,6 +139,7 @@ export async function createAccount(params: {
   await docRef.set({
     email: params.email,
     encryptedRefreshToken: params.refreshToken ? encrypt(params.refreshToken) : null,
+    ...(params.refreshToken && process.env.GOOGLE_CLIENT_ID ? { googleOAuthClient: googleOAuthClientFingerprint() } : {}),
     accountSlug: uniqueSlug,
     defaultDomain: `${uniqueSlug}.${HUBWORK_DOMAIN}`,
     customDomain: params.customDomain || "",
@@ -485,6 +487,7 @@ export async function updateRefreshToken(
   const db = getFirestore();
   await db.collection(HUBWORK_ACCOUNTS).doc(accountId).update({
     encryptedRefreshToken: encrypt(refreshToken),
+    googleOAuthClient: googleOAuthClientFingerprint(),
   });
   tokenCache.delete(accountId);
 }
@@ -516,6 +519,18 @@ export async function deleteAccount(accountId: string): Promise<void> {
 export async function getTokensForAccount(
   account: HubworkAccount
 ): Promise<ResolvedAccountTokens> {
+  const separatingClients = !!process.env.GOOGLE_MIGRATION_CLIENT_ID
+    && process.env.GOOGLE_MIGRATION_CLIENT_ID !== process.env.GOOGLE_CLIENT_ID;
+  if ((account.googleOAuthClient && account.googleOAuthClient !== googleOAuthClientFingerprint())
+    || (separatingClients && !account.googleOAuthClient)) {
+    throw new Error("Owner must sign in to kiokuflow again after the Google OAuth migration.");
+  }
+  if (separatingClients) {
+    const migration = await getFirestore().collection(DRIVE_OAUTH_MIGRATIONS).doc(account.id).get();
+    if (migration.exists && migration.data()?.status !== "complete") {
+      throw new Error("Complete the legacy Drive migration before background workflows resume.");
+    }
+  }
   const cached = tokenCache.get(account.id);
   if (cached && cached.expiryTime > Date.now() + TOKEN_REFRESH_BUFFER_MS) {
     return {
@@ -542,7 +557,10 @@ export async function getTokensForAccount(
       process.env.GOOGLE_CLIENT_SECRET
     );
     oauth2Client.setCredentials({ refresh_token: refreshToken });
-    const { credentials } = await oauth2Client.refreshAccessToken();
+    const { credentials } = await oauth2Client.refreshAccessToken().catch(() => {
+      // SDK errors retain the request body, including OAuth credentials.
+      throw new Error("Google authorization expired. The owner must sign in again.");
+    });
 
     if (!credentials.access_token) {
       throw new Error(`Failed to refresh access token for account ${account.id}`);

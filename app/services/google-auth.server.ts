@@ -1,7 +1,7 @@
 import { google } from "googleapis";
 import { CodeChallengeMethod } from "google-auth-library";
 import crypto from "node:crypto";
-import { getSession, commitSession, destroySession, setTokens, type SessionTokens } from "./session.server";
+import { getSession, sessionStorage, isCurrentGoogleOAuthSession, commitSession, destroySession, setTokens, type SessionTokens } from "./session.server";
 
 const BASE_SCOPES = [
   "https://www.googleapis.com/auth/drive.file",
@@ -37,7 +37,10 @@ export async function getAuthUrl(
     .update(codeVerifier)
     .digest("base64url");
 
-  const session = await getSession(request);
+  const previousSession = await getSession(request);
+  const session = !isCurrentGoogleOAuthSession(previousSession) || options?.returnTo === "/settings/migration"
+    ? await sessionStorage.getSession()
+    : previousSession;
   session.set("oauthState", state);
   session.set("oauthCodeVerifier", codeVerifier);
   if (options?.returnTo) {
@@ -70,7 +73,10 @@ export async function exchangeCode(code: string, request: Request, codeVerifier:
   expiryTime: number;
 }> {
   const oauth2Client = getOAuth2Client(request);
-  const { tokens } = await oauth2Client.getToken({ code, codeVerifier });
+  const { tokens } = await oauth2Client.getToken({ code, codeVerifier }).catch(() => {
+    // SDK errors include the token request body; never propagate client secrets to logs.
+    throw new Error("Google login failed. Please start sign-in again.");
+  });
 
   if (!tokens.access_token || !tokens.refresh_token) {
     throw new Error("Failed to exchange authorization code for tokens");

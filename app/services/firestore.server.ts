@@ -59,6 +59,7 @@ export function getFirestore(): Firestore {
 
 // Collection names — Hubwork (publishing platform accounts)
 export const HUBWORK_ACCOUNTS = "hubwork-accounts";
+export const DRIVE_OAUTH_MIGRATIONS = "drive-oauth-migrations";
 export const HUBWORK_MAGIC_TOKENS = "hubwork-magic-tokens";
 export const HUBWORK_FORM_SUBMISSIONS = "hubwork-form-submissions";
 export const HUBWORK_PENDING_REGISTRATIONS = "hubwork-pending-registrations";

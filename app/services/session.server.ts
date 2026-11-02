@@ -51,6 +51,22 @@ export async function getSession(request: Request) {
   return sessionStorage.getSession(request.headers.get("Cookie"));
 }
 
+export function googleOAuthClientFingerprint(): string {
+  return crypto.createHash("sha256").update(process.env.GOOGLE_CLIENT_ID || "").digest("hex").slice(0, 16);
+}
+
+export function isCurrentGoogleOAuthSession(session: Awaited<ReturnType<typeof getSession>>): boolean {
+  const marker = session.get("googleOAuthClient");
+  if (marker) return marker === googleOAuthClientFingerprint();
+  // Legacy cookies must reauthenticate when production switches OAuth projects.
+  return !process.env.GOOGLE_MIGRATION_CLIENT_ID
+    || process.env.GOOGLE_MIGRATION_CLIENT_ID === process.env.GOOGLE_CLIENT_ID;
+}
+
+export function markGoogleOAuthSession(session: Awaited<ReturnType<typeof getSession>>): void {
+  session.set("googleOAuthClient", googleOAuthClientFingerprint());
+}
+
 // Browsers silently drop a Set-Cookie over ~4 KB, which would log the user out
 // or lose a key unlock. Fail loudly instead so the user can lock a key.
 const MAX_SESSION_COOKIE_BYTES = 4096;
@@ -114,6 +130,7 @@ export async function getTokens(request: Request): Promise<SessionTokens | null>
   // when accessToken/refreshToken are empty (no Google Drive grant). Google
   // sessions still require the OAuth tokens.
   const tokenlessSession = (authMethod === "oidc" || authMethod === "email") && !!sessionEmail;
+  if (!tokenlessSession && !isCurrentGoogleOAuthSession(session)) return null;
   if (!tokenlessSession && (!accessToken || !refreshToken)) {
     return null;
   }

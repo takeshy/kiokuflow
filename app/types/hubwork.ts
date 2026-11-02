@@ -35,6 +35,8 @@ export interface HubworkAccount {
   id: string;
   email: string;
   encryptedRefreshToken: string;
+  /** Identifies the OAuth client that issued the saved refresh token. */
+  googleOAuthClient?: string;
   encryptedGeminiApiKey?: string;
   /** Opt-in index for background Kakeratta polling of the owner's Drive workspace. */
   kakerattaEnabled?: boolean;
