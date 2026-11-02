@@ -7,6 +7,7 @@ import { driveMigrationSummary } from "~/services/drive-migration.server";
 import type { DriveMigrationSummary } from "~/services/drive-migration";
 import { resolveLanguage } from "~/i18n/resolve-language";
 import { DriveMigrationScreen } from "~/components/settings/DriveMigrationScreen";
+import { requestDriveMigration } from "~/services/drive-migration-client";
 
 async function authenticated(request: Request) {
   const tokens = await getTokens(request);
@@ -37,13 +38,10 @@ export default function MigrationPage() {
     try {
       while (continuing.current && current.status !== "complete") {
         const intent = !current.prepared ? "prepare" : current.copied < current.total ? "step" : "finish";
-        const response = await fetch("/api/settings/migration", { method: "POST", body: new URLSearchParams({ intent }), headers: { Accept: "application/json" } });
-        if (response.status === 401) throw new Error(loaded.language === "ja" ? "ログイン状態を確認し、この画面を開き直してください。" : "Check your login and reopen this page.");
-        if (!response.headers.get("Content-Type")?.includes("application/json")) throw new Error(loaded.language === "ja" ? "引き継ぎの応答を確認できませんでした。この画面を開き直して再試行してください。" : "Could not read the migration response. Reopen this page and try again.");
-        const result = await response.json() as { summary?: DriveMigrationSummary; error?: string };
-        if (!response.ok || result.error || !result.summary) throw new Error(result.error || "Migration failed");
-        current = result.summary;
-        setSummary(current);
+        const result = await requestDriveMigration(intent, { language: loaded.language, active: () => continuing.current,
+          onSummary: summary => { current = summary; setSummary(summary); } });
+        if (!result) break;
+        current = result;
       }
     } catch (failure) { setError(failure instanceof Error ? failure.message : "Migration failed"); }
     finally { continuing.current = false; setRunning(false); }

@@ -39,7 +39,7 @@ export function DriveMigrationScreen({ language, email, summary, running, error,
             <li>{ja ? "移行元で名前が重複しているファイルやフォルダは、連番を付けてすべて引き継ぎます。" : "Files and folders with duplicate names in the old workspace are all copied with numbered names."}</li>
             <li>{ja ? "Googleドキュメント・スプレッドシート等とショートカットはコピーせず、旧フォルダに残します。" : "Google Docs, Sheets and other Google-native files and shortcuts are skipped and remain in the old folder."}</li>
             <li>{ja ? "ファイルIDが変わるため、RAG索引は再登録が必要です。公開リンク・履歴内の旧ファイル参照・外部同期の接続先も確認してください。" : "File IDs change. Rebuild your RAG indexes and check public links, older file references in history, and external sync connections."}</li>
-            <li>{ja ? "中断しても、同じアカウントでこの画面を開けば続きから再開できます。大きなファイルは分割してコピーします。" : "Return to this page with the same account to resume. Large files are copied in chunks."}</li>
+            <li>{ja ? "最大4件ずつ並列でコピーし、一時的な通信エラーは最大3回自動で再試行します。中断しても、同じアカウントでこの画面を開けば続きから再開できます。大きなファイルは分割してコピーします。" : "Up to four items copy concurrently. Temporary connection errors retry automatically up to three times. Return to this page with the same account to resume. Large files are copied in chunks."}</li>
           </ul>
           {summary.prepared && !complete && <div className="space-y-2" aria-live="polite">
             <div className="flex justify-between text-sm"><span>{ja ? "コピー済み" : "Copied"}</span><span>{summary.copied} / {summary.total}</span></div>
@@ -51,7 +51,7 @@ export function DriveMigrationScreen({ language, email, summary, running, error,
             <p className="text-sm leading-6">{ja ? "kiokuflowでPullし、ノートと暗号化済み履歴を確認してください。RAGは設定から再登録してください。旧設定はゴミ箱へ移しました。GemiHubに戻り「移行完了を確認する」を選ぶと、お店の機能を利用できます。" : "Pull in kiokuflow, check your notes and encrypted history, then rebuild RAG indexes in Settings. The old settings file is now in Trash. Return to GemiHub and choose Check migration completion to use its shop features."}</p>
             <a href="/" className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">{ja ? "kiokuflowを開く" : "Open kiokuflow"}<ArrowRight size={16} /></a>
           </div> : <button type="button" onClick={running ? onPause : onStart} className="min-h-11 w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 sm:w-auto">
-            {running ? (ja ? "このファイルの処理後に中断" : "Pause after this request") : summary.prepared ? (ja ? "引き継ぎを再開する" : "Resume copy") : (ja ? "データの引き継ぎを開始する" : "Start copying my workspace")}
+            {running ? (ja ? "実行中のコピー後に中断" : "Pause after current copies") : summary.prepared ? (ja ? "引き継ぎを再開する" : "Resume copy") : (ja ? "データの引き継ぎを開始する" : "Start copying my workspace")}
           </button>}
         </> : <p className="text-sm leading-7">{ja ? "このGoogleアカウントには引き継ぎ対象の旧環境が登録されていません。旧GemiHubと同じGoogleアカウントでログインしてください。新規の方はそのままkiokuflowをご利用いただけます。" : "No existing workspace is registered for this Google account. Sign in with the account you used for GemiHub, or continue to kiokuflow as a new user."}</p>}
         {error && <p role="alert" className="break-words rounded-lg bg-red-50 p-3 text-sm leading-6 text-red-700 dark:bg-red-950 dark:text-red-300">{error}</p>}

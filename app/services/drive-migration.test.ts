@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import test from "node:test";
 import { assertMigrationOwner, assertMigrationFileUnchanged, migrateDriveSettings,
   remapMigrationReferences, completedUploadBytes, planMigrationTargets, isMigrationGoogleFile, verifyMigrationSourceFiles,
   MIGRATION_FOLDER_MIME, type MigrationEntry, type MigrationFile } from "./drive-migration";
 import { assertMigrationUploadUrl, assertCopiedMigrationFile, migrationCopyChunk, migrationTrashOldSettings,
-  migratedTarget, migrationBeginUpload, migrationCreateFolderOrEmpty } from "./drive-migration-drive.server";
+  migratedTarget, migrationBeginUpload, migrationCreateFolderOrEmpty, migrationCopySmallFile } from "./drive-migration-drive.server";
+import { isRetryableMigrationError } from "./drive-migration-batch";
 
 test("migration requires the same Google identity and preserves ciphertext and the RSA identity", () => {
   assertMigrationOwner(" OWNER@EXAMPLE.COM ", "owner@example.com");
@@ -187,6 +189,84 @@ test("file changes and checksum mismatches cannot be reported as successful migr
   assertCopiedMigrationFile(source, { ...source, id: "new-file" });
   assert.throws(() => assertCopiedMigrationFile(source, { ...source, md5Checksum: "corrupt" }));
   assert.throws(() => assertCopiedMigrationFile(source, { ...source, size: "7" }));
+});
+
+test("small encrypted files copy byte-for-byte with one read and one multipart write", async t => {
+  const bytes = new Uint8Array([0, 255, 13, 10, 45, 128, 1]);
+  const small = { ...source, name: "secret.md.encrypted", size: String(bytes.length), md5Checksum: createHash("md5").update(bytes).digest("hex") };
+  for (const overwrite of [false, true]) {
+    const calls: { url: string; method: string; auth: string | null }[] = [];
+    const target: MigrationFile = { ...small, id: "target", name: "secret (2).md.encrypted", parents: ["new-root"],
+      appProperties: { kiokuflowMigration: "marker", migrationSource: small.id } };
+    const item: MigrationEntry = { source: small, targetId: "target", targetName: target.name, path: small.name, parent: "old-root", depth: 0, done: false,
+      ...(overwrite ? { overwrite: { ...target, md5Checksum: "previous-content" } } : {}) };
+    t.mock.method(globalThis, "fetch", async (url: unknown, init?: RequestInit) => {
+      const headers = new Headers(init?.headers);
+      calls.push({ url: String(url), method: init?.method ?? "GET", auth: headers.get("Authorization") });
+      if (String(url).includes("alt=media")) return new Response(bytes);
+      const body = Buffer.from(init?.body as Uint8Array);
+      const prefix = Buffer.from("Content-Type: application/octet-stream\r\n\r\n");
+      const offset = body.indexOf(prefix) + prefix.length;
+      assert.deepEqual(new Uint8Array(body.subarray(offset, offset + bytes.length)), bytes);
+      assert.ok(body.includes(Buffer.from('"name":"secret (2).md.encrypted"')));
+      return Response.json(target);
+    });
+    assert.equal((await migrationCopySmallFile("source", "target", item, "new-root", "marker")).id, "target");
+    assert.equal(calls.length, 2);
+    assert.deepEqual(calls.map(call => call.auth), ["Bearer source", "Bearer target"]);
+    assert.deepEqual(calls.map(call => call.method), ["GET", overwrite ? "PATCH" : "POST"]);
+  }
+});
+
+test("small-file checksums reject changed source bytes before writing and corrupt target bytes before completion", async t => {
+  const bytes = new Uint8Array([1, 2, 3]);
+  const small = { ...source, size: "3", md5Checksum: createHash("md5").update(bytes).digest("hex") };
+  const item: MigrationEntry = { source: small, targetId: "target", path: "note.md", parent: "old-root", depth: 0, done: false };
+  let writes = 0;
+  let corruptSource = true;
+  t.mock.method(globalThis, "fetch", async (url: unknown) => {
+    if (String(url).includes("alt=media")) return new Response(corruptSource ? new Uint8Array([9, 9, 9]) : bytes);
+    writes++;
+    return Response.json({ ...small, id: "target", md5Checksum: "corrupt", parents: ["new-root"],
+      appProperties: { kiokuflowMigration: "marker", migrationSource: small.id } });
+  });
+  await assert.rejects(migrationCopySmallFile("source", "target", item, "new-root", "marker"), /元ファイル/);
+  assert.equal(writes, 0);
+  corruptSource = false;
+  await assert.rejects(migrationCopySmallFile("source", "target", item, "new-root", "marker"), /一致しません/);
+  assert.equal(writes, 1);
+});
+
+test("a lost small-file upload response is recognized on retry using the same destination ID", async t => {
+  const bytes = new Uint8Array([1, 2, 3]);
+  const small = { ...source, size: "3", md5Checksum: createHash("md5").update(bytes).digest("hex") };
+  const item: MigrationEntry = { source: small, targetId: "target", path: "note.md", parent: "old-root", depth: 0, done: false };
+  let stored: MigrationFile | undefined;
+  let writes = 0;
+  t.mock.method(globalThis, "fetch", async (url: unknown, init?: RequestInit) => {
+    if (String(url).includes("alt=media")) return new Response(bytes);
+    if (init?.method === "POST") {
+      writes++;
+      stored = { ...small, id: "target", parents: ["new-root"], appProperties: { kiokuflowMigration: "marker", migrationSource: small.id } };
+      throw new DOMException("operation timed out", "TimeoutError");
+    }
+    return Response.json(stored);
+  });
+  await assert.rejects(migrationCopySmallFile("source", "target", item, "new-root", "marker"), isRetryableMigrationError);
+  assert.equal((await migratedTarget("target", item, "new-root", "marker"))?.id, "target");
+  assert.equal(writes, 1);
+});
+
+test("completed overwritten history metadata can be checked again after its IDs were remapped", async t => {
+  const target: MigrationFile = { ...source, id: "target", parents: ["new-root"], md5Checksum: "remapped-history",
+    appProperties: { kiokuflowMigration: "marker", migrationSource: source.id } };
+  const item: MigrationEntry = { source, targetId: "target", path: "history/chats/_meta.json", parent: "old-root", depth: 0, done: true,
+    overwrite: { ...target, md5Checksum: "original-destination" } };
+  t.mock.method(globalThis, "fetch", async () => Response.json(target));
+  assert.equal((await migratedTarget("target", item, "new-root", "marker"))?.md5Checksum, "remapped-history");
+  // Finalization still compares the returned hash against the source or remapped JSON.
+  assert.throws(() => assertCopiedMigrationFile(source, target), /一致しません/);
+  await assert.rejects(migratedTarget("target", { ...item, done: false }, "new-root", "marker"), /移行先/);
 });
 
 test("resumable uploads trust only Google endpoints and valid acknowledged byte ranges", () => {

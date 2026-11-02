@@ -15,7 +15,8 @@ import { MIGRATION_FOLDER_MIME, assertMigrationOwner, migrationEmail, isMigratio
   MigrationOwnerError, planMigrationTargets, type MigrationEntry, type MigrationFile } from "./drive-migration";
 import { migrationDriveEmail, migrationList, migrationMetadata, migrationReadText, migrationGenerateIds,
   migrationMarker, migratedTarget, migrationCreateFolderOrEmpty, migrationBeginUpload, migrationCopyChunk,
-  assertCopiedMigrationFile, migrationWriteJson, migrationTrashOldSettings } from "./drive-migration-drive.server";
+  migrationCopySmallFile, MIGRATION_SMALL_FILE_LIMIT, assertCopiedMigrationFile, migrationWriteJson, migrationTrashOldSettings } from "./drive-migration-drive.server";
+import { copyMigrationBatch, migrationMap, MIGRATION_BATCH_SIZE, MIGRATION_COPY_BUDGET_MS } from "./drive-migration-batch";
 
 const COLLECTION = DRIVE_OAUTH_MIGRATIONS;
 const digest = (value: string) => createHash("sha256").update(value).digest("hex");
@@ -190,38 +191,65 @@ async function prepare(job: MigrationJob, ref: FirebaseFirestore.DocumentReferen
     targetSettingsHash: digest(await migrationReadText(tokens.accessToken, settingsTargets[0].id)) });
 }
 
-async function copyStep(job: MigrationJob, ref: FirebaseFirestore.DocumentReference, tokens: SessionTokens, sourceToken: string) {
-  if (!job.cursor) return;
-  const next = ref.collection("files").doc(job.cursor);
-  const entry = (await next.get()).data() as MigrationEntry | undefined;
-  if (!entry || entry.done) throw new Error("引き継ぎの進捗情報を確認できませんでした。");
-  const parentEntry = entry.parent === job.sourceRoot ? null : (await ref.collection("files").doc(entry.parent).get()).data() as MigrationEntry | undefined;
-  const parent = entry.parent === job.sourceRoot ? job.targetRoot : parentEntry?.done ? parentEntry.targetId : null;
-  if (!parent) throw new Error("移行先の親フォルダが未作成です。");
+/** A retry or a lost commit response cannot increment the completed count twice. */
+export async function recordMigrationCopy(ref: FirebaseFirestore.DocumentReference, file: FirebaseFirestore.DocumentReference, lease: string, store: Firestore = getFirestore()): Promise<void> {
+  await store.runTransaction(async tx => {
+    const job = (await tx.get(ref)).data();
+    const current = (await tx.get(file)).data();
+    if (job?.leaseOwner !== lease) throw new Error("引き継ぎの実行権限が更新されました。この画面を開き直してください。");
+    if (!current) throw new Error("引き継ぎの進捗情報を確認できませんでした。");
+    if (current.done) return;
+    tx.update(file, { done: true, upload: FieldValue.delete() });
+    tx.update(ref, { copied: FieldValue.increment(1) });
+  });
+}
+
+async function copyEntry(job: MigrationJob, ref: FirebaseFirestore.DocumentReference, tokens: SessionTokens, sourceToken: string,
+  entry: MigrationEntry, parent: string, lease: string): Promise<boolean> {
+  const next = ref.collection("files").doc(entry.source.id);
+  const signal = AbortSignal.timeout(MIGRATION_COPY_BUDGET_MS);
   const marker = migrationMarker(job.sourceRoot);
-  assertMigrationFileUnchanged(entry.source, await migrationMetadata(sourceToken, entry.source.id));
-  let existing = await migratedTarget(tokens.accessToken, entry, parent, marker);
+  assertMigrationFileUnchanged(entry.source, await migrationMetadata(sourceToken, entry.source.id, signal));
+  let existing = await migratedTarget(tokens.accessToken, entry, parent, marker, signal);
   if (!existing) {
     if (entry.source.mimeType === MIGRATION_FOLDER_MIME || Number(entry.source.size) === 0) {
-      await migrationCreateFolderOrEmpty(tokens.accessToken, entry, parent, marker);
+      await migrationCreateFolderOrEmpty(tokens.accessToken, entry, parent, marker, signal);
+    } else if (!entry.upload && Number(entry.source.size) <= MIGRATION_SMALL_FILE_LIMIT) {
+      existing = await migrationCopySmallFile(sourceToken, tokens.accessToken, entry, parent, marker, signal);
     } else {
       let upload = entry.upload ? getStoredRefreshToken({ encryptedRefreshToken: entry.upload }) : null;
       if (!upload) {
-        upload = await migrationBeginUpload(tokens.accessToken, entry, parent, marker);
+        upload = await migrationBeginUpload(tokens.accessToken, entry, parent, marker, signal);
         await next.update({ upload: encryptOAuthRefreshToken(upload) });
       }
-      const result = await migrationCopyChunk(sourceToken, tokens.accessToken, entry, upload);
-      if (result.expired) { await next.update({ upload: FieldValue.delete() }); return; }
-      if (!result.done) return;
+      const result = await migrationCopyChunk(sourceToken, tokens.accessToken, entry, upload, signal);
+      if (result.expired) { await next.update({ upload: FieldValue.delete() }); return false; }
+      if (!result.done) return false;
     }
-    existing = await migratedTarget(tokens.accessToken, entry, parent, marker);
+    existing ??= await migratedTarget(tokens.accessToken, entry, parent, marker, signal);
   }
   if (!existing) throw new Error("コピー先のファイルを確認できませんでした。");
   assertCopiedMigrationFile(entry.source, existing);
-  const batch = getFirestore().batch();
-  batch.update(next, { done: true, upload: FieldValue.delete() });
-  batch.update(ref, { copied: (job.copied ?? 0) + 1, cursor: entry.nextSourceId ?? null });
-  await batch.commit();
+  await recordMigrationCopy(ref, next, lease);
+  return true;
+}
+
+async function copyStep(job: MigrationJob, ref: FirebaseFirestore.DocumentReference, tokens: SessionTokens, sourceToken: string, lease: string) {
+  // Filtering a single indexed field works for manifests created by older releases too.
+  const pending = await ref.collection("files").where("done", "==", false).limit(MIGRATION_BATCH_SIZE).get();
+  try {
+    await copyMigrationBatch(pending.docs.map(doc => doc.data() as MigrationEntry), job.sourceRoot, job.targetRoot, {
+      load: async id => {
+        const entry = (await ref.collection("files").doc(id).get()).data() as MigrationEntry | undefined;
+        if (!entry) throw new Error("移行先の親フォルダを確認できません。");
+        return entry;
+      },
+      copy: (entry, parent) => copyEntry(job, ref, tokens, sourceToken, entry, parent, lease),
+    });
+  } finally {
+    const next = await ref.collection("files").where("done", "==", false).limit(1).get();
+    await ref.update({ cursor: next.docs[0]?.id ?? null });
+  }
 }
 
 async function finish(job: MigrationJob, ref: FirebaseFirestore.DocumentReference, tokens: SessionTokens, sourceToken: string) {
@@ -234,9 +262,9 @@ async function finish(job: MigrationJob, ref: FirebaseFirestore.DocumentReferenc
   // Verify planned items and reject newly added copyable files.
   const expected = new Map(entries.map(entry => [entry.source.id, entry.source]));
   expected.set(job.sourceSettings.id, job.sourceSettings);
-  for (const parent of [job.sourceRoot, ...entries.filter(e => e.source.mimeType === MIGRATION_FOLDER_MIME).map(e => e.source.id)]) {
+  await migrationMap([job.sourceRoot, ...entries.filter(e => e.source.mimeType === MIGRATION_FOLDER_MIME).map(e => e.source.id)], async parent => {
     verifyMigrationSourceFiles(expected, await migrationList(sourceToken, parent), parent === job.sourceRoot);
-  }
+  });
   if (expected.size) throw new Error("移行元のファイルが削除または移動されています。引き継ぎを停止しました。");
   assertMigrationFileUnchanged(job.sourceSettings, await migrationMetadata(sourceToken, job.sourceSettings.id));
   const ids = new Map(entries.map(entry => [entry.source.id, entry.targetId]));
@@ -272,7 +300,7 @@ async function finish(job: MigrationJob, ref: FirebaseFirestore.DocumentReferenc
   await rebuildSyncMeta(tokens.accessToken, job.targetRoot);
   // Recheck every copied target before removing the old encryption settings.
   const remaining = new Map(entries.map(entry => [entry.targetId, entry]));
-  for (const parent of [job.targetRoot, ...entries.filter(e => e.source.mimeType === MIGRATION_FOLDER_MIME).map(e => e.targetId)]) {
+  await migrationMap([job.targetRoot, ...entries.filter(e => e.source.mimeType === MIGRATION_FOLDER_MIME).map(e => e.targetId)], async parent => {
     for (const file of await migrationList(tokens.accessToken, parent)) {
       const entry = remaining.get(file.id);
       if (!entry) continue;
@@ -286,7 +314,7 @@ async function finish(job: MigrationJob, ref: FirebaseFirestore.DocumentReferenc
       } else assertCopiedMigrationFile(entry.source, file);
       remaining.delete(file.id);
     }
-  }
+  });
   if (remaining.size) throw new Error("コピー先のファイルが見つかりません。旧設定を残して停止しました。");
   if (digest(await migrationReadText(tokens.accessToken, job.targetSettingsId)) !== digest(settings)) {
     throw new Error("設定と暗号鍵のコピーを確認できませんでした。旧設定は削除していません。");
@@ -326,7 +354,7 @@ export async function runDriveMigration(tokens: SessionTokens, intent: string): 
     assertMigrationOwner(await migrationDriveEmail(tokens.accessToken), job.ownerEmail);
     const sourceToken = await legacyToken(job);
     if (intent === "prepare") await prepare(job, ref, tokens, sourceToken);
-    else if (intent === "step" && job.prepared) await copyStep(job, ref, tokens, sourceToken);
+    else if (intent === "step" && job.prepared) await copyStep(job, ref, tokens, sourceToken, lease);
     else if (intent === "finish" && job.prepared) await finish(job, ref, tokens, sourceToken);
     else throw new Error("引き継ぎの操作が不正です。");
   } finally {
