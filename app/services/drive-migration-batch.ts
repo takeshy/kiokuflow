@@ -12,8 +12,8 @@ export class MigrationRequestError extends Error {
 export function isRetryableMigrationError(error: unknown): boolean {
   if (error instanceof MigrationRequestError) return error.retryable;
   if (!(error instanceof Error)) return false;
-  return ["TimeoutError", "AbortError"].includes(error.name)
-    || (error instanceof TypeError && /fetch failed/i.test(error.message));
+  return ["TimeoutError", "AbortError", "NetworkError"].includes(error.name)
+    || (error instanceof TypeError && /fetch failed|failed to fetch|networkerror|load failed/i.test(error.message));
 }
 
 /** Wait for every started worker before releasing the migration's lease. */

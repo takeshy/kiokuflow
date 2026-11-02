@@ -43,6 +43,24 @@ test("pausing while waiting to retry does not start another request", async () =
   assert.equal(calls, 1);
 });
 
+test("browser-specific connection failures retry while request configuration errors do not", async () => {
+  for (const error of [new TypeError("Failed to fetch"), new TypeError("Load failed"), new DOMException("network interrupted", "NetworkError")]) {
+    let calls = 0;
+    const result = await requestDriveMigration("step", {
+      language: "en", active: () => true, onSummary: () => undefined, wait: async () => undefined,
+      fetch: async () => { if (++calls === 1) throw error; return Response.json({ summary }); },
+    });
+    assert.equal(result?.copied, 445);
+    assert.equal(calls, 2);
+  }
+  let calls = 0;
+  await assert.rejects(requestDriveMigration("step", {
+    language: "en", active: () => true, onSummary: () => undefined, wait: async () => { throw new Error("must not retry"); },
+    fetch: async () => { calls++; throw new TypeError("Failed to parse URL"); },
+  }), /parse URL/);
+  assert.equal(calls, 1);
+});
+
 test("authentication and permanent errors stop without retrying", async () => {
   for (const response of [Response.json({ error: "Session expired" }, { status: 401 }), Response.json({ error: "source changed" }, { status: 400 })]) {
     let calls = 0;
