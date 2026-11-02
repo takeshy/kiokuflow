@@ -21,6 +21,7 @@ export default [
   route("api/session/me", "routes/api.session.me.tsx"),
   route("settings", "routes/settings.tsx"),
   route("settings/migration", "routes/settings.migration.tsx"),
+  route("api/settings/migration", "routes/api.settings.migration.tsx"),
   // Organizations (multi-tenant orgs/projects — gated on isFirestoreAvailable)
   route("login", "routes/login.tsx"),
   route("api/session/select", "routes/api.session.select.tsx"),
