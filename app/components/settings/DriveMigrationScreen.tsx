@@ -36,6 +36,7 @@ export function DriveMigrationScreen({ language, email, summary, running, error,
           <ul className="list-disc space-y-2 pl-5 text-sm leading-6 text-gray-600 dark:text-gray-300">
             <li>{ja ? "始める前に、旧環境で全端末の編集内容をPushし、コピー中は旧・新環境での編集を止めてください。" : "Push edits from all devices before starting. Pause editing in both workspaces during the copy."}</li>
             <li>{ja ? "引き継ぎ先の同名ファイルと設定は旧環境の内容で上書きします。同名フォルダは再利用し、旧環境にないファイルは残します。復号にはこれまでのパスワードを使います。" : "Files with matching names and your settings will be overwritten with the old workspace's contents. Matching folders are reused and other destination files are kept. Keep using your existing decryption password."}</li>
+            <li>{ja ? "移行元で名前が重複しているファイルやフォルダは、連番を付けてすべて引き継ぎます。" : "Files and folders with duplicate names in the old workspace are all copied with numbered names."}</li>
             <li>{ja ? "Googleドキュメント・スプレッドシート等とショートカットはコピーせず、旧フォルダに残します。" : "Google Docs, Sheets and other Google-native files and shortcuts are skipped and remain in the old folder."}</li>
             <li>{ja ? "ファイルIDが変わるため、RAG索引は再登録が必要です。公開リンク・履歴内の旧ファイル参照・外部同期の接続先も確認してください。" : "File IDs change. Rebuild your RAG indexes and check public links, older file references in history, and external sync connections."}</li>
             <li>{ja ? "中断しても、同じアカウントでこの画面を開けば続きから再開できます。大きなファイルは分割してコピーします。" : "Return to this page with the same account to resume. Large files are copied in chunks."}</li>

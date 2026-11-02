@@ -25,11 +25,43 @@ export interface MigrationEntry {
   path: string;
   depth: number;
   targetId: string;
+  /** Destination-only name; the source snapshot keeps its original name. */
+  targetName?: string;
   done: boolean;
   upload?: string;
   nextSourceId?: string | null;
   /** Existing destination, captured before its contents are replaced. */
   overwrite?: MigrationFile;
+}
+
+function numberedMigrationName(file: MigrationFile, number: number): string {
+  if (file.mimeType === MIGRATION_FOLDER_MIME) return `${file.name} (${number})`;
+  const encrypted = file.name.endsWith(".encrypted") ? ".encrypted" : "";
+  const name = encrypted ? file.name.slice(0, -encrypted.length) : file.name;
+  const dot = name.lastIndexOf(".");
+  const stem = dot > 0 ? name.slice(0, dot) : name;
+  const extension = dot > 0 ? name.slice(dot) : "";
+  return `${stem} (${number})${extension}${encrypted}`;
+}
+
+function migrationSiblingNames(entries: Omit<MigrationEntry, "targetId">[], existing: MigrationFile[]): Map<string, string> {
+  const reserved = new Set([...entries.map(entry => entry.source.name), ...existing.map(file => file.name)]);
+  const used = new Set<string>();
+  const nextNumber = new Map<string, number>();
+  const names = new Map<string, string>();
+  // API listing order can change between retries. Keep the same file's original name.
+  const sorted = [...entries].sort((a, b) => a.source.id < b.source.id ? -1 : a.source.id > b.source.id ? 1 : 0);
+  for (const entry of sorted) {
+    let name = entry.source.name;
+    let number = nextNumber.get(entry.source.name) ?? 2;
+    if (used.has(name)) {
+      do { name = numberedMigrationName(entry.source, number++); } while (reserved.has(name) || used.has(name));
+      nextNumber.set(entry.source.name, number);
+    }
+    used.add(name);
+    names.set(entry.source.id, name);
+  }
+  return names;
 }
 
 /** Merge matching directories and overwrite matching files without creating duplicate names. */
@@ -39,22 +71,33 @@ export async function planMigrationTargets(
 ): Promise<MigrationEntry[]> {
   const parents = new Map<string, string | null>([[sourceRoot, targetRoot]]);
   const children = new Map<string, MigrationFile[]>();
-  const paths = new Set<string>();
+  const siblings = new Map<string, Omit<MigrationEntry, "targetId">[]>();
+  const names = new Map<string, Map<string, string>>();
+  const sourceIds = new Set<string>();
+  for (const entry of entries) {
+    if (sourceIds.has(entry.source.id)) throw new Error("移行元のファイル一覧に重複したIDがあります。");
+    sourceIds.add(entry.source.id);
+    const group = siblings.get(entry.parent) ?? [];
+    group.push(entry);
+    siblings.set(entry.parent, group);
+  }
   const planned: MigrationEntry[] = [];
   for (const entry of entries) {
-    if (paths.has(entry.path)) throw new Error(`移行元に同名のファイルが複数あります: ${entry.path}`);
-    paths.add(entry.path);
     if (!parents.has(entry.parent)) throw new Error("移行先の親フォルダを確認できません。");
     const parent = parents.get(entry.parent);
     if (parent && !children.has(parent)) children.set(parent, await list(parent));
-    const matches = parent ? children.get(parent)!.filter(file => file.name === entry.source.name) : [];
+    const existingChildren = parent ? children.get(parent)! : [];
+    if (!names.has(entry.parent)) names.set(entry.parent, migrationSiblingNames(siblings.get(entry.parent)!, existingChildren));
+    const targetName = names.get(entry.parent)!.get(entry.source.id)!;
+    const matches = existingChildren.filter(file => file.name === targetName);
     if (matches.length > 1) throw new Error(`引き継ぎ先に同名のファイルが複数あります: ${entry.path}`);
     const existing = matches[0];
     if (existing && ((existing.mimeType === MIGRATION_FOLDER_MIME) !== (entry.source.mimeType === MIGRATION_FOLDER_MIME)
       || (existing.mimeType.startsWith("application/vnd.google-apps.") && existing.mimeType !== MIGRATION_FOLDER_MIME))) {
       throw new Error(`引き継ぎ先のファイル形式が異なるため上書きできません: ${entry.path}`);
     }
-    planned.push({ ...entry, targetId: existing?.id ?? "", ...(existing ? { overwrite: existing } : {}) });
+    planned.push({ ...entry, targetId: existing?.id ?? "", ...(targetName !== entry.source.name ? { targetName } : {}),
+      ...(existing ? { overwrite: existing } : {}) });
     if (entry.source.mimeType === MIGRATION_FOLDER_MIME) parents.set(entry.source.id, existing?.id ?? null);
   }
   const ids = await generateIds(planned.filter(entry => !entry.targetId).length);

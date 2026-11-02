@@ -94,7 +94,7 @@ export async function migratedTarget(token: string, entry: MigrationEntry, paren
   if (!response.ok) { await response.body?.cancel(); throw new Error("移行先の状態確認に失敗しました。"); }
   const file = await response.json() as MigrationFile;
   const marked = file.appProperties?.kiokuflowMigration === marker && file.appProperties?.migrationSource === entry.source.id;
-  const matches = !file.trashed && file.parents?.includes(parent) && file.name === entry.source.name && file.mimeType === entry.source.mimeType;
+  const matches = !file.trashed && file.parents?.includes(parent) && file.name === (entry.targetName ?? entry.source.name) && file.mimeType === entry.source.mimeType;
   if (marked && matches && (!entry.overwrite || entry.source.mimeType === MIGRATION_FOLDER_MIME
     || (file.md5Checksum === entry.source.md5Checksum && Number(file.size) === Number(entry.source.size)))) return file;
   if (entry.overwrite && !file.trashed && file.parents?.includes(parent)) {
@@ -107,7 +107,7 @@ export async function migratedTarget(token: string, entry: MigrationEntry, paren
 }
 
 function targetMetadata(entry: MigrationEntry, parent: string, marker: string) {
-  return { name: entry.source.name, mimeType: entry.source.mimeType,
+  return { name: entry.targetName ?? entry.source.name, mimeType: entry.source.mimeType,
     ...(!entry.overwrite ? { id: entry.targetId, parents: [parent] } : {}),
     appProperties: { kiokuflowMigration: marker, migrationSource: entry.source.id } };
 }

@@ -87,13 +87,61 @@ test("planning merges existing history and nested folders and overwrites matchin
   assert.ok(!planned.some(item => item.targetId === "unrelated"));
 });
 
-test("planning rejects ambiguous names and file/folder conflicts before overwriting anything", async () => {
+test("planning rejects ambiguous destination names, repeated source IDs and file/folder conflicts before overwriting anything", async () => {
   const entries = [{ source, parent: "old-root", path: "note.md", depth: 0, done: false }];
   const noIds = async () => { throw new Error("must reject before allocating IDs"); };
   await assert.rejects(planMigrationTargets(entries, "old-root", "new-root", async () => [source, { ...source, id: "duplicate" }], noIds), /同名/);
   await assert.rejects(planMigrationTargets(entries, "old-root", "new-root", async () => [{ ...source, mimeType: MIGRATION_FOLDER_MIME }], noIds), /形式/);
   await assert.rejects(planMigrationTargets(entries, "old-root", "new-root", async () => [{ ...source, mimeType: "application/vnd.google-apps.document" }], noIds), /形式/);
-  await assert.rejects(planMigrationTargets([...entries, ...entries], "old-root", "new-root", async () => [], noIds), /移行元に同名/);
+  await assert.rejects(planMigrationTargets([...entries, ...entries], "old-root", "new-root", async () => [], noIds), /重複したID/);
+});
+
+test("duplicate encrypted notes get stable numbered names without colliding with original or existing names", async () => {
+  const entry = (id: string, name = "opencode.md.encrypted") => ({ source: { ...source, id, name }, parent: "old-root", path: `Secrets/${name}`, depth: 0, done: false });
+  const entries = [entry("c"), entry("b"), entry("a"), entry("original-number", "opencode (2).md.encrypted")];
+  const original = structuredClone(entries);
+  const existing = { ...source, id: "existing", name: "opencode.md.encrypted" };
+  const list = async () => [existing, { ...existing, id: "keep-number", name: "opencode (3).md.encrypted" }];
+  const generate = async (count: number) => Array.from({ length: count }, (_, i) => `target-${i}`);
+  const planned = await planMigrationTargets(entries, "old-root", "new-root", list, generate);
+  const targetNames = (items: MigrationEntry[]) => Object.fromEntries(items.map(item => [item.source.id, item.targetName ?? item.source.name]));
+  assert.deepEqual(targetNames(planned), { a: "opencode.md.encrypted", b: "opencode (4).md.encrypted", c: "opencode (5).md.encrypted", "original-number": "opencode (2).md.encrypted" });
+  assert.equal(planned.find(item => item.source.id === "a")?.targetId, "existing");
+  assert.equal(new Set(planned.map(item => item.targetId)).size, entries.length);
+  assert.deepEqual(targetNames(await planMigrationTargets([...entries].reverse(), "old-root", "new-root", list, generate)), targetNames(planned));
+  assert.deepEqual(entries, original, "source snapshots and ciphertext checksums must keep their original names");
+});
+
+test("duplicate folders retain separate children and duplicate child names are scoped to each source parent", async () => {
+  const folder = (id: string) => ({ source: { id, name: "Secrets", mimeType: MIGRATION_FOLDER_MIME }, parent: "old-root", path: "Secrets", depth: 0, done: false });
+  const child = (id: string, parent: string) => ({ source: { ...source, id }, parent, path: "Secrets/note.md", depth: 1, done: false });
+  const entries = [folder("folder-a"), folder("folder-b"), child("note-a", "folder-a"), child("note-b", "folder-b"), child("note-c", "folder-b")];
+  const plan = await planMigrationTargets(entries, "old-root", "new-root", async () => [], async count => Array.from({ length: count }, (_, i) => `target-${i}`));
+  assert.deepEqual(plan.map(entry => entry.targetName ?? entry.source.name), ["Secrets", "Secrets (2)", "note.md", "note.md", "note (2).md"]);
+  assert.equal(plan[2].parent, "folder-a");
+  assert.equal(plan[3].parent, "folder-b");
+  assert.equal(new Set(plan.map(entry => entry.targetId)).size, entries.length);
+});
+
+test("numbered encrypted names are used by upload metadata and retry validation without renaming the source", async t => {
+  const encryptedSource = { ...source, name: "opencode.md.encrypted" };
+  const entry: MigrationEntry = { source: encryptedSource, path: "Secrets/opencode.md.encrypted", parent: "old-folder", depth: 1, done: false,
+    targetId: "new-file", targetName: "opencode (2).md.encrypted" };
+  let target: MigrationFile | undefined;
+  t.mock.method(globalThis, "fetch", async (_url: unknown, init?: RequestInit) => {
+    if (init?.method === "POST") {
+      const metadata = JSON.parse(String(init.body));
+      assert.equal(metadata.name, entry.targetName);
+      target = { ...encryptedSource, ...metadata, id: entry.targetId };
+      return Response.json({ id: entry.targetId }, { headers: { Location: "https://www.googleapis.com/upload/drive/v3/files?upload_id=test" } });
+    }
+    return Response.json(target);
+  });
+  await migrationBeginUpload("target", entry, "new-parent", "marker");
+  assert.equal((await migratedTarget("target", entry, "new-parent", "marker"))?.name, "opencode (2).md.encrypted");
+  assertCopiedMigrationFile(encryptedSource, target!);
+  assert.equal(encryptedSource.name, "opencode.md.encrypted");
+  assertMigrationFileUnchanged(encryptedSource, { ...encryptedSource });
 });
 
 test("overwrites resume by checking the destination snapshot and completed source checksum", async t => {

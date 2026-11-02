@@ -277,7 +277,7 @@ async function finish(job: MigrationJob, ref: FirebaseFirestore.DocumentReferenc
       const entry = remaining.get(file.id);
       if (!entry) continue;
       const expectedParent = entry.parent === job.sourceRoot ? job.targetRoot : ids.get(entry.parent);
-      if (parent !== expectedParent || file.name !== entry.source.name || file.mimeType !== entry.source.mimeType
+      if (parent !== expectedParent || file.name !== (entry.targetName ?? entry.source.name) || file.mimeType !== entry.source.mimeType
         || file.appProperties?.kiokuflowMigration !== migrationMarker(job.sourceRoot)
         || file.appProperties?.migrationSource !== entry.source.id) throw new Error("コピー先が変更されています。旧設定を残して停止しました。");
       const rewrittenHash = rewrittenHashes.get(file.id);
