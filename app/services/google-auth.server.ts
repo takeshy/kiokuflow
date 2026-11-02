@@ -54,7 +54,7 @@ export async function getAuthUrl(
     access_type: "offline",
     include_granted_scopes: false,
     scope: scopes,
-    prompt: "consent",
+    prompt: options?.returnTo === "/settings/migration" ? "consent select_account" : "consent",
     state,
     code_challenge: codeChallenge,
     code_challenge_method: CodeChallengeMethod.S256,

@@ -107,6 +107,8 @@ Google sign-in requests only the non-sensitive `drive.file` scope. Built-in Goog
 
 The fastest path is the hosted app: **[kiokuflow.net](https://kiokuflow.net)** — sign in with Google, create encryption keys once in **Settings > General** (the common password unlocks the private key; saving API keys needs no password), and register your chosen API key in the leftmost **AI providers** tab. Choose the active provider above its configuration tabs. Kakeratta and Bluesky share **Integrations**; commands and shortcuts share one settings tab.
 
+Existing registered GemiHub users are directed to **Settings > Bring your existing workspace** ([`/settings/migration`](https://kiokuflow.net/settings/migration)) after signing in. Push edits from all devices in the old environment first. The tool copies notes, attachments, history, settings and encryption identity into the new Drive folder, leaving notes and attachments unchanged and moving only the old settings to Trash after verification. Return to the same page to resume. Keep your decryption password, rebuild RAG indexes, and check public links and external sync connections because file IDs change.
+
 To run it yourself:
 
 ```bash

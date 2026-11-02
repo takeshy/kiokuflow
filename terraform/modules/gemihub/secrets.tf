@@ -49,3 +49,16 @@ data "google_secret_manager_secret" "stripe_price_id_storage_addon" {
 # read: /hubwork/admin was folded into /admin/enterprise, which authorizes on
 # SUPER_ADMIN_EMAILS. The secrets themselves are left in Secret Manager for
 # manual cleanup.
+
+# Dedicated kiokuflow credentials. Keep the legacy secrets above for GemiHub consumers.
+data "google_secret_manager_secret" "kiokuflow_google_client_id" {
+  secret_id = "kiokuflow-google-client-id"
+}
+
+data "google_secret_manager_secret" "kiokuflow_google_client_secret" {
+  secret_id = "kiokuflow-google-client-secret"
+}
+
+data "google_secret_manager_secret" "kiokuflow_google_picker_api_key" {
+  secret_id = "kiokuflow-google-picker-api-key"
+}

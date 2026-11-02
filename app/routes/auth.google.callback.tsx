@@ -6,6 +6,7 @@ import {
 import { getSession, setTokens, commitSession, safeReturnTo } from "~/services/session.server";
 import { ensureRootFolder } from "~/services/google-drive.server";
 import { ensureSettingsFile } from "~/services/user-settings.server";
+import { captureLegacyDriveMigration, driveMigrationEnabled } from "~/services/drive-migration.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
@@ -45,6 +46,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   // Fetch user email from Drive API
   let email: string | undefined;
+  let migrationRequired = false;
   try {
     const aboutRes = await fetch(
       "https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)",
@@ -55,6 +57,9 @@ export async function loader({ request }: Route.LoaderArgs) {
       email = about.user?.emailAddress;
     }
   } catch { /* non-critical */ }
+  if (driveMigrationEnabled() && !email) {
+    throw new Response("Googleアカウントを確認できませんでした。もう一度ログインしてください。", { status: 503 });
+  }
 
   // Read returnTo before setTokens (which creates a new session)
   const returnTo = safeReturnTo(stateSession.get("oauthReturnTo"));
@@ -73,6 +78,10 @@ export async function loader({ request }: Route.LoaderArgs) {
       hubworkAccountMatchedByEmail = !!hubworkAccount;
     }
 
+    if (hubworkAccount) {
+      // Preserve the old client-bound refresh token before updating the billing record.
+      migrationRequired = await captureLegacyDriveMigration(hubworkAccount, rootFolderId);
+    }
     if (hubworkAccount?.plan) {
       const updates: Record<string, string> = {};
       if (hubworkAccountMatchedByEmail && rootFolderId && hubworkAccount.rootFolderId !== rootFolderId) {
@@ -87,7 +96,9 @@ export async function loader({ request }: Route.LoaderArgs) {
         await updateRefreshToken(hubworkAccount.id, tokens.refreshToken);
       }
     }
-  } catch {
+  } catch (error) {
+    // During OAuth separation, a failed snapshot must never lose the source credentials.
+    if (driveMigrationEnabled()) throw error;
     // Hubwork account lookup/update is not required for normal login.
   }
 
@@ -99,8 +110,15 @@ export async function loader({ request }: Route.LoaderArgs) {
     email,
     grantedScopes: scope,
   });
+  if (migrationRequired) {
+    // This is a personal Drive migration, independent of a previously selected org.
+    session.set("authMethod", "google");
+    session.unset("currentOrgId");
+    session.unset("currentProjectId");
+    session.unset("oidcSub");
+  }
 
-  return redirect(returnTo, {
+  return redirect(migrationRequired ? "/settings/migration" : returnTo, {
     headers: {
       "Set-Cookie": await commitSession(session),
     },

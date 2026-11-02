@@ -44,6 +44,7 @@ import { PluginProvider } from "~/contexts/PluginContext";
 import { isActivePremiumAccount } from "~/types/hubwork";
 import { resolveSubmittedGeminiApiKey } from "~/utils/settings-api-key";
 import { preserveOtherSettingsSection } from "~/utils/settings-form-sections";
+import { driveMigrationSummary } from "~/services/drive-migration.server";
 import { assertRagAccess, canUseRag } from "~/services/rag-access.server";
 import {
   SettingsTemplate,
@@ -232,6 +233,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       hasOrganizations,
       showEnterpriseTab,
       enterpriseError: showEnterpriseTab ? enterpriseError : null,
+      legacyMigrationAvailable: !!(await driveMigrationSummary(validTokens)),
     },
     { headers: setCookieHeader ? { "Set-Cookie": setCookieHeader } : undefined }
   );
@@ -835,7 +837,7 @@ clientLoader.hydrate = true as const;
 // ---------------------------------------------------------------------------
 
 export default function Settings() {
-  const { settings, hasApiKey, hasUnsupportedRagApiKey, maskedKey, rootFolderId, enterprise, hasOrganizations, showEnterpriseTab, enterpriseError } = useLoaderData<typeof loader>();
+  const { settings, hasApiKey, hasUnsupportedRagApiKey, maskedKey, rootFolderId, enterprise, hasOrganizations, showEnterpriseTab, enterpriseError, legacyMigrationAvailable } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<SettingsTabId>("ai");
 
@@ -916,6 +918,7 @@ export default function Settings() {
           hubworkCallback={hubworkCallback}
           showEnterpriseTab={showEnterpriseTab}
           enterpriseError={enterpriseError}
+          legacyMigrationAvailable={legacyMigrationAvailable}
         />
       </PluginProvider>
     </I18nProvider>

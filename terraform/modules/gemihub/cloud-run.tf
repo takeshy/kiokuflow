@@ -31,7 +31,7 @@ resource "google_cloud_run_v2_service" "app" {
         name = "GOOGLE_CLIENT_ID"
         value_source {
           secret_key_ref {
-            secret  = data.google_secret_manager_secret.google_client_id.secret_id
+            secret  = data.google_secret_manager_secret.kiokuflow_google_client_id.secret_id
             version = "latest"
           }
         }
@@ -41,7 +41,7 @@ resource "google_cloud_run_v2_service" "app" {
         name = "GOOGLE_CLIENT_SECRET"
         value_source {
           secret_key_ref {
-            secret  = data.google_secret_manager_secret.google_client_secret.secret_id
+            secret  = data.google_secret_manager_secret.kiokuflow_google_client_secret.secret_id
             version = "latest"
           }
         }
@@ -51,7 +51,7 @@ resource "google_cloud_run_v2_service" "app" {
         name = "GOOGLE_PICKER_API_KEY"
         value_source {
           secret_key_ref {
-            secret  = data.google_secret_manager_secret.google_picker_api_key.secret_id
+            secret  = data.google_secret_manager_secret.kiokuflow_google_picker_api_key.secret_id
             version = "latest"
           }
         }
@@ -62,6 +62,27 @@ resource "google_cloud_run_v2_service" "app" {
         value_source {
           secret_key_ref {
             secret  = data.google_secret_manager_secret.session_secret.secret_id
+            version = "latest"
+          }
+        }
+      }
+
+      # Temporary read access to the old OAuth application during Drive migration.
+      env {
+        name = "GOOGLE_MIGRATION_CLIENT_ID"
+        value_source {
+          secret_key_ref {
+            secret  = data.google_secret_manager_secret.google_client_id.secret_id
+            version = "latest"
+          }
+        }
+      }
+
+      env {
+        name = "GOOGLE_MIGRATION_CLIENT_SECRET"
+        value_source {
+          secret_key_ref {
+            secret  = data.google_secret_manager_secret.google_client_secret.secret_id
             version = "latest"
           }
         }

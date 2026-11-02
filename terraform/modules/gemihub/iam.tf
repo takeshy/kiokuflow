@@ -102,3 +102,21 @@ resource "google_project_iam_member" "cloudbuild_sa_user" {
 
   depends_on = [google_project_service.apis]
 }
+
+resource "google_secret_manager_secret_iam_member" "cloud_run_kiokuflow_google_client_id" {
+  secret_id = data.google_secret_manager_secret.kiokuflow_google_client_id.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.cloud_run.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "cloud_run_kiokuflow_google_client_secret" {
+  secret_id = data.google_secret_manager_secret.kiokuflow_google_client_secret.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.cloud_run.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "cloud_run_kiokuflow_google_picker_api_key" {
+  secret_id = data.google_secret_manager_secret.kiokuflow_google_picker_api_key.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.cloud_run.email}"
+}

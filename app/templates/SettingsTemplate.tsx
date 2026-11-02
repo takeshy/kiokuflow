@@ -76,6 +76,7 @@ export interface SettingsTemplateProps {
   hubworkCallback?: boolean;
   showEnterpriseTab: boolean;
   enterpriseError?: string | null;
+  legacyMigrationAvailable?: boolean;
 }
 
 /**
@@ -95,6 +96,7 @@ export function SettingsTemplate({
   hubworkCallback = false,
   showEnterpriseTab,
   enterpriseError = null,
+  legacyMigrationAvailable = false,
 }: SettingsTemplateProps) {
   const { t } = useI18n();
   const isMobile = useIsMobile();
@@ -161,6 +163,9 @@ export function SettingsTemplate({
       </div>
 
       <main className="mx-auto max-w-5xl px-4 py-4 sm:py-8">
+        {legacyMigrationAvailable && <a href="/settings/migration" className="mb-5 block rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm font-medium text-blue-700 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300">
+          {settings.language === "ja" ? "旧環境からの引き継ぎ — kiokuflow.netへのデータ移行を確認する" : "Bring your existing workspace — review your move to kiokuflow.net"}
+        </a>}
         {activeTab === "ai" && (organizationSelected ? (
           <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
             <p className="mb-3 text-sm">{t("settings.ai.organizationProvider")}</p>
