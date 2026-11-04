@@ -277,12 +277,23 @@ export function migratePendingFiles(): Promise<void> {
  */
 export async function awaitPendingMigrations(): Promise<void> {
   while (true) {
+    const pending = await getPendingNewFiles();
+    // Also join a run that is finishing its cache/meta updates after removing
+    // its last new: entry.
     if (inFlight) {
       await inFlight;
-      continue;
+    } else {
+      if (pending.length === 0) return;
+      await startRun();
     }
-    const pending = await getPendingNewFiles();
-    if (pending.length === 0) return;
-    await startRun();
+    const remaining = await getPendingNewFiles();
+    const attemptedIds = new Set(pending.map((file) => file.fileId));
+    if (remaining.some((file) => attemptedIds.has(file.fileId))) {
+      // Offline and per-file HTTP failures leave drafts intact. Retrying the
+      // same failed drafts forever here held the Push lock indefinitely.
+      throw new Error("Could not save new files to Drive. Local changes are kept. Check your connection and retry.");
+    }
+    // Files created during the previous run still get a chance to migrate.
+    if (remaining.length === 0) return;
   }
 }

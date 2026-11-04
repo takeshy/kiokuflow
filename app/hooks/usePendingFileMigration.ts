@@ -15,8 +15,12 @@ export function usePendingFileMigration(isOffline: boolean) {
   const projectActive = useEnterpriseSelection() !== null;
   useEffect(() => {
     if (isOffline || projectActive) return;
-    migratePendingFiles();
-    const handler = () => { migratePendingFiles(); };
+    const handler = () => {
+      void migratePendingFiles().catch((error) => {
+        console.warn("[usePendingFileMigration] Migration failed; local drafts are kept", error);
+      });
+    };
+    handler();
     window.addEventListener("pending-files-created", handler);
     return () => window.removeEventListener("pending-files-created", handler);
   }, [isOffline, projectActive]);

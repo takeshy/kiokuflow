@@ -414,12 +414,16 @@ export async function getAllCachedFileIds(): Promise<Set<string>> {
 
 export async function getPendingNewFiles(): Promise<CachedFile[]> {
   if (typeof indexedDB === "undefined") return [];
-  try {
-    const allFiles = await getAllCachedFiles();
-    return allFiles.filter((f) => f.fileId.startsWith("new:"));
-  } catch {
-    return [];
-  }
+  const db = await getDB();
+  return new Promise((resolve, reject) => {
+    // Push calls this even when only existing notes were edited. Reading the
+    // whole cache also clones every cached image/PDF into memory on phones.
+    const tx = db.transaction("files", "readonly");
+    const req = tx.objectStore("files").getAll(IDBKeyRange.bound("new:", "new;", false, true));
+    req.onsuccess = () => resolve(req.result as CachedFile[]);
+    req.onerror = () => reject(req.error);
+    tx.onabort = () => reject(tx.error ?? new Error("IndexedDB transaction aborted"));
+  });
 }
 
 // --- syncMeta store ---

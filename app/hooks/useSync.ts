@@ -25,6 +25,7 @@ import {
 import { addCommitBoundary, getPushHistoryDiff, hasNetContentChange } from "~/services/edit-history-local";
 import { awaitPendingCacheSaves } from "~/services/cache-save-queue";
 import { awaitPendingMigrations } from "~/services/pending-file-migration";
+import { runSyncStep } from "~/services/sync-step";
 import { ragRegisterInBackground } from "~/services/rag-sync";
 import { fullPullCacheRecord, type FullPullFilePayload } from "~/services/full-pull-cache";
 import {
@@ -354,13 +355,15 @@ export function useSync() {
       // Push filters out `new:` IDs (they have no real Drive file yet), so
       // files still mid-migration would be silently dropped. Waiting here
       // also serializes against concurrent _sync-meta.json writes.
-      await awaitPendingMigrations();
-      await awaitPendingCacheSaves();
+      await runSyncStep("waiting for new files", () => awaitPendingMigrations());
+      await runSyncStep("saving local edits", () => awaitPendingCacheSaves());
 
       // 1. Fetch fresh remoteMeta (push always uses latest)
-      const syncRes = await fetch("/api/sync");
-      if (!syncRes.ok) throw new Error("Failed to fetch remote meta");
-      const syncData = await syncRes.json();
+      const syncData = await runSyncStep("reading Drive metadata", async (signal) => {
+        const syncRes = await fetch("/api/sync", { signal });
+        if (!syncRes.ok) throw new Error("Failed to fetch remote meta");
+        return syncRes.json();
+      });
       const remoteMeta = syncData.remoteMeta as SyncMeta | null;
 
       // 2. Get local state
@@ -465,30 +468,33 @@ export function useSync() {
       const pushedResultIds = new Set<string>();
       let skippedCount = 0;
       if (filesToPush.length > 0 || pendingDeletions.length > 0) {
-        const pushRes = await fetch("/api/sync", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "pushFiles",
-            files: filesToPush.map(({ fileId, content, fileName, encoding, historyDiff }) => ({
-              fileId,
-              content,
-              fileName,
-              ...(encoding ? { encoding } : {}),
-              ...(historyDiff === undefined ? {} : { historyDiff }),
-            })),
-            deleteFileIds: pendingDeletions.map((entry) => entry.fileId),
-            remoteMeta,
-          }),
+        const pushData = await runSyncStep("uploading files to Drive (completion unconfirmed)", async (signal) => {
+          const pushRes = await fetch("/api/sync", {
+            method: "POST",
+            signal,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "pushFiles",
+              files: filesToPush.map(({ fileId, content, fileName, encoding, historyDiff }) => ({
+                fileId,
+                content,
+                fileName,
+                ...(encoding ? { encoding } : {}),
+                ...(historyDiff === undefined ? {} : { historyDiff }),
+              })),
+              deleteFileIds: pendingDeletions.map((entry) => entry.fileId),
+              remoteMeta,
+            }),
+          });
+          if (!pushRes.ok) {
+            const details = await pushRes.json().catch(() => null);
+            const message = typeof details?.error === "string"
+              ? details.error
+              : "Failed to push files";
+            throw new Error(`${message} (HTTP ${pushRes.status})`);
+          }
+          return pushRes.json();
         });
-        if (!pushRes.ok) {
-          const details = await pushRes.json().catch(() => null);
-          const message = typeof details?.error === "string"
-            ? details.error
-            : "Failed to push files";
-          throw new Error(`${message} (HTTP ${pushRes.status})`);
-        }
-        const pushData = await pushRes.json();
         skippedCount = Array.isArray(pushData.skippedFileIds)
           ? pushData.skippedFileIds.length
           : 0;
