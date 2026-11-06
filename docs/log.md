@@ -1,5 +1,8 @@
 # Update Log
 
+## 2026-11-06
+* **Fix**: Chat retains partial replies, tool calls and errors when a provider ends without a completion event or a tool throws. Previously the streaming bubble disappeared when cleanup ran before a final message had been committed (`features/chat.md`).
+
 ## 2026-11-02
 * **Version**: `1.0.3`
 * **Update**: Completed the production domain/OAuth separation and first GemiHub booking deployment. Public pages, mobile layouts, runtime Firestore/Vertex connectivity and old-worker retirement were checked. Owner consent and actual Drive migration remain interactive. Old Google sessions must reauthorize; background workflows pause until authorization and migration are complete (`architecture/rebranding.md`).

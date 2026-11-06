@@ -1,0 +1,14 @@
+[Unit]
+Description=Remove unused shared VM container images older than one day
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+# Match deploy.py's lock so an image being pulled for deployment or rollback
+# cannot be removed between docker pull and docker run.
+ExecStart=/usr/bin/flock --nonblock --conflict-exit-code 75 /opt/shared-apps/deploy.lock /usr/bin/docker image prune --all --force --filter until=24h
+SuccessExitStatus=75
+TimeoutStartSec=15min
+Nice=10
+IOSchedulingClass=idle

@@ -48,6 +48,26 @@ A raw Drive folder ZIP remains a backup, not a complete account migration. The r
 6. The old domain belongs to the extracted GemiHub application, deployed as `gemihub-web` on port 8105. Its apex and `*.shops.gemihub.net` routes have their own backend; kiokuflow retains the original `gemihub` runtime on port 8101. GemiHub serves a no-store retirement worker at `/sw.js` which removes only old `gemihub-sw-` caches and unregisters itself. It never deletes IndexedDB. The old notes UI and its API paths are no longer served on that origin; `?legacy=1` does not reopen them through GemiHub. Unsynced browser-only content is outside the server Drive-copy operation, so retain that browser's data for recovery. Original DNS/certificates and OAuth secrets remain managed for GemiHub.
 7. The GitHub repository is `takeshy/kiokuflow`. Its existing Cloud Build deployment trigger must reference the renamed repository through the corresponding Cloud Build v2 connection; a stale `takeshy/gemihub` repository reference can miss push events even though Git cloning follows GitHub's redirect. GemiHub has its own `takeshy/omaiweb` connection and deployment trigger. Persist the current shared-VM runtime manifest after deploying, and retain the private shared-VM variable file in its existing versioned GCS location.
 
+## Shared VM disk recovery (2026-11-06)
+
+The shared VM's 30 GB root disk filled with unused deployment images. Nginx
+logged `No space left on device`; requests requiring a buffered upload could
+not reach the application. Removing unused images older than 24 hours
+reclaimed 15.05 GB. Running containers and their data were retained.
+The user confirmed that both mobile Drive Push and chat worked again after
+the cleanup. The root filesystem then had about 16 GB free (44% used).
+
+`scripts/ops/shared-apps-image-gc.service` and its `.timer` run that cleanup
+hourly. Install both units under `/etc/systemd/system/`, run
+`systemctl daemon-reload`, then
+`systemctl enable --now shared-apps-image-gc.timer`. The service uses
+`/opt/shared-apps/deploy.lock`, matching the shared deployment script, and
+skips a run while a deployment holds it. Docker retains images referenced by
+containers; unused images less than 24 hours old also remain. Older rollback
+images can be pulled again from Artifact Registry. No volumes are pruned.
+Reinstall these units if the VM is rebuilt; they are not part of the shared
+VM's bootstrap bundle.
+
 ## Documentation and screenshots
 
 Japanese and English product text, landing pages, README and manuals use the new name. 47 screenshots were captured from current Storybook components. Obsolete captures without a current reproducible scene are no longer embedded; the feature explanations remain. Unused historical image files are retained. Third-party plugin screenshots without the old service header remain valid.

@@ -9,6 +9,11 @@ tags:
 
 AI chat with Gemini, OpenAI, OpenRouter, and OpenCode Go streaming, function calling, RAG, image generation, and MCP integration.
 
+If a tool or provider fails, the received text, thinking, tool calls and error
+remain in the conversation and are submitted to chat history. A stream that
+closes without a completion event shows an interruption error. Stopping a
+response also retains tool calls received before any answer text.
+
 ## OpenAI chat
 
 On **My Drive**, create encryption keys once in

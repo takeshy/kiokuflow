@@ -10,6 +10,7 @@ import type {
   ChatHistoryItem,
   GeneratedImage,
   McpAppInfo,
+  StreamChunk,
 } from "~/types/chat";
 import type { UserSettings, ModelType, DriveToolMode, SlashCommand, GeminiReasoningEffort } from "~/types/settings";
 
@@ -46,6 +47,7 @@ import {
 } from "~/services/indexeddb-cache";
 import { getCachedApiKey, ensureCachedApiKey } from "~/services/api-key-cache";
 import { chatStream } from "~/hooks/useLocalChat";
+import { consumeChatStream } from "~/hooks/consume-chat-stream";
 import { availableChatModels, startChatStream, usesInteractions } from "~/hooks/chat-dispatch";
 import { executeInteractionsChat } from "~/hooks/useInteractionsChat";
 import { useEnterpriseSelection } from "~/contexts/EnterpriseContext";
@@ -1082,6 +1084,57 @@ export function ChatPanel({
         if (isActive()) setStreamingRagUsed(true);
       }
       let finalMessagesForReview: Message[] | null = null;
+      const commitResponse = (chunk?: StreamChunk) => {
+        console.info("[RAG debug][client] finalizing assistant message", {
+          ragUsed,
+          ragSources,
+          ragStoreIds,
+        });
+        webSearchSources = chunk?.webSearchSources ?? webSearchSources;
+        const assistantMessage: Message = {
+          role: "assistant",
+          content: accumulatedContent,
+          timestamp: Date.now(),
+          model: effectiveModel,
+          interactionId: chunk?.interactionId || undefined,
+          thinking: accumulatedThinking || undefined,
+          toolCalls:
+            accumulatedToolCalls && accumulatedToolCalls.length > 0
+              ? accumulatedToolCalls
+              : undefined,
+          toolResults:
+            accumulatedToolResults &&
+            accumulatedToolResults.length > 0
+              ? accumulatedToolResults
+              : undefined,
+          ragUsed: ragUsed || undefined,
+          webSearchUsed: webSearchUsed || undefined,
+          webSearchSources: webSearchSources.length > 0 ? webSearchSources : undefined,
+          ragSources:
+            ragSources.length > 0 ? ragSources : undefined,
+          generatedImages:
+            generatedImages.length > 0
+              ? generatedImages
+              : undefined,
+          mcpApps:
+            mcpApps.length > 0 ? mcpApps : undefined,
+          usage: chunk?.usage || undefined,
+          elapsedMs: Date.now() - sendStartTime,
+        };
+
+        const finalMessages = [
+          ...updatedMessages,
+          assistantMessage,
+        ];
+        finalMessagesForReview = finalMessages;
+        // Fire-and-forget: UI commits synchronously inside saveResult,
+        // Drive persist runs on the background queue. `void` discards
+        // the returned persist promise so we don't block the auto-
+        // review branch below — that branch awaits its OWN saveResult
+        // calls, and the queue preserves ordering between our enqueue
+        // here and the review's enqueues.
+        void saveResult(finalMessages);
+      };
 
       try {
         // Activate skill for future messages; pass as extra so current prompt includes it
@@ -1221,7 +1274,7 @@ export function ChatPanel({
           chatCallbacks,
         );
 
-        for await (const chunk of generator) {
+        const completion = await consumeChatStream(generator, (chunk) => {
           if (abortController.signal.aborted) {
             throw new DOMException("The operation was aborted.", "AbortError");
           }
@@ -1283,62 +1336,13 @@ export function ChatPanel({
                 `\n\n**Error:** ${chunk.error || "Unknown error"}`;
               if (isActive()) setStreamingContent(accumulatedContent);
               break;
-            case "done": {
-              console.info("[RAG debug][client] finalizing assistant message", {
-                ragUsed,
-                ragSources,
-                ragStoreIds,
-              });
-              webSearchSources = chunk.webSearchSources ?? webSearchSources;
-              const assistantMessage: Message = {
-                role: "assistant",
-                content: accumulatedContent,
-                timestamp: Date.now(),
-                model: effectiveModel,
-                interactionId: chunk.interactionId || undefined,
-                thinking: accumulatedThinking || undefined,
-                toolCalls:
-                  accumulatedToolCalls && accumulatedToolCalls.length > 0
-                    ? accumulatedToolCalls
-                    : undefined,
-                toolResults:
-                  accumulatedToolResults &&
-                  accumulatedToolResults.length > 0
-                    ? accumulatedToolResults
-                    : undefined,
-                ragUsed: ragUsed || undefined,
-                webSearchUsed: webSearchUsed || undefined,
-                webSearchSources: webSearchSources.length > 0 ? webSearchSources : undefined,
-                ragSources:
-                  ragSources.length > 0 ? ragSources : undefined,
-                generatedImages:
-                  generatedImages.length > 0
-                    ? generatedImages
-                    : undefined,
-                mcpApps:
-                  mcpApps.length > 0 ? mcpApps : undefined,
-                usage: chunk.usage || undefined,
-                elapsedMs: Date.now() - sendStartTime,
-              };
 
-              const finalMessages = [
-                ...updatedMessages,
-                assistantMessage,
-              ];
-              finalMessagesForReview = finalMessages;
-              // Fire-and-forget: UI commits synchronously inside saveResult,
-              // Drive persist runs on the background queue. `void` discards
-              // the returned persist promise so we don't block the auto-
-              // review branch below — that branch awaits its OWN saveResult
-              // calls, and the queue preserves ordering between our enqueue
-              // here and the review's enqueues.
-              void saveResult(finalMessages);
-              break;
-            }
           }
-        }
+        });
+        commitResponse(completion);
 
         if (
+          completion &&
           webpageBuilderActive &&
           savedWebFiles.size > 0 &&
           finalMessagesForReview &&
@@ -1381,40 +1385,13 @@ export function ChatPanel({
         }
       } catch (error) {
         if ((error as Error).name === "AbortError") {
-          if (accumulatedContent) {
-            const partialMessage: Message = {
-              role: "assistant",
-              content: accumulatedContent + "\n\n*(Generation stopped)*",
-              timestamp: Date.now(),
-              model: effectiveModel,
-              thinking: accumulatedThinking || undefined,
-              toolCalls:
-                accumulatedToolCalls && accumulatedToolCalls.length > 0
-                  ? accumulatedToolCalls
-                  : undefined,
-              toolResults:
-                accumulatedToolResults && accumulatedToolResults.length > 0
-                  ? accumulatedToolResults
-                  : undefined,
-              ragUsed: ragUsed || undefined,
-              webSearchUsed: webSearchUsed || undefined,
-              ragSources: ragSources.length > 0 ? ragSources : undefined,
-              generatedImages:
-                generatedImages.length > 0 ? generatedImages : undefined,
-              mcpApps: mcpApps.length > 0 ? mcpApps : undefined,
-              elapsedMs: Date.now() - sendStartTime,
-            };
-            const finalMessages = [...updatedMessages, partialMessage];
-            void saveResult(finalMessages);
+          if (accumulatedContent || accumulatedThinking || accumulatedToolCalls?.length || generatedImages.length || mcpApps.length) {
+            accumulatedContent += "\n\n*(Generation stopped)*";
+            commitResponse();
           }
         } else {
-          const errorMessage: Message = {
-            role: "assistant",
-            content: `**Error:** ${(error as Error).message || "Failed to get response"}`,
-            timestamp: Date.now(),
-          };
-          const finalMessages = [...updatedMessages, errorMessage];
-          void saveResult(finalMessages);
+          accumulatedContent += `\n\n**Error:** ${(error as Error).message || "Failed to get response"}`;
+          commitResponse();
         }
       } finally {
         cleanupStream(abortController);
