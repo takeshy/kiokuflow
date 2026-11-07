@@ -10,10 +10,18 @@ interface GeminiLiveMessage {
   serverContent?: {
     interrupted?: boolean;
     turnComplete?: boolean;
+    interactionStatus?: string;
     inputTranscription?: { text?: string; finished?: boolean };
     outputTranscription?: { text?: string; finished?: boolean };
     modelTurn?: { parts?: { inlineData?: { data?: string; mimeType?: string } }[] };
   };
+}
+
+interface TranscriptTurn {
+  user: LiveTranscript;
+  assistants: LiveTranscript[];
+  inputFinished: boolean;
+  responseComplete: boolean;
 }
 
 /** Owns the WebSocket, AudioWorklet, playback queue and every microphone track. */
@@ -33,9 +41,11 @@ export class GeminiLiveSession implements LiveSession {
   private active = false;
   private ready = false;
   private muted = false;
-  private transcripts = new Map<string, LiveTranscript>();
-  private inputTurn = 0;
-  private outputTurn = 0;
+  private transcriptTurns: TranscriptTurn[] = [];
+  private inputTurn: TranscriptTurn | null = null;
+  private responseTurn: TranscriptTurn | null = null;
+  private outputTranscript: LiveTranscript | null = null;
+  private nextTranscriptId = 0;
   private tools: LiveToolDispatcher | null = null;
   private handledTools = new Set<string>();
 
@@ -80,12 +90,53 @@ export class GeminiLiveSession implements LiveSession {
     }
   }
 
-  private transcribe(role: "user" | "assistant", turn: number, text?: string) {
-    if (!text) return;
-    const id = `${turn}:${role}`;
-    this.transcripts.set(id, { id, role, text: (this.transcripts.get(id)?.text || "") + text });
-    const sorted = [...this.transcripts.values()].sort((a, b) => Number(a.id.split(":")[0]) - Number(b.id.split(":")[0]) || (a.role === b.role ? 0 : a.role === "user" ? -1 : 1));
-    this.callbacks.onTranscript(sorted);
+  private newInputTurn() {
+    const turn: TranscriptTurn = {
+      user: { id: `${this.nextTranscriptId++}:user`, role: "user", text: "" },
+      assistants: [], inputFinished: false, responseComplete: false,
+    };
+    this.transcriptTurns.push(turn);
+    this.inputTurn = turn;
+    return turn;
+  }
+
+  private transcribe(content: NonNullable<GeminiLiveMessage["serverContent"]>) {
+    if (content.interrupted) {
+      // The next input belongs to the interruption, even if the previous
+      // input's optional `finished` flag was never sent.
+      if (this.responseTurn?.user.text) this.responseTurn.inputFinished = true;
+      this.responseTurn = null;
+      this.outputTranscript = null;
+    }
+    const input = content.inputTranscription;
+    if (input?.text) {
+      // Gemini can omit `finished` throughout a session. Use the completed
+      // response as a fallback boundary, but keep a late explicit final
+      // fragment attached to its original user bubble.
+      if (!this.inputTurn || this.inputTurn.inputFinished || (this.inputTurn.responseComplete && !input.finished)) this.newInputTurn();
+      this.inputTurn!.user.text += input.text;
+    }
+    if (input?.finished && this.inputTurn) this.inputTurn.inputFinished = true;
+
+    if (content.outputTranscription?.text || content.modelTurn?.parts?.length) {
+      if (!this.outputTranscript) {
+        // Reserve the user position even if ASR arrives after the response.
+        this.responseTurn = this.inputTurn || this.newInputTurn();
+        this.outputTranscript = { id: `${this.nextTranscriptId++}:assistant`, role: "assistant", text: "" };
+        this.responseTurn.assistants.push(this.outputTranscript);
+      }
+      this.outputTranscript.text += content.outputTranscription?.text || "";
+    }
+    if (content.turnComplete) {
+      // Extended Thinking can finish a spoken filler while still working on
+      // the same request. That is not a new user turn.
+      if (this.responseTurn) this.responseTurn.responseComplete = content.interactionStatus !== "IN_PROGRESS";
+      this.responseTurn = null;
+      this.outputTranscript = null;
+    }
+    if (input?.text || content.outputTranscription?.text) {
+      this.callbacks.onTranscript(this.transcriptTurns.flatMap(turn => [turn.user, ...turn.assistants]).filter(item => item.text).map(item => ({ ...item })));
+    }
   }
 
   private receive(message: GeminiLiveMessage) {
@@ -114,16 +165,9 @@ export class GeminiLiveSession implements LiveSession {
     const content = message.serverContent;
     if (!content) return;
     if (content.interrupted) this.clearPlayback();
-    this.transcribe("user", this.inputTurn, content.inputTranscription?.text);
-    if (content.inputTranscription?.finished) this.inputTurn++;
-    this.transcribe("assistant", this.outputTurn, content.outputTranscription?.text);
+    this.transcribe(content);
     for (const part of content.modelTurn?.parts || []) {
       if (part.inlineData?.data && part.inlineData.mimeType?.startsWith("audio/pcm")) this.playAudio(part.inlineData.data, part.inlineData.mimeType);
-    }
-    if (content.turnComplete) {
-      // A user's final transcript can arrive after the model's turn completes.
-      // Only inputTranscription.finished advances the independent input counter.
-      this.outputTurn++;
     }
   }
 
@@ -153,7 +197,7 @@ export class GeminiLiveSession implements LiveSession {
     const current = () => this.active && this.generation === generation;
     this.active = true; this.muted = false;
     this.tools = new LiveToolDispatcher(options, this.callbacks.onToolCall); this.handledTools.clear();
-    this.transcripts.clear(); this.inputTurn = 0; this.outputTurn = 0;
+    this.transcriptTurns = []; this.inputTurn = null; this.responseTurn = null; this.outputTranscript = null; this.nextTranscriptId = 0;
     this.callbacks.onTranscript([]); this.callbacks.onState("connecting");
     this.abort = new AbortController();
     this.timeout = setTimeout(() => { if (current()) this.fail("Gemini Live connection timed out. Please try again."); }, 30_000);

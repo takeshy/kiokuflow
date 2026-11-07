@@ -100,6 +100,66 @@ test("a delayed final input transcript stays with its earlier partial text after
   assert.deepEqual(f.transcript.map(({ role, text }) => ({ role, text })), [{ role: "user", text: "こんにちは" }, { role: "assistant", text: "やあ" }]);
 });
 
+test("Gemini separates successive exchanges when neither transcription sends a finished flag", async t => {
+  const f = fixture(t); await f.connect();
+  for (const [question, answer] of [["こんにちは", "こんにちは。"], ["明日の天気は？", "場所を教えてください。"], ["東京です", "東京ですね。"]]) {
+    await f.event({ serverContent: { inputTranscription: { text: question.slice(0, 2) } } });
+    await f.event({ serverContent: { inputTranscription: { text: question.slice(2) } } });
+    await f.event({ serverContent: { outputTranscription: { text: answer.slice(0, 2) } } });
+    await f.event({ serverContent: { outputTranscription: { text: answer.slice(2) } } });
+    await f.event({ serverContent: { turnComplete: true } });
+  }
+  assert.deepEqual(f.transcript.map(({ role, text }) => ({ role, text })), [
+    { role: "user", text: "こんにちは" }, { role: "assistant", text: "こんにちは。" },
+    { role: "user", text: "明日の天気は？" }, { role: "assistant", text: "場所を教えてください。" },
+    { role: "user", text: "東京です" }, { role: "assistant", text: "東京ですね。" },
+  ]);
+  assert.equal(new Set(f.transcript.map(item => item.id)).size, 6);
+});
+
+test("explicit input completion and model completion do not advance the user twice", async t => {
+  const f = fixture(t); await f.connect();
+  await f.event({ serverContent: { inputTranscription: { text: "一問目", finished: true } } });
+  await f.event({ serverContent: { outputTranscription: { text: "一答目" }, turnComplete: true } });
+  await f.event({ serverContent: { inputTranscription: { text: "二問目" } } });
+  await f.event({ serverContent: { inputTranscription: { finished: true } } });
+  await f.event({ serverContent: { outputTranscription: { text: "二答目" }, turnComplete: true } });
+  await f.event({ serverContent: { inputTranscription: { text: "三問目" } } });
+  await f.event({ serverContent: { outputTranscription: { text: "三答目" }, turnComplete: true } });
+  assert.deepEqual(f.transcript.map(item => item.text), ["一問目", "一答目", "二問目", "二答目", "三問目", "三答目"]);
+});
+
+test("multiple finalized user utterances before a response retain their spoken order", async t => {
+  const f = fixture(t); await f.connect();
+  await f.event({ serverContent: { inputTranscription: { text: "質問です", finished: true } } });
+  await f.event({ serverContent: { inputTranscription: { text: "補足です", finished: true } } });
+  await f.event({ serverContent: { outputTranscription: { text: "承知しました" }, turnComplete: true } });
+  assert.deepEqual(f.transcript.map(item => item.text), ["質問です", "補足です", "承知しました"]);
+});
+
+test("interrupting an unfinished Gemini response opens a new user bubble without finished flags", async t => {
+  const f = fixture(t); await f.connect();
+  await f.event({ serverContent: { inputTranscription: { text: "説明して" } } });
+  await f.event({ serverContent: { outputTranscription: { text: "まずは" } } });
+  await f.event({ serverContent: { interrupted: true, inputTranscription: { text: "やっぱり" } } });
+  await f.event({ serverContent: { turnComplete: true } });
+  await f.event({ serverContent: { inputTranscription: { text: "短く教えて" } } });
+  await f.event({ serverContent: { outputTranscription: { text: "要点は" }, turnComplete: true } });
+  await f.event({ serverContent: { inputTranscription: { text: "ありがとう" } } });
+  assert.deepEqual(f.transcript.map(item => item.text), ["説明して", "まずは", "やっぱり短く教えて", "要点は", "ありがとう"]);
+});
+
+test("Extended Thinking filler turns keep one user bubble and chronological assistant responses", async t => {
+  const f = fixture(t); await f.connect();
+  await f.event({ serverContent: { inputTranscription: { text: "調べて" } } });
+  await f.event({ serverContent: { outputTranscription: { text: "確認します" }, turnComplete: true, interactionStatus: "IN_PROGRESS" } });
+  await f.event({ serverContent: { inputTranscription: { text: "ください" } } });
+  await f.event({ serverContent: { outputTranscription: { text: "結果です" }, turnComplete: true, interactionStatus: "FINISHED" } });
+  await f.event({ serverContent: { inputTranscription: { text: "次の質問" } } });
+  await f.event({ serverContent: { outputTranscription: { text: "どうぞ" }, turnComplete: true } });
+  assert.deepEqual(f.transcript.map(item => item.text), ["調べてください", "確認します", "結果です", "次の質問", "どうぞ"]);
+});
+
 test("cancelling Gemini setup closes the negotiating socket and ignores late messages", async t => {
   const f = fixture(t), starting = f.session.start(options);
   for (let i = 0; i < 20 && !f.sockets.length; i++) await tick();

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { action } from "~/routes/api.gemini.live";
+import { geminiLiveSetup } from "./gemini-live-config";
 import { setTokens, commitSession, type SessionTokens } from "./session.server";
 const base: SessionTokens = { accessToken: "synthetic-access", refreshToken: "synthetic-refresh", expiryTime: Date.now() + 3600_000, rootFolderId: "gemini-live-root", geminiApiKey: "synthetic-gemini-secret" };
 const body = { model: "gemini-3.8-live", voice: "Kore", language: "ja", instructions: "自然な日本語で会話してください。" };
@@ -20,13 +21,39 @@ test("Gemini Live mints a constrained single-use token without exposing the perm
     const setup = data.bidiGenerateContentSetup;
     assert.equal(setup.model, "models/gemini-3.8-live"); assert.deepEqual(setup.generationConfig.responseModalities, ["AUDIO"]);
     assert.equal(setup.generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName, "Kore");
-    assert.equal(setup.systemInstruction.parts[0].text, body.instructions); assert.ok(setup.inputAudioTranscription && setup.outputAudioTranscription);
+    assert.deepEqual(setup, geminiLiveSetup({ ...body, language: "ja" }));
+    assert.ok(setup.inputAudioTranscription && setup.outputAudioTranscription);
     assert.equal(setup.tools, undefined); assert.equal(data.fieldMask, undefined);
     return Response.json({ name: "auth_tokens/temporary-token" });
   });
   const response = await action(args(await request({ ...body, apiKey: "untrusted", baseUrl: "https://attacker.invalid" })));
   assert.equal(response.status, 200); assert.equal(response.headers.get("Cache-Control"), "no-store");
   assert.deepEqual(await response.json(), { token: "auth_tokens/temporary-token" });
+});
+
+test("Gemini Live uses the selected language by default and respects the system prompt's language and style", () => {
+  for (const language of ["ja", "en"] as const) {
+    const instructions = "Speak in Spanish with a friendly tone.\n\nPrior text conversation for context:\nassistant: Hola!";
+    const setup = geminiLiveSetup({ ...body, language, instructions });
+    const prompt = setup.systemInstruction.parts[0].text;
+    assert.ok(prompt.startsWith(instructions + "\n\n"));
+    const speakingRules = prompt.slice(instructions.length);
+    if (language === "ja") {
+      assert.match(speakingRules, /アプリの言語設定に従って日本語/);
+      assert.match(speakingRules, /システムプロンプトで言語や口調が指定されている場合は、その設定を優先/);
+      assert.match(speakingRules, /明示的に変更を希望しない限り/);
+      assert.match(speakingRules, /過去のチャット、引用、ファイルの言語や口調をまねしない/);
+      assert.match(speakingRules, /会話で使用している言語で聞き返して/);
+      assert.doesNotMatch(speakingRules, /標準日本語|関西弁/);
+    } else {
+      assert.match(speakingRules, /default language.*English.*app language setting/);
+      assert.match(speakingRules, /system prompt specifies a language or speaking style, follow that preference instead/);
+      assert.match(speakingRules, /unless the user explicitly requests/);
+      assert.match(speakingRules, /Do not imitate/);
+      assert.match(speakingRules, /clarification in the conversation's language/);
+    }
+    assert.ok(geminiLiveSetup({ ...body, language, instructions: "" }).systemInstruction.parts[0].text.trim());
+  }
 });
 
 test("Gemini Live rejects locked sessions, organization mounts and invalid model or voice before contacting Google", async t => {
