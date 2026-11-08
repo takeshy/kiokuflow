@@ -3,7 +3,7 @@
 //
 // Reading, duplicate consolidation, reconciliation and writing of
 // `_sync-meta.json` are shared with Obsidian and Desktop through
-// gemihub-sync-core; this module binds them to kiokuflow's Drive functions and
+// kiokuflow-sync-core; this module binds them to kiokuflow's Drive functions and
 // keeps the existing function names.
 
 import {
@@ -25,15 +25,15 @@ import {
   mergeSyncMetaSnapshots,
   pickSyncMetaToKeep,
   refreshDriftedSyncMetaEntries,
-} from "gemihub-sync-core/protocol";
+} from "kiokuflow-sync-core/protocol";
 import {
   createSyncMetaStore,
   removeFilesFromMeta,
   upsertDriveFileInMeta,
-} from "gemihub-sync-core/sync-meta";
-import { buildConflictBackupName } from "gemihub-sync-core/conflict";
+} from "kiokuflow-sync-core/sync-meta";
+import { buildConflictBackupName } from "kiokuflow-sync-core/conflict";
 
-// Pure reconciliation helpers live in gemihub-sync-core; re-exported so
+// Pure reconciliation helpers live in kiokuflow-sync-core; re-exported so
 // existing imports keep working.
 export {
   addUntrackedFilesToSyncMeta,

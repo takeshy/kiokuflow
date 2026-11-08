@@ -1,4 +1,4 @@
-// Push preflight guards — implemented in gemihub-sync-core (shared protocol).
+// Push preflight guards — implemented in kiokuflow-sync-core (shared protocol).
 
 export {
   indexUniqueRemotePaths,
@@ -6,4 +6,4 @@ export {
   remoteChangedSincePushSnapshot,
   findPendingDeletionsChangedOnRemote,
   type PushSnapshotEntry,
-} from "gemihub-sync-core/protocol";
+} from "kiokuflow-sync-core/protocol";

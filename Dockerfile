@@ -1,6 +1,6 @@
 FROM node:24-slim AS dependencies-base
 # isolated-vm requires build tools for native compilation; git fetches
-# git-hosted dependencies (gemihub-sync-core) during npm ci
+# git-hosted dependencies (kiokuflow-sync-core) during npm ci
 RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib/apt/lists/*
 
 FROM dependencies-base AS development-dependencies-env

@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
 import { X, Trash2, RefreshCw, Loader2, ChevronDown, ChevronRight } from "lucide-react";
 import { useI18n } from "~/i18n/context";
-import { parseConflictBackupName } from "gemihub-sync-core/conflict";
-import { guessMimeType } from "gemihub-sync-core/files";
+import { parseConflictBackupName } from "kiokuflow-sync-core/conflict";
+import { guessMimeType } from "kiokuflow-sync-core/files";
 import { useEnterpriseSelection } from "~/contexts/EnterpriseContext";
 import {
   deleteLocalConflictBackup,

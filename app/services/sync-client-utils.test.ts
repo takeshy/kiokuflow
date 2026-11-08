@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { getSyncCompletionStatus } from "./sync-client-utils.ts";
 
-// Path / binary classification tests live in gemihub-sync-core.
+// Path / binary classification tests live in kiokuflow-sync-core.
 
 test("getSyncCompletionStatus returns idle when nothing skipped", () => {
   const result = getSyncCompletionStatus(0, "Push");

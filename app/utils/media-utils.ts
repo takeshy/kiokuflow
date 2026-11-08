@@ -12,7 +12,7 @@ export function getMediaType(name: string | null, mimeType: string | null): "pdf
 }
 
 // One MIME table shared with sync and the other kiokuflow clients.
-export { guessMimeType } from "gemihub-sync-core/files";
+export { guessMimeType } from "kiokuflow-sync-core/files";
 
 export function bytesToBase64(bytes: Uint8Array): string {
   const CHUNK = 8192;

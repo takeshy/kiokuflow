@@ -10,10 +10,10 @@ import {
   fetchTransport,
   type DriveFile,
   type DriveOperationOptions,
-} from "gemihub-sync-core/drive";
+} from "kiokuflow-sync-core/drive";
 
 // The Drive REST client (requests, retries, pagination, multipart, errors) is
-// shared with Obsidian and Desktop through gemihub-sync-core; this module keeps
+// shared with Obsidian and Desktop through kiokuflow-sync-core; this module keeps
 // kiokuflow's server-only operations (export, resumable upload, Docs import,
 // publishing) and the existing function names.
 

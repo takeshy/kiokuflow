@@ -82,7 +82,7 @@ Published applications can use `window.kiokuflow`; `window.gemihub` is the same 
 
 The application repository is now [takeshy/kiokuflow](https://github.com/takeshy/kiokuflow). Existing local checkouts can update their remote with `git remote set-url origin git@github.com:takeshy/kiokuflow.git`; the checkout directory can retain its existing name.
 
-The `gemihub-sync-core` dependency, the separately released **GemiHub - Drive Sync** Obsidian plugin and **GemiHub Desktop** keep their actual names and URLs. This repository does not rename or publish those external products. Historical screenshot filenames and internal API/type names are also stable; user-facing labels use the new service name.
+The shared sync dependency is `kiokuflow-sync-core` (`takeshy/kiokuflow-sync-core`). External clients are released from their own repositories. Historical screenshot filenames and internal API/type names are also stable; user-facing labels use the new service name.
 
 ## DNS provider references
 

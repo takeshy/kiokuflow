@@ -17,7 +17,7 @@ import type { Route } from "./+types/api.storage.tree";
 import { listObjectsForSync } from "~/services/storage/provider.server";
 import { resolveMount } from "~/services/storage/resolve-mount.server";
 import { isProjectInternalPath } from "~/services/sync-client-utils";
-import { fileExtension, guessMimeType as guessSharedMimeType } from "gemihub-sync-core/files";
+import { fileExtension, guessMimeType as guessSharedMimeType } from "kiokuflow-sync-core/files";
 import { getSettingsForTenant } from "~/services/user-settings-tenant.server";
 import {
   badRequestResponse,

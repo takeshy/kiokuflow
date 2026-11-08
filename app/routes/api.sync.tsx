@@ -42,7 +42,7 @@ import { createLogContext, emitLog } from "~/services/logger.server";
 import { findAmbiguousPushPaths, indexUniqueRemotePaths, remoteChangedSincePushSnapshot } from "~/services/sync-push-guard";
 import { deleteSingleFileFromRag } from "~/services/rag-index.server";
 import { DEFAULT_RAG_STORE_KEY } from "~/types/settings";
-import { parseConflictBackupName } from "gemihub-sync-core/conflict";
+import { parseConflictBackupName } from "kiokuflow-sync-core/conflict";
 
 // GET: Fetch remote sync meta + current file list
 export async function loader({ request }: Route.LoaderArgs) {

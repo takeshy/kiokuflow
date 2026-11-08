@@ -1,4 +1,4 @@
-import { shouldTreatAsBinaryFile } from "gemihub-sync-core/files";
+import { shouldTreatAsBinaryFile } from "kiokuflow-sync-core/files";
 
 /** A binary file's old text cache cannot reproduce its original bytes. */
 export function canDownloadCachedFile(

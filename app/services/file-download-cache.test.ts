@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { gzipSync, gunzipSync } from "node:zlib";
-import { shouldTreatAsBinaryFile } from "gemihub-sync-core/files";
+import { shouldTreatAsBinaryFile } from "kiokuflow-sync-core/files";
 import { canDownloadCachedFile } from "./file-download-cache";
 
 test("tgz with an unrecognized browser MIME type must not use a text cache", () => {

@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { google } from "googleapis";
 import { FieldValue, type Firestore } from "@google-cloud/firestore";
-import { buildEncryptedAuthFile } from "gemihub-sync-core/auth";
+import { buildEncryptedAuthFile } from "kiokuflow-sync-core/auth";
 import { getFirestore, DRIVE_OAUTH_MIGRATIONS } from "./firestore.server";
 import { getAccountByEmail, getStoredRefreshToken, encryptOAuthRefreshToken } from "./hubwork-accounts.server";
 import type { HubworkAccount } from "~/types/hubwork";

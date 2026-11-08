@@ -1,5 +1,5 @@
 // Pure sync diff types and computation — shared between server and client.
-// The implementation lives in gemihub-sync-core so every kiokuflow client
+// The implementation lives in kiokuflow-sync-core so every kiokuflow client
 // (web, obsidian-gemihub, gemihub-gdrive) applies the same protocol rules.
 
 export {
@@ -10,4 +10,4 @@ export {
   type FileSyncMeta,
   type SyncMeta,
   type SyncDiff,
-} from "gemihub-sync-core/protocol";
+} from "kiokuflow-sync-core/protocol";

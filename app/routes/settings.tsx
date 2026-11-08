@@ -37,7 +37,7 @@ import { I18nProvider } from "~/i18n/context";
 import { useApplySettings } from "~/hooks/useApplySettings";
 import { getLocalPlugins } from "~/services/local-plugins.server";
 import { updateSettingsEncryption } from "~/services/settings-encryption.server";
-import { buildEncryptedAuthFile, encodeMigrationToken } from "gemihub-sync-core/auth";
+import { buildEncryptedAuthFile, encodeMigrationToken } from "kiokuflow-sync-core/auth";
 import { EnterpriseProvider } from "~/contexts/EnterpriseContext";
 import type { EnterpriseSessionContext } from "~/types/enterprise";
 import { PluginProvider } from "~/contexts/PluginContext";

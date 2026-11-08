@@ -1,15 +1,15 @@
 import { setCachedFile, type LocalSyncMeta, type CachedRemoteMeta } from "~/services/indexeddb-cache";
 
-import { isSyncExcludedPath as isCoreSyncExcludedPath } from "gemihub-sync-core/paths";
+import { isSyncExcludedPath as isCoreSyncExcludedPath } from "kiokuflow-sync-core/paths";
 
 // Path / file type rules are shared with the other kiokuflow clients through
-// gemihub-sync-core.
+// kiokuflow-sync-core.
 export {
   SYNC_EXCLUDED_FILE_NAMES,
   SYNC_EXCLUDED_PREFIXES,
   isGoogleWorkspaceMimeType,
   isProjectInternalPath,
-} from "gemihub-sync-core/paths";
+} from "kiokuflow-sync-core/paths";
 export {
   isBinaryMimeType,
   isBinaryFileName,
@@ -20,7 +20,7 @@ export {
   LARGE_FILE_CACHE_THRESHOLD,
   isLargeFile,
   isImageFileName,
-} from "gemihub-sync-core/files";
+} from "kiokuflow-sync-core/files";
 
 // GCS project paths carry the managed root as a literal prefix
 // ("gemihub/history/…"), while Drive paths are relative to the gemihub root
