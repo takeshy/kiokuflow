@@ -1,4 +1,7 @@
 import type { Route } from "./+types/api.drive.files";
+import { isTimelineDayPath } from "~/services/timeline-path";
+import { saveNewTimelineFile, TimelineFileConflictError } from "~/services/timeline-file.server";
+import { readTimelineDriveSnapshot, writeTimelineDriveSnapshot } from "~/services/timeline-drive-snapshot.server";
 import { requireAuth } from "~/services/session.server";
 import { getValidTokens } from "~/services/google-auth.server";
 import {
@@ -297,6 +300,18 @@ export async function action({ request }: Route.ActionArgs) {
   logCtx.details = { fileId };
 
   switch (actionType) {
+    case "mergeTimeline": {
+      if (typeof name !== "string" || !isTimelineDayPath(name) || typeof content !== "string") {
+        return logAndReturn({ error: "Invalid Timeline file" }, { status: 400 });
+      }
+      if (body.timelineRootFolderId && body.timelineRootFolderId !== validTokens.rootFolderId) {
+        return logAndReturn({ error: "Timeline belongs to another workspace" }, { status: 409 });
+      }
+      const result = await saveNewTimelineFile(validTokens.accessToken, validTokens.rootFolderId, name, content, request.signal);
+      const meta = await upsertFileInMeta(validTokens.accessToken, validTokens.rootFolderId, result.file);
+      logCtx.details = { fileId: result.file.id, name, source: "pending-timeline" };
+      return logAndReturn({ ...result, rootFolderId: validTokens.rootFolderId, meta: { lastUpdatedAt: meta.lastUpdatedAt, files: meta.files } });
+    }
     case "upsertChecked": {
       if (typeof name !== "string" || !name || typeof content !== "string") {
         return logAndReturn({ error: "Missing name or content" }, { status: 400 });
@@ -309,24 +324,27 @@ export async function action({ request }: Route.ActionArgs) {
         if ((current.md5Checksum ?? "") !== expectedMd5Checksum) {
           return logAndReturn({ error: "Remote file changed", conflict: true }, { status: 409 });
         }
-        file = await updateFile(
-          validTokens.accessToken,
-          expectedFileId,
-          content,
-          mimeType || "text/markdown",
-        );
+        if (isTimelineDayPath(name)) {
+          if (current.name !== name || current.trashed || !current.parents?.includes(validTokens.rootFolderId)) {
+            return logAndReturn({ error: "Timeline file moved", conflict: true }, { status: 409 });
+          }
+          const snapshot = await readTimelineDriveSnapshot(validTokens.accessToken, current, request.signal);
+          if ((snapshot.file.md5Checksum ?? "") !== expectedMd5Checksum) return logAndReturn({ error: "Remote file changed", conflict: true }, { status: 409 });
+          const saved = await writeTimelineDriveSnapshot(validTokens.accessToken, snapshot, content, request.signal);
+          if (!saved) return logAndReturn({ error: "Remote file changed", conflict: true }, { status: 409 });
+          file = saved;
+        } else file = await updateFile(validTokens.accessToken, expectedFileId, content, mimeType || "text/markdown");
       } else {
         const existing = await findFileByExactName(validTokens.accessToken, name, validTokens.rootFolderId);
         if (existing) {
           return logAndReturn({ error: "Remote file was created", conflict: true }, { status: 409 });
         }
-        file = await createFile(
-          validTokens.accessToken,
-          name,
-          content,
-          validTokens.rootFolderId,
-          mimeType || "text/markdown",
-        );
+        try {
+          file = await createFile(validTokens.accessToken, name, content, validTokens.rootFolderId, mimeType || "text/markdown");
+        } catch (error) {
+          if (error instanceof TimelineFileConflictError) return logAndReturn({ error: error.message, conflict: true }, { status: 409 });
+          throw error;
+        }
       }
       const updatedMeta = await upsertFileInMeta(validTokens.accessToken, validTokens.rootFolderId, file);
       return logAndReturn({
@@ -346,10 +364,10 @@ export async function action({ request }: Route.ActionArgs) {
       return logAndReturn({ file });
     }
     case "create": {
-      // When dedup is true, check for existing file with same name to avoid duplicates
-      // (used by usePendingFileMigration to handle reload-during-migration)
+      // Daily Timeline files always use canonical creation with a conditional
+      // write. Name-only dedup must not overwrite another device's posts.
       let file: DriveFile | null = null;
-      if (dedup) {
+      if (dedup && !isTimelineDayPath(name)) {
         file = await findFileByExactName(validTokens.accessToken, name, validTokens.rootFolderId);
         if (file && content) {
           // Update existing file with new content so remote stays in sync
@@ -357,13 +375,12 @@ export async function action({ request }: Route.ActionArgs) {
         }
       }
       if (!file) {
-        file = await createFile(
-          validTokens.accessToken,
-          name,
-          content || "",
-          validTokens.rootFolderId,
-          mimeType || "text/yaml"
-        );
+        try {
+          file = await createFile(validTokens.accessToken, name, content || "", validTokens.rootFolderId, mimeType || "text/yaml");
+        } catch (error) {
+          if (error instanceof TimelineFileConflictError) return logAndReturn({ error: error.message, conflict: true }, { status: 409 });
+          throw error;
+        }
       }
       const updatedMeta = await upsertFileInMeta(validTokens.accessToken, validTokens.rootFolderId, file);
       triggerRagRegister(file.id, file.name, typeof content === "string" ? content : undefined);

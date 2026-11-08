@@ -1,5 +1,5 @@
 import { FieldValue } from "@google-cloud/firestore";
-import { createFile, findFilesByExactName, getFileMetadata, listFiles, readFile, type DriveFile } from "./google-drive.server";
+import { listFiles, type DriveFile } from "./google-drive.server";
 import { getOwnedPersonalAccount } from "./personal-hubwork-account.server";
 import { tryAcquireScheduleLock, updateScheduleRuntime } from "./hubwork-accounts.server";
 import { isActivePremiumAccount } from "~/types/hubwork";
@@ -22,37 +22,13 @@ export async function requireTimelinePremium(
 }
 
 export interface TimelineFileSnapshot { name: string; content: string }
-export interface DriveSnapshot extends TimelineFileSnapshot { file: DriveFile; etag: string }
+export { readTimelineDriveSnapshot, writeTimelineDriveSnapshot } from "./timeline-drive-snapshot.server";
+export type { DriveSnapshot } from "./timeline-drive-snapshot.server";
+import { readTimelineDriveSnapshot, writeTimelineDriveSnapshot, type DriveSnapshot } from "./timeline-drive-snapshot.server";
+import { ensureTimelineDriveFile } from "./timeline-file.server";
 
 function timelineDirectory(name: string): string {
   return `Dashboards/Timeline/${name.trim().replace(/\s+/g, "-")}`;
-}
-
-/** The v2 metadata ETag and If-Match guard the actual content write. */
-export async function readTimelineDriveSnapshot(accessToken: string, file: DriveFile, signal: AbortSignal, readContent = readFile): Promise<DriveSnapshot> {
-  const metadata = async () => {
-    const response = await fetch(`https://www.googleapis.com/drive/v2/files/${encodeURIComponent(file.id)}?fields=etag,md5Checksum`, { headers: { Authorization: `Bearer ${accessToken}` }, signal });
-    if (!response.ok) throw new Error("Cannot inspect Timeline file version");
-    const value = await response.json() as { etag?: string; md5Checksum?: string };
-    if (typeof value.etag !== "string" || !value.etag) throw new Error("Timeline file has no conditional-write version");
-    return value;
-  };
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const before = await metadata();
-    const content = await readContent(accessToken, file.id);
-    const after = await metadata();
-    if (before.etag === after.etag) return { file: { ...file, md5Checksum: after.md5Checksum }, name: file.name, content, etag: after.etag! };
-  }
-  throw new Error("Timeline file changed repeatedly while reading");
-}
-
-export async function writeTimelineDriveSnapshot(accessToken: string, snapshot: DriveSnapshot, content: string, signal: AbortSignal, resolveMetadata = getFileMetadata): Promise<DriveFile | null> {
-  const response = await fetch(`https://www.googleapis.com/upload/drive/v2/files/${encodeURIComponent(snapshot.file.id)}?uploadType=media`, {
-    method: "PUT", headers: { Authorization: `Bearer ${accessToken}`, "If-Match": snapshot.etag, "Content-Type": snapshot.file.mimeType || "text/markdown" }, body: content, signal,
-  });
-  if (response.status === 412) return null;
-  if (!response.ok) throw new Error("Cannot save synchronized Timeline");
-  return resolveMetadata(accessToken, snapshot.file.id);
 }
 
 export async function syncTimelineFromDrive(
@@ -112,12 +88,11 @@ export async function syncTimelineFromDrive(
     const save = async (name: string, desired: string, original?: DriveSnapshot) => {
       signal.throwIfAborted();
       if (!original) {
-        const existing = await findFilesByExactName(tokens.accessToken, name, tokens.rootFolderId);
-        if (existing.length > 1) throw new Error("Duplicate Timeline files");
-        if (existing[0]) original = await readTimelineDriveSnapshot(tokens.accessToken, existing[0], signal);
-        else {
-          const file = await createFile(tokens.accessToken, name, desired, tokens.rootFolderId, name.endsWith(".json") ? "application/json" : "text/markdown");
-          saved.push({ file, name, content: desired }); return;
+        const file = await ensureTimelineDriveFile(tokens.accessToken, tokens.rootFolderId, name, signal);
+        original = await readTimelineDriveSnapshot(tokens.accessToken, file, signal);
+        if (!name.endsWith(".json") && original.content) {
+          const merged = await mergeTimelineSnapshots(parseTimeline(original.content, name), parseTimeline(desired, name), [], connection);
+          desired = serializeTimeline(merged, `timeline:${config.timelineSync.name}`);
         }
       }
       let snapshot = original;

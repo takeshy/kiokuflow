@@ -20,6 +20,7 @@ import {
   setLocalSyncMeta,
 } from "./indexeddb-cache-drive";
 import { mimeTypeFromFileName } from "./drive-local";
+import { migratePendingTimeline } from "./pending-timeline-migration";
 
 let inFlight: Promise<void> | null = null;
 let pendingRetrigger = false;
@@ -46,6 +47,7 @@ async function runOnce(): Promise<void> {
       // identity token, not the authoritative destination path.
       let fullName = pendingFileTargetName(latest);
       let mimeType = mimeTypeFromFileName(fullName);
+      if (await migratePendingTimeline(latest, fullName)) { migratedCount++; continue; }
       let file: {
         id: string;
         name: string;

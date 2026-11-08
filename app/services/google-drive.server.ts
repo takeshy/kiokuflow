@@ -1,4 +1,5 @@
 import type { SessionTokens } from "./session.server";
+import { isTimelineDayPath } from "./timeline-path";
 import { DEFAULT_DRIVE_FOLDER, LEGACY_DRIVE_FOLDER } from "~/config/branding";
 import {
   createDriveClient,
@@ -181,7 +182,7 @@ export function getFileMetadata(
 }
 
 // Create a new file
-export function createFile(
+export async function createFile(
   accessToken: string,
   name: string,
   content: string,
@@ -189,6 +190,10 @@ export function createFile(
   mimeType: string = "text/plain",
   options: DriveOperationOptions = {}
 ): Promise<DriveFile> {
+  if (isTimelineDayPath(name)) {
+    const { createTimelineFileChecked } = await import("./timeline-file.server");
+    return createTimelineFileChecked(accessToken, parentId, name, content, options.signal ?? new AbortController().signal);
+  }
   return drive.createFile(accessToken, name, content, parentId, mimeType, options);
 }
 

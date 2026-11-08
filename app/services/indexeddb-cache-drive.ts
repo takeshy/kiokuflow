@@ -769,6 +769,7 @@ export async function applyTimelineSnapshotCAS(input: {
   rootFolderId: string;
   expectedFileId?: string;
   expectedContent?: string;
+  expectedTargetContent?: string;
   remoteContent: string;
 }): Promise<boolean> {
   const db = await getDB();
@@ -793,7 +794,7 @@ export async function applyTimelineSnapshotCAS(input: {
           if (placeholder.result && id !== `new:${input.file.fileName}`) return;
           const target = files.get(input.file.fileId);
           target.onsuccess = () => {
-            if (id !== input.file.fileId && target.result) return;
+            if (id !== input.file.fileId && (target.result as CachedFile | undefined)?.content !== input.expectedTargetContent) return;
             matched = true;
             if (id !== input.file.fileId) { files.delete(id); history.delete(id); }
             files.put({ ...input.file, frontmatter: parseFrontmatter(input.file.content), fmParsedMtime: Date.parse(input.file.modifiedTime) });
