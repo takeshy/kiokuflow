@@ -1,7 +1,7 @@
 import { activeSettingsProvider, getProviderDefaultModels, type ChatSettingsProvider } from "~/utils/provider-default-models";
 import { SHOW_WEBPAGE_BUILDER } from "~/config/feature-visibility";
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useFetcher } from "react-router";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useFetcher, useSearchParams } from "react-router";
 import { KeyRound, Lock, Check, Zap } from "lucide-react";
 import { useI18n } from "~/i18n/context";
 import { clearCachedApiKey } from "~/services/api-key-cache";
@@ -43,6 +43,7 @@ import { CompatibleProviderSettings } from "./CompatibleProviderSettings";
 import { ProviderPasswordSettings } from "./ProviderPasswordSettings";
 import { JevSettings } from "./JevSettings";
 import { OpenAISettings } from "./OpenAISettings";
+import { createProviderSettingsDrafts, previewProviderSettings, serializeProviderSettingsDrafts, type ProviderSettingsDrafts } from "~/services/provider-settings-drafts";
 
 type AiTab = ChatSettingsProvider | "jev";
 
@@ -82,6 +83,8 @@ export function GeneralTab({
   onOpenGeneral?: () => void;
 }) {
   const showAi = section === "ai";
+  const [searchParams] = useSearchParams();
+  const requestedProvider = searchParams.get("provider");
   const encryptionReady = !!settings.encryption.publicKey;
   const fetcher = useFetcher();
   const loading = fetcher.state !== "idle";
@@ -109,8 +112,11 @@ export function GeneralTab({
   const [topupHistory, setTopupHistory] = useState<Array<{ id: string; usd: number; createdAt: number }> | null>(null);
   const [fontSize, setFontSize] = useState<FontSize>(settings.fontSize);
   const [theme, setTheme] = useState<Theme>(settings.theme || "system");
+  const [providerDrafts, setProviderDrafts] = useState(() => createProviderSettingsDrafts(settings));
+  const [providerBusy, setProviderBusy] = useState(false);
+  const previewSettings = useMemo(() => previewProviderSettings(settings, providerDrafts), [settings, providerDrafts]);
   const availableModels = getAvailableModels(apiPlan);
-  const openAIModels = getConfiguredOpenAIModels(settings.openai);
+  const openAIModels = useMemo(() => previewSettings.openai ? getConfiguredOpenAIModels(previewSettings.openai) : [], [previewSettings.openai]);
   // RAG entitlement is independent of the chat provider and Gemini API tier.
   const ragBlockedByVertex = !settings.ragAvailable;
 
@@ -147,7 +153,10 @@ export function GeneralTab({
   // AI provider sub-tab. The balance arrives after mount, so it cannot take
   // part in the initial value — only the saved opt-in can.
   const hasVertexBalance = personalBalance != null && personalBalance > 0;
-  const [aiTab, setAiTab] = useState<AiTab>(() => activeSettingsProvider(settings));
+  const [aiTab, setAiTab] = useState<AiTab>(() => ["apikey", "openai", "jev", "openrouter", "opencodego", ...(!settings.localMode ? ["vertex"] : [])].includes(requestedProvider || "") ? requestedProvider as AiTab : activeSettingsProvider(settings));
+  useEffect(() => {
+    if (["apikey", "openai", "jev", "openrouter", "opencodego", ...(!settings.localMode ? ["vertex"] : [])].includes(requestedProvider || "")) setAiTab(requestedProvider as AiTab);
+  }, [requestedProvider, settings.localMode]);
   const [activeProvider, setActiveProvider] = useState<ChatSettingsProvider>(() => activeSettingsProvider(settings));
   const [providerModels, setProviderModels] = useState(() => getProviderDefaultModels(settings));
   const selectedModel = aiTab === "jev" ? "" : providerModels[aiTab];
@@ -159,33 +168,33 @@ export function GeneralTab({
     if (provider === "apikey" && candidate && !isModelAllowedForPlan(apiPlan, candidate)) return "";
     if (provider === "openai") return openAIModels.some(model => model.name === candidate) ? candidate : openAIModels[0]?.name || "";
     if (provider === "openrouter" || provider === "opencodego") {
-      const enabled = settings.compatibleProviders?.[provider]?.enabledModels || [];
+      const enabled = previewSettings.compatibleProviders?.[provider]?.enabledModels || [];
       return enabled.some(model => candidate === `${provider}:${model}`) ? candidate : enabled[0] ? `${provider}:${enabled[0]}` : "";
     }
     return candidate;
   };
-  const selectAiTab = (next: AiTab) => setAiTab(next);
+  const selectAiTab = (next: AiTab) => { if (!providerBusy) setAiTab(next); };
 
   useEffect(() => {
-    if (activeProvider === "openai" && !settings.openai?.encryptedApiKey) setActiveProvider("apikey");
-  }, [activeProvider, settings.openai?.encryptedApiKey]);
+    if (activeProvider === "openai" && (!previewSettings.openai?.encryptedApiKey || !openAIModels.length)) setActiveProvider("apikey");
+  }, [activeProvider, previewSettings.openai?.encryptedApiKey, openAIModels.length]);
 
   useEffect(() => {
     if (aiTab !== "openrouter" && aiTab !== "opencodego") return;
-    const enabled = settings.compatibleProviders?.[aiTab]?.enabledModels || [];
+    const enabled = previewSettings.compatibleProviders?.[aiTab]?.enabledModels || [];
     if (enabled.length && !enabled.some(model => selectedModel === `${aiTab}:${model}`)) setSelectedModel(`${aiTab}:${enabled[0]}`);
-  }, [aiTab, selectedModel, settings.compatibleProviders, setSelectedModel]);
+  }, [aiTab, selectedModel, previewSettings.compatibleProviders, setSelectedModel]);
 
   useEffect(() => {
     if (activeProvider !== "openrouter" && activeProvider !== "opencodego") return;
-    if (!settings.compatibleProviders?.[activeProvider]?.encryptedApiKey) setActiveProvider("apikey");
-  }, [activeProvider, settings.compatibleProviders]);
+    if (!previewSettings.compatibleProviders?.[activeProvider]?.encryptedApiKey) setActiveProvider("apikey");
+  }, [activeProvider, previewSettings.compatibleProviders]);
 
   useEffect(() => {
     if (aiTab !== "openai") return;
-    const models = getConfiguredOpenAIModels(settings.openai);
-    if (!models.some(model => model.name === selectedModel)) setSelectedModel(models[0]?.name || "");
-  }, [aiTab, selectedModel, settings.openai, setSelectedModel]);
+    const next = openAIModels.some(model => model.name === selectedModel) ? selectedModel : openAIModels[0]?.name || "";
+    if (next !== selectedModel) setSelectedModel(next);
+  }, [aiTab, selectedModel, openAIModels, setSelectedModel]);
 
   // When plan changes, reset model if it's not available
   useEffect(() => {
@@ -198,7 +207,7 @@ export function GeneralTab({
   // Load personal Vertex balance and history (always, so the sub-tab can
   // show data even before the user switches to it)
   useEffect(() => {
-    if (!showAi || hideGeminiSettings) return;
+    if (!showAi || hideGeminiSettings || settings.localMode) return;
     fetch("/api/personal-vertex/balance")
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
@@ -211,15 +220,15 @@ export function GeneralTab({
       .then((r) => r.ok ? r.json() : null)
       .then((data) => { if (data?.events) setTopupHistory(data.events); })
       .catch(() => {});
-  }, [showAi, hideGeminiSettings]);
+  }, [showAi, hideGeminiSettings, settings.localMode]);
 
   useEffect(() => {
-    if (!showAi || hideGeminiSettings) return;
+    if (!showAi || hideGeminiSettings || settings.localMode) return;
     fetch("/api/personal-vertex/connection")
       .then((response) => response.ok ? response.json() : null)
       .then((data) => setPersonalVertexOAuth(data?.oauthStatus ?? null))
       .catch(() => setPersonalVertexOAuth(null));
-  }, [showAi, hideGeminiSettings]);
+  }, [showAi, hideGeminiSettings, settings.localMode]);
 
   const uploadPersonalVertexOAuthJson = async (file: File) => {
     setPersonalVertexBusy(true);
@@ -262,13 +271,14 @@ export function GeneralTab({
   // preventing stale error data from being reprocessed when `t` updates.
   const tRef = useRef(t);
   tRef.current = t;
-  const fetcherData = fetcher.data as { success?: boolean; message?: string; apiKeyUpdated?: boolean } | undefined;
+  const fetcherData = fetcher.data as { success?: boolean; message?: string; apiKeyUpdated?: boolean; providerDrafts?: ProviderSettingsDrafts } | undefined;
   useEffect(() => {
     if (!fetcherData) return;
     if (fetcherData.success) {
       // Clear sensitive fields on success
       setGeminiApiKey("");
       setApiKeyEdited(false);
+      if (fetcherData.providerDrafts) setProviderDrafts(fetcherData.providerDrafts);
       invalidateIndexCache();
       if (fetcherData.apiKeyUpdated) clearCachedApiKey();
     } else if (fetcherData.message) {
@@ -297,6 +307,7 @@ export function GeneralTab({
       )}
 
       <fetcher.Form method="post" onSubmit={event => {
+        if (providerBusy) { event.preventDefault(); return; }
         if (showAi && geminiApiKey && !encryptionReady) {
           event.preventDefault();
           setErrorMessage(language === "ja" ? "一般設定で暗号化用の鍵を作成してください。保存時のパスワード入力は不要です。" : "Create encryption keys in General first. Saving needs no password.");
@@ -305,15 +316,16 @@ export function GeneralTab({
         <input type="hidden" name="_action" value="saveGeneral" />
         <input type="hidden" name="settingsSection" value={section} />
         <input type="hidden" name="apiKeyEdited" value={apiKeyEdited ? "true" : "false"} />
+        {showAi && !hideGeminiSettings && <input type="hidden" name="providerDrafts" value={serializeProviderSettingsDrafts(providerDrafts)} />}
 
-        {showAi && !hideGeminiSettings && <>
+        {showAi && !hideGeminiSettings && <fieldset disabled={loading} className="min-w-0">
         <div className="mb-6">
           <Label htmlFor="activeAiProvider">{t("settings.ai.activeProvider")}</Label>
-          <select id="activeAiProvider" value={activeProvider} onChange={(event) => setActiveProvider(event.target.value as ChatSettingsProvider)} className={inputClass}>
+          <select id="activeAiProvider" disabled={providerBusy} value={activeProvider} onChange={(event) => setActiveProvider(event.target.value as ChatSettingsProvider)} className={inputClass}>
             <option value="apikey">Gemini</option>
-            <option value="openai" disabled={!settings.openai?.encryptedApiKey}>OpenAI</option>
-            {(["openrouter", "opencodego"] as const).map(provider => <option key={provider} value={provider} disabled={!settings.compatibleProviders?.[provider]?.enabledModels.length}>{COMPATIBLE_PROVIDERS[provider].name}</option>)}
-            {(vertexAvailable !== false || activeProvider === "vertex" || aiTab === "vertex") && <option value="vertex">Vertex AI</option>}
+            <option value="openai" disabled={!previewSettings.openai?.encryptedApiKey || !openAIModels.length}>OpenAI</option>
+            {(["openrouter", "opencodego"] as const).map(provider => <option key={provider} value={provider} disabled={!previewSettings.compatibleProviders?.[provider]?.enabledModels.length}>{COMPATIBLE_PROVIDERS[provider].name}</option>)}
+            {(!settings.localMode && (vertexAvailable !== false || activeProvider === "vertex" || aiTab === "vertex")) && <option value="vertex">Vertex AI</option>}
           </select>
           <p className="mt-1 text-xs text-gray-500">{t("settings.ai.activeProviderHint")}</p>
         </div>
@@ -334,7 +346,7 @@ export function GeneralTab({
         }}>
           <button
             type="button"
-            role="tab" id="ai-provider-apikey" aria-controls="ai-panel-apikey" aria-selected={aiTab === "apikey"} tabIndex={aiTab === "apikey" ? 0 : -1}
+            disabled={providerBusy} role="tab" id="ai-provider-apikey" aria-controls="ai-panel-apikey" aria-selected={aiTab === "apikey"} tabIndex={aiTab === "apikey" ? 0 : -1}
             onClick={() => selectAiTab("apikey")}
             className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm ${aiTab === "apikey" ? "border-blue-500 font-medium text-blue-600" : "border-transparent text-gray-500"}`}
           >
@@ -342,16 +354,16 @@ export function GeneralTab({
           </button>
           <button
             type="button"
-            role="tab" id="ai-provider-openai" aria-controls="ai-panel-openai" aria-selected={aiTab === "openai"} tabIndex={aiTab === "openai" ? 0 : -1}
+            disabled={providerBusy} role="tab" id="ai-provider-openai" aria-controls="ai-panel-openai" aria-selected={aiTab === "openai"} tabIndex={aiTab === "openai" ? 0 : -1}
             onClick={() => selectAiTab("openai")}
             className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm ${aiTab === "openai" ? "border-blue-500 font-medium text-blue-600" : "border-transparent text-gray-500"}`}
           >OpenAI</button>
-          <button type="button" role="tab" id="ai-provider-jev" aria-controls="ai-panel-jev" aria-selected={aiTab === "jev"} tabIndex={aiTab === "jev" ? 0 : -1} onClick={() => selectAiTab("jev")} className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm ${aiTab === "jev" ? "border-blue-500 font-medium text-blue-600" : "border-transparent text-gray-500"}`}>Jev</button>
-          {(["openrouter", "opencodego"] as const).map(provider => <button key={provider} type="button" role="tab" id={`ai-provider-${provider}`} aria-controls={`ai-panel-${provider}`} aria-selected={aiTab === provider} tabIndex={aiTab === provider ? 0 : -1} onClick={() => selectAiTab(provider)} className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm ${aiTab === provider ? "border-blue-500 font-medium text-blue-600" : "border-transparent text-gray-500"}`}>{COMPATIBLE_PROVIDERS[provider].name}</button>)}
-          {(vertexAvailable !== false || activeProvider === "vertex" || aiTab === "vertex") && (
+          <button type="button" disabled={providerBusy} role="tab" id="ai-provider-jev" aria-controls="ai-panel-jev" aria-selected={aiTab === "jev"} tabIndex={aiTab === "jev" ? 0 : -1} onClick={() => selectAiTab("jev")} className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm ${aiTab === "jev" ? "border-blue-500 font-medium text-blue-600" : "border-transparent text-gray-500"}`}>Jev</button>
+          {(["openrouter", "opencodego"] as const).map(provider => <button key={provider} type="button" disabled={providerBusy} role="tab" id={`ai-provider-${provider}`} aria-controls={`ai-panel-${provider}`} aria-selected={aiTab === provider} tabIndex={aiTab === provider ? 0 : -1} onClick={() => selectAiTab(provider)} className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm ${aiTab === provider ? "border-blue-500 font-medium text-blue-600" : "border-transparent text-gray-500"}`}>{COMPATIBLE_PROVIDERS[provider].name}</button>)}
+          {(!settings.localMode && (vertexAvailable !== false || activeProvider === "vertex" || aiTab === "vertex")) && (
             <button
               type="button"
-              role="tab" id="ai-provider-vertex" aria-controls="ai-panel-vertex" aria-selected={aiTab === "vertex"} tabIndex={aiTab === "vertex" ? 0 : -1}
+              disabled={providerBusy} role="tab" id="ai-provider-vertex" aria-controls="ai-panel-vertex" aria-selected={aiTab === "vertex"} tabIndex={aiTab === "vertex" ? 0 : -1}
               onClick={() => selectAiTab("vertex")}
               className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm ${aiTab === "vertex" ? "border-blue-500 font-medium text-blue-600" : "border-transparent text-gray-500"}`}
             >
@@ -462,23 +474,24 @@ export function GeneralTab({
         </div>}
 
         {aiTab === "openai" && <div role="tabpanel" id="ai-panel-openai" aria-labelledby="ai-provider-openai">
-          <OpenAISettings settings={settings} onOpenGeneral={onOpenGeneral} />
+          <OpenAISettings settings={settings} onOpenGeneral={onOpenGeneral} draft={providerDrafts.openai} onChange={draft => setProviderDrafts(previous => ({ ...previous, openai: draft }))} onBusyChange={setProviderBusy} />
           <div className="mb-6">
             <Label htmlFor="openaiSelectedModel">{t("settings.general.defaultModel")}</Label>
-            <select id="openaiSelectedModel" value={selectedModel} disabled={!settings.openai?.encryptedApiKey || !openAIModels.length} onChange={(event) => setSelectedModel(event.target.value as ModelType)} className={inputClass}>
+            <select id="openaiSelectedModel" value={selectedModel} disabled={!previewSettings.openai?.encryptedApiKey || !openAIModels.length} onChange={(event) => setSelectedModel(event.target.value as ModelType)} className={inputClass}>
+              {!openAIModels.length && <option value="">{language === "ja" ? "チャットモデルは未選択です" : "No chat models selected"}</option>}
               {openAIModels.map((model) => <option key={model.name} value={model.name}>{model.displayName}</option>)}
             </select>
           </div>
         </div>}
 
-        {aiTab === "jev" && <div role="tabpanel" id="ai-panel-jev" aria-labelledby="ai-provider-jev"><JevSettings settings={settings} onOpenGeneral={onOpenGeneral} /></div>}
+        {aiTab === "jev" && <div role="tabpanel" id="ai-panel-jev" aria-labelledby="ai-provider-jev"><JevSettings settings={settings} onOpenGeneral={onOpenGeneral} draft={providerDrafts.jev} onChange={draft => setProviderDrafts(previous => ({ ...previous, jev: draft }))} onBusyChange={setProviderBusy} openRouterApiKey={providerDrafts.openrouter.apiKey} /></div>}
         {(aiTab === "openrouter" || aiTab === "opencodego") && <div role="tabpanel" id={`ai-panel-${aiTab}`} aria-labelledby={`ai-provider-${aiTab}`}>
-          <CompatibleProviderSettings key={aiTab} provider={aiTab} settings={settings} onOpenGeneral={onOpenGeneral} />
+          <CompatibleProviderSettings key={aiTab} provider={aiTab} settings={settings} onOpenGeneral={onOpenGeneral} draft={providerDrafts[aiTab]} onChange={draft => setProviderDrafts(previous => ({ ...previous, [aiTab]: draft }))} onBusyChange={setProviderBusy} />
           <div className="mb-6">
             <Label htmlFor="compatibleSelectedModel">{t("settings.general.defaultModel")}</Label>
-            <select id="compatibleSelectedModel" className={inputClass} value={selectedModel} disabled={!settings.compatibleProviders?.[aiTab]?.enabledModels.length} onChange={event => setSelectedModel(event.target.value as ModelType)}>
-              {!settings.compatibleProviders?.[aiTab]?.enabledModels.length && <option value="">{language === "ja" ? "モデルを取得・選択して保存してください" : "Fetch, select, and save models first"}</option>}
-              {settings.compatibleProviders?.[aiTab]?.enabledModels.map(model => <option key={model} value={`${aiTab}:${model}`}>{model}</option>)}
+            <select id="compatibleSelectedModel" className={inputClass} value={selectedModel} disabled={!previewSettings.compatibleProviders?.[aiTab]?.enabledModels.length} onChange={event => setSelectedModel(event.target.value as ModelType)}>
+              {!previewSettings.compatibleProviders?.[aiTab]?.enabledModels.length && <option value="">{language === "ja" ? "チャットモデルは未選択です" : "No chat models selected"}</option>}
+              {previewSettings.compatibleProviders?.[aiTab]?.enabledModels.map(model => <option key={model} value={`${aiTab}:${model}`}>{model}</option>)}
             </select>
           </div>
         </div>}
@@ -640,7 +653,7 @@ export function GeneralTab({
         {aiTab === "vertex" && (
           <hr className="my-6 border-gray-200 dark:border-gray-700" />
         )}
-        </>}
+        </fieldset>}
 
         {!showAi && <>
         <div className="mb-6 rounded-md border border-gray-200 p-4 dark:border-gray-700">
@@ -765,7 +778,7 @@ export function GeneralTab({
                 </p>
               </div>
             </div>
-            {SHOW_WEBPAGE_BUILDER ? (
+            {SHOW_WEBPAGE_BUILDER && !settings.localMode ? (
             <div className="flex items-center gap-3">
               <input
                 type="checkbox"
@@ -890,7 +903,7 @@ export function GeneralTab({
 
         </>}
 
-        <SaveButton loading={loading} />
+        <SaveButton loading={loading} disabled={providerBusy} />
       </fetcher.Form>
       {showAi && aiTab === "vertex" && personalVertexSource === "prepaid" && <form id="vertex-topup" method="POST" action="/hubwork/api/stripe/checkout" />}
       {!showAi && <details className="mt-6 rounded-md border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800/50">

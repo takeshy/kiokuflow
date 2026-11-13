@@ -223,6 +223,9 @@ export async function executeWorkflow(
           const promptPreview = (node.properties["prompt"] || "").substring(0, 50);
           log(node.id, node.type, `Executing LLM: ${promptPreview}...`, "info");
           const cmdResult = await handleCommandNode(node, context, serviceContext, promptCallbacks);
+          for (const warning of cmdResult.ragWarnings ?? []) {
+            log(node.id, node.type, `RAG warning: ${warning}`, "info");
+          }
           // Log attachments
           if (cmdResult.attachmentNames && cmdResult.attachmentNames.length > 0) {
             log(node.id, node.type, `Attachments: ${cmdResult.attachmentNames.join(", ")}`, "info");

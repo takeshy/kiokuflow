@@ -1,3 +1,4 @@
+import { isLocalRuntime } from "~/services/app-runtime.server";
 import type { Route } from "./+types/api.drive.temp";
 import { requireAuth } from "~/services/session.server";
 import { getValidTokens, refreshAccessToken } from "~/services/google-auth.server";
@@ -118,13 +119,15 @@ export async function action({ request }: Route.ActionArgs) {
 
     case "generateEditUrl": {
       // Temp edit URL requires a paid plan
-      const { getAccountByRootFolderIdOrEmail } = await import("~/services/hubwork-accounts.server");
-      const tempAccount = await getAccountByRootFolderIdOrEmail(validTokens.rootFolderId, validTokens.email);
-      if (!tempAccount?.plan) {
-        return Response.json(
-          { error: "A paid plan is required to generate edit URLs." },
-          { status: 403, headers: responseHeaders }
-        );
+      if (!isLocalRuntime()) {
+        const { getAccountByRootFolderIdOrEmail } = await import("~/services/hubwork-accounts.server");
+        const tempAccount = await getAccountByRootFolderIdOrEmail(validTokens.rootFolderId, validTokens.email);
+        if (!tempAccount?.plan) {
+          return Response.json(
+            { error: "A paid plan is required to generate edit URLs." },
+            { status: 403, headers: responseHeaders }
+          );
+        }
       }
 
       const { fileId, fileName, content } = body;

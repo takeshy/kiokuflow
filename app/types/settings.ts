@@ -580,7 +580,10 @@ export const DEFAULT_EDIT_HISTORY_SETTINGS: EditHistorySettings = {
 
 // RAG setting
 export interface RagSetting {
-  /** Retrieval candidate batch size, independently configurable per index. */
+  /** No selection means OFF; credentials alone never enable reranking. */
+  rerankProvider?: "off" | "gemini" | "jev";
+  hybridSearch?: boolean;
+  /** Final result limit, independently configurable per index. */
   topK?: number;
   jevRagFilterEnabled?: boolean;
   searchUntilMatch?: boolean;
@@ -610,6 +613,8 @@ export interface RagFileInfo {
 export const DEFAULT_RAG_STORE_KEY = "gemihub";
 
 export const DEFAULT_RAG_SETTING: RagSetting = {
+  rerankProvider: "off",
+  hybridSearch: true,
   topK: 5,
   jevRagFilterEnabled: true,
   searchUntilMatch: false,
@@ -735,6 +740,8 @@ export function isValidShortcutKey(binding: { key: string; ctrlOrMeta: boolean; 
 
 // User settings (stored in Drive as settings.json)
 export interface UserSettings {
+  /** Derived by the server; not persisted or trusted for server authorization. */
+  localMode?: boolean;
   kakeratta?: import("./kakeratta").KakerattaSettings;
   apiPlan: ApiPlan;
   selectedModel: ModelType | null;

@@ -1,3 +1,4 @@
+import { isLocalRuntime, applyRuntimeSettings } from "~/services/app-runtime.server";
 import type { Route } from "./+types/api.kakeratta";
 import { requireAuth } from "~/services/session.server";
 import { getValidTokens } from "~/services/google-auth.server";
@@ -18,7 +19,7 @@ export async function action({ request }: Route.ActionArgs) {
   const tokens = await requireAuth(request);
   const { tokens: valid, setCookieHeader } = await getValidTokens(request, tokens);
   const headers = setCookieHeader ? { "Set-Cookie": setCookieHeader } : undefined;
-  const settings = await getSettings(valid.accessToken, valid.rootFolderId);
+  const settings = applyRuntimeSettings(await getSettings(valid.accessToken, valid.rootFolderId));
   const body = await request.json().catch(() => null);
   try {
     if (body?.operation === "personas") {
@@ -36,7 +37,7 @@ export async function action({ request }: Route.ActionArgs) {
       const signal = AbortSignal.any([request.signal, controller.signal, AbortSignal.timeout(240_000)]);
       if (Array.isArray(body.timelineFiles) && body.timelineFiles.length && body.timelineRootFolderId !== valid.rootFolderId) return Response.json({ error: "Timeline cache belongs to another account. Reload kiokuflow before synchronizing." }, { status: 400, headers });
       let timeline: Awaited<ReturnType<typeof syncTimelineFromDrive>> | { error: string } | undefined;
-      if (config.timelineSync.enabled) {
+      if (!isLocalRuntime() && config.timelineSync.enabled) {
         try {
           timeline = await syncTimelineFromDrive(valid, config, settings.language ?? "en", signal, Array.isArray(body.timelineFiles) ? body.timelineFiles : []);
         } catch (error) {

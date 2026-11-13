@@ -4,6 +4,7 @@ import { createLogContext, emitLog } from "~/services/logger.server";
 import { assertSafeFetchHost, DnsLookupError } from "~/services/url-validator.server";
 import { checkRateLimit } from "~/services/hubwork-rate-limiter.server";
 import { getSettings } from "~/services/user-settings.server";
+import { isLocalRuntime } from "~/services/app-runtime.server";
 
 /**
  * Server-side HTTP fetch proxy for workflow `http` nodes.
@@ -39,7 +40,7 @@ export async function action({ request }: Route.ActionArgs) {
   const logCtx = createLogContext(request, "/api/workflow/http-fetch", tokens.rootFolderId);
 
   const settings = await getSettings(tokens.accessToken, tokens.rootFolderId);
-  const isPremium = !!settings.hubwork?.plan;
+  const isPremium = isLocalRuntime() || !!settings.hubwork?.plan;
   const rateLimitMax = isPremium ? RATE_LIMIT_MAX_PREMIUM : RATE_LIMIT_MAX_FREE;
 
   if (!checkRateLimit(`http-fetch:${tokens.rootFolderId}`, rateLimitMax, RATE_LIMIT_WINDOW_MS)) {

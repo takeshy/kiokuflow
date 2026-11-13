@@ -41,6 +41,7 @@ export interface CommandNodeResult {
   mcpApps?: McpAppInfo[];
   toolCalls?: CommandToolCall[];
   ragSources?: string[];
+  ragWarnings?: string[];
   webSearchSources?: string[];
   attachmentNames?: string[];
 }
@@ -256,9 +257,13 @@ export async function handleCommandNode(
     ? replaceVariables(node.properties["systemPrompt"], context)
     : undefined;
 
+  let ragSources: string[] | undefined;
+  const ragWarnings: string[] = [];
   if (ragStoreIds?.length && !personalVertex) {
     const rag = await retrievePersonalRag({ rootFolderId: serviceContext.driveRootFolderId, accessToken: serviceContext.driveAccessToken, geminiApiKey: serviceContext.geminiApiKey, openaiApiKey: serviceContext.openaiApiKey, jevApiKey: serviceContext.jevApiKey, compatibleApiKeys: serviceContext.compatibleApiKeys }, ragStoreIds, prompt, undefined, { signal: serviceContext.abortSignal });
     systemPrompt = [systemPrompt, formatRagContext(rag)].filter(Boolean).join("\n\n");
+    ragSources = rag.sources;
+    ragWarnings.push(...rag.warnings);
   }
   // Check if this is an image generation model
   const saveImageTo = node.properties["saveImageTo"];
@@ -305,7 +310,7 @@ export async function handleCommandNode(
       context.variables.set(saveTo, fullResponse);
       context.lastCommandInfo = { nodeId: node.id, originalPrompt, saveTo };
     }
-    return { usedModel: modelName, mcpApps: undefined };
+    return { usedModel: modelName, mcpApps: undefined, ragSources, ragWarnings };
   }
 
   // Call the AI and collect the full response. The key path uses the Gemini
@@ -349,7 +354,7 @@ export async function handleCommandNode(
 
   let fullResponse = "";
   const collectedToolCalls: CommandToolCall[] = [];
-  let collectedRagSources: string[] | undefined;
+  let collectedRagSources = ragSources;
   let collectedWebSources: string[] | undefined;
   let pendingToolCall: { name: string; args: Record<string, unknown> } | null = null;
 
@@ -366,8 +371,9 @@ export async function handleCommandNode(
         collectedToolCalls.push({ ...pendingToolCall, result: chunk.toolResult.result });
         pendingToolCall = null;
       }
-    } else if (chunk.type === "rag_used" && chunk.ragSources) {
-      collectedRagSources = chunk.ragSources;
+    } else if (chunk.type === "rag_used") {
+      if (chunk.ragSources) collectedRagSources = chunk.ragSources;
+      ragWarnings.push(...chunk.ragWarnings ?? []);
     } else if (chunk.type === "web_search_used" && chunk.ragSources) {
       collectedWebSources = chunk.ragSources;
     } else if (chunk.type === "error") {
@@ -390,6 +396,7 @@ export async function handleCommandNode(
     mcpApps: collectedMcpApps.length > 0 ? collectedMcpApps : undefined,
     toolCalls: collectedToolCalls.length > 0 ? collectedToolCalls : undefined,
     ragSources: collectedRagSources,
+    ragWarnings,
     webSearchSources: collectedWebSources,
     attachmentNames: attachments.length > 0 ? attachments.map(a => a.name) : undefined,
   };

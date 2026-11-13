@@ -1,3 +1,4 @@
+import { applyRuntimeSettings } from "~/services/app-runtime.server";
 import { SHOW_WEBPAGE_BUILDER } from "~/config/feature-visibility";
 import { hasJevConfiguration, resolveRagTopK } from "~/services/rag-search-options";
 import { canUseRag } from "~/services/rag-access.server";
@@ -216,7 +217,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     const cookie = setCookieHeader ?? selectionCookie;
     return data(
       {
-        settings: { ...settings, ragAvailable: await canUseRag(validTokens.rootFolderId, enterprise.selection?.orgId), language: effectiveLanguage } as UserSettings,
+        settings: applyRuntimeSettings({ ...settings, ragAvailable: await canUseRag(validTokens.rootFolderId, enterprise.selection?.orgId), language: effectiveLanguage }),
         hasGeminiApiKey: !!validTokens.geminiApiKey,
         hasEncryptedApiKey: !!settings.encryptedApiKey,
         rootFolderId: validTokens.rootFolderId,
@@ -482,7 +483,7 @@ function IDELayout({
   return (
     <I18nProvider language={settings.language ?? "en"}>
       <EditorContextProvider>
-      <PluginProvider pluginConfigs={settings.plugins || []} language={settings.language ?? "en"} hasPremium={settings.hubwork?.plan === "business" || settings.hubwork?.plan === "granted"}>
+      <PluginProvider pluginConfigs={settings.plugins || []} language={settings.language ?? "en"} hasPremium={settings.localMode || settings.hubwork?.plan === "business" || settings.hubwork?.plan === "granted"}>
       <SkillProvider
         rootFolderId={rootFolderId}
         agentPlugins={settings.agentPlugins || []}
@@ -1272,7 +1273,7 @@ function IDEContent({
           cacheFilesByIds={cacheFilesByIds}
           cachingProgress={cachingProgress}
           onPush={push}
-          hasPremiumUpload={!!settings.hubwork?.plan}
+          hasPremiumUpload={settings.localMode || !!settings.hubwork?.plan}
         />
       </div>
     </div>

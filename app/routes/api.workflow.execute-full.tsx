@@ -1,3 +1,4 @@
+import { isLocalRuntime } from "~/services/app-runtime.server";
 import { streamMcpApproval, rememberMcpTool } from "~/services/mcp-approval.server";
 import type { Route } from "./+types/api.workflow.execute-full";
 import { z } from "zod";
@@ -55,13 +56,13 @@ export async function action({ request }: Route.ActionArgs) {
   ];
   const hasSheetNode = sheetNodeTypes.some((type) => nodeTypes.has(type));
   const hasHubworkLiteNode = hubworkLiteNodeTypes.some((type) => nodeTypes.has(type));
-  if (hasSheetNode) {
+  if (!isLocalRuntime() && hasSheetNode) {
     const { hasBusinessFeatures } = await import("~/types/hubwork");
     const hubworkAccount = await getAccountByRootFolderId(tokens.rootFolderId);
     if (!hubworkAccount || !hasBusinessFeatures(hubworkAccount)) {
       throw new Response("Hubwork Business subscription required", { status: 403 });
     }
-  } else if (hasHubworkLiteNode) {
+  } else if (!isLocalRuntime() && hasHubworkLiteNode) {
     const { hasPaidFeatures } = await import("~/types/hubwork");
     const hubworkAccount = await getAccountByRootFolderId(tokens.rootFolderId);
     if (!hubworkAccount || !hasPaidFeatures(hubworkAccount)) {

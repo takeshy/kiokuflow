@@ -11,6 +11,8 @@ const searchSchema = z.object({
   mode: z.enum(["rag", "drive"]),
   ragStoreIds: z.array(z.string().max(4000)).max(10).optional(),
   jevFilter: z.boolean().optional(),
+  rerankProvider: z.enum(["off", "gemini", "jev"]).optional(),
+  hybridSearch: z.boolean().optional(),
   searchUntilMatch: z.boolean().optional(),
   topK: z.number().int().min(1).max(20).optional(),
 });
@@ -38,7 +40,7 @@ export async function action({ request }: Route.ActionArgs) {
     if (mode === "rag") {
       if (!ragStoreIds?.length) return Response.json({ error: "Choose a RAG index" }, { status: 400, headers });
       const rag = await retrievePersonalRag(validTokens, ragStoreIds, query, topK, { ...parsed.data, signal: request.signal });
-      return Response.json({ mode: "rag", jevFiltered: rag.jevFiltered, judgedCount: rag.judgedCount, uncheckedCount: rag.uncheckedCount, candidateLimitReached: rag.candidateLimitReached, results: rag.sources.map((title) => ({ title, jevVerified: rag.jevFiltered ? rag.contexts.filter(context => context.source === title).every(context => context.jevVerified === true) : undefined, snippet: rag.contexts.filter(context => context.source === title).map(context => context.text).join("\n\n") })), aiText: rag.contexts.map((context) => `[${context.source}]\n${context.text}`).join("\n\n") }, { headers });
+      return Response.json({ mode: "rag", warnings: rag.warnings, jevFiltered: rag.jevFiltered, judgedCount: rag.judgedCount, uncheckedCount: rag.uncheckedCount, candidateLimitReached: rag.candidateLimitReached, results: rag.sources.map((title) => ({ title, retrievalScore: Math.max(...rag.contexts.filter(context => context.source === title).map(context => context.retrievalScore ?? 1 - context.distance)), rerankScore: rag.contexts.find(context => context.source === title && context.rerankScore !== undefined)?.rerankScore, rerankSkippedReason: rag.contexts.find(context => context.source === title && context.rerankSkippedReason)?.rerankSkippedReason, retrievalSource: rag.contexts.find(context => context.source === title)?.retrievalSource, jevVerified: rag.jevFiltered ? rag.contexts.filter(context => context.source === title).every(context => context.jevVerified === true) : undefined, snippet: rag.contexts.filter(context => context.source === title).map(context => context.text).join("\n\n") })), aiText: rag.contexts.map((context) => `[${context.source}]\n${context.text}`).join("\n\n") }, { headers });
     }
 
     if (mode === "drive") {

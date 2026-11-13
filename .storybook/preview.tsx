@@ -18,6 +18,17 @@ globalThis.fetch = async (input, init) => {
   const raw = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
   const url = new URL(raw, globalThis.location?.origin ?? "http://storybook.local");
 
+  if (url.pathname === "/api/rag/providers") {
+    const connections = {
+      reranking: { gemini: { provider: "gemini", state: "ready", id: "g".repeat(64), settingsHref: "/settings?tab=ai&provider=apikey" }, jev: { provider: "jev", state: "locked", id: "j".repeat(64), settingsHref: "/settings?tab=general" } },
+      embedding: { gemini: { provider: "gemini", state: "ready", id: "g".repeat(64), settingsHref: "/settings?tab=ai&provider=apikey" }, openai: { provider: "openai", state: "ready", id: "o".repeat(64), settingsHref: "/settings?tab=ai&provider=openai" } },
+    };
+    if (init?.method !== "POST") return json(connections);
+    const body = JSON.parse(String(init.body)) as { action: string; provider: "gemini" | "openai"; connectionId: string };
+    return body.action === "verify" ? json({ ok: true, connectionId: body.connectionId })
+      : json({ connectionId: body.connectionId, models: (body.provider === "gemini" ? ["gemini-embedding-2", "gemini-embedding-001"] : ["text-embedding-3-small", "text-embedding-3-large"]).map(id => ({ id, supported: true })) });
+  }
+
   if (url.pathname === "/api/orgs/list") {
     return json({ organizations: [{ id: "acme", name: "Acme Design", role: "owner" }] });
   }

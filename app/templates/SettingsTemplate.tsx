@@ -108,9 +108,9 @@ export function SettingsTemplate({
   // The Stripe billing portal (i.e. the only cancellation path) lives in the
   // Hubwork tab, so a subscriber keeps the tab even while an organization is
   // selected. Plain members of someone else's org have no plan and no tab.
-  const showHubworkTab = !!settings.hubwork?.plan || !organizationSelected;
+  const showHubworkTab = !settings.localMode && (!!settings.hubwork?.plan || !organizationSelected);
   const orgFilteredTabs = TABS.filter((tab) => {
-    if (tab.id === "enterprise") return showSelectedEnterpriseTab;
+    if (tab.id === "enterprise") return !settings.localMode && showSelectedEnterpriseTab;
     if (tab.id === "hubwork") return showHubworkTab;
     if (tab.id === "rag") return settings.ragFeatureEnabled ?? false;
     return true;
@@ -199,7 +199,7 @@ export function SettingsTemplate({
         </>}
         {activeTab === "mcp" && <McpTab settings={settings} />}
         {activeTab === "rag" && (settings.ragFeatureEnabled ?? false) && (
-          <RagTab settings={settings} disabledByApiKey={hasUnsupportedRagApiKey} />
+          <RagTab settings={settings} rootFolderId={rootFolderId} disabledByApiKey={hasUnsupportedRagApiKey} />
         )}
         {mainTab === "commands" && <>
           <SettingsSubTabs group={t("settings.tab.actions")} value={actionTab} onSelect={onTabChange} tabs={[{ id: "commands" as const, label: t("settings.tab.commands"), icon: Terminal }, ...(!isMobile ? [{ id: "shortcuts" as const, label: t("settings.tab.shortcuts"), icon: Keyboard }] : [])]} />

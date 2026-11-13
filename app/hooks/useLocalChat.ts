@@ -95,7 +95,7 @@ export async function* executeLocalChat(
 ): AsyncGenerator<StreamChunk> {
   if (options.ragStoreIds?.length) {
     const context = await loadRagContext(options.messages, options.ragStoreIds, options.ragTopK, options.abortSignal);
-    yield { type: "rag_used", ragSources: context.sources };
+    yield { type: "rag_used", ragSources: context.sources, ragWarnings: context.warnings };
     options = { ...options, ragStoreIds: undefined, systemPrompt: [options.systemPrompt, context.prompt].filter(Boolean).join("\n\n") };
   }
   const {

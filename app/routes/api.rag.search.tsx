@@ -21,6 +21,8 @@ const searchSchema = z.object({
   ragSettingName: z.string().min(1).max(200),
   topK: z.number().int().min(1).max(20).optional(),
   jevFilter: z.boolean().optional(),
+  rerankProvider: z.enum(["off", "gemini", "jev"]).optional(),
+  hybridSearch: z.boolean().optional(),
   searchUntilMatch: z.boolean().optional(),
 });
 
@@ -49,13 +51,13 @@ export async function action({ request }: Route.ActionArgs) {
 
   const parsed = searchSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return json({ error: "Invalid RAG search request" }, 400);
-  const { projectId, query, topK, ragSettingName, jevFilter, searchUntilMatch } = parsed.data;
+  const { projectId, query, topK, ragSettingName, jevFilter, rerankProvider, hybridSearch, searchUntilMatch } = parsed.data;
 
   try {
     const ctx = await requireProjectAccess(request, projectId, "viewer", { isMutation: true });
     const { tokens, setCookieHeader } = await getValidTokens(request, await requireAuth(request));
-    const result = await retrieveProjectRag(ctx, tokens, ragSettingName, query.trim(), { topK, jevFilter, searchUntilMatch, signal: request.signal });
-    const response = json({ ...result, results: result.results.map(chunk => ({ ...serializeChunk(chunk), distance: chunk.distance, jevVerified: chunk.jevVerified })) });
+    const result = await retrieveProjectRag(ctx, tokens, ragSettingName, query.trim(), { topK, jevFilter, rerankProvider, hybridSearch, searchUntilMatch, signal: request.signal });
+    const response = json({ ...result, results: result.results.map(chunk => ({ ...serializeChunk(chunk), distance: chunk.distance, retrievalScore: chunk.retrievalScore, retrievalSource: chunk.retrievalSource, rerankScore: chunk.rerankScore, rerankSkippedReason: chunk.rerankSkippedReason, jevVerified: chunk.jevVerified })) });
     if (setCookieHeader) response.headers.set("Set-Cookie", setCookieHeader);
     return response;
   } catch (e) {

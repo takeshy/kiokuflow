@@ -678,6 +678,9 @@ export async function executeWorkflowLocally(
           const cmdResult = await handleCommandNodeLocal(
             node, context, apiKey || "", options.settings, options.abortSignal,
           );
+          for (const warning of cmdResult.ragWarnings ?? []) {
+            log(node.id, node.type, `RAG warning: ${warning}`, "info");
+          }
           // Forward drive events
           for (const event of cmdResult.driveEvents) {
             callbacks.onDriveEvent(event);

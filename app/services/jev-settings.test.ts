@@ -92,6 +92,20 @@ test("Jev OpenRouter mode reuses only the unlocked Router key and validates orig
   assert.equal((await configure(args(await request({ action: "save" }, { currentProjectId: "project" })))).status, 403);
 });
 
+test("connection verification can check an unsaved Router draft without persisting keys or mode", async t => {
+  clearSettingsCache();
+  t.mock.method(globalThis, "fetch", async (input: unknown, init?: RequestInit) => {
+    const url = String(input);
+    if (url.startsWith("https://www.googleapis.com/drive/v3/files?")) return Response.json({ files: [{ id: "credentials", name: SETTINGS_FILE_NAME }] });
+    if (url.startsWith("https://www.googleapis.com/drive/v3/files/credentials")) return Response.json(DEFAULT_USER_SETTINGS);
+    assert.equal(url, "https://openrouter.ai/api/alpha/decisions");
+    assert.equal(new Headers(init?.headers).get("Authorization"), "Bearer unsaved-router");
+    return Response.json({ answers: { check: { choice: "keep" } } });
+  });
+  const result = await configure(args(await request({ action: "verify", useOpenRouter: true, openRouterApiKey: "unsaved-router" }, { compatibleApiKeys: {} })));
+  assert.equal(result.status, 200); assert.equal(result.headers.get("Set-Cookie"), null);
+});
+
 test("verify-and-save preserves the saved key and mode on failed checks and writes only after success", async t => {
   clearSettingsCache();
   const { configureCommonPassword } = await import("./api-key-password.server");

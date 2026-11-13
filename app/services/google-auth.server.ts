@@ -1,3 +1,4 @@
+import { isLocalRuntime } from "~/services/app-runtime.server";
 import { google } from "googleapis";
 import { CodeChallengeMethod } from "google-auth-library";
 import crypto from "node:crypto";
@@ -115,6 +116,7 @@ export async function getValidTokens(
   request: Request,
   tokens: SessionTokens
 ): Promise<{ tokens: SessionTokens; setCookieHeader?: string }> {
+  if (isLocalRuntime()) tokens = { ...tokens, currentOrgId: undefined, currentProjectId: undefined };
   // Email-link and org OIDC sessions deliberately carry no Google
   // access/refresh token — they are already valid application sessions, and
   // attempting a refresh would destroy them. Google sessions predate the

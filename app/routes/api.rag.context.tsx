@@ -4,7 +4,7 @@ import { requireAuth } from "~/services/session.server";
 import { getValidTokens } from "~/services/google-auth.server";
 import { retrievePersonalRag } from "~/services/rag-index.server";
 import { validateOrigin } from "~/utils/security";
-const schema = z.object({ query: z.string().trim().min(1).max(16_000), jevFilter: z.boolean().optional(), searchUntilMatch: z.boolean().optional(), storeIds: z.array(z.string().max(4000)).min(1).max(10), topK: z.number().int().min(1).max(20).optional() });
+const schema = z.object({ query: z.string().trim().min(1).max(16_000), jevFilter: z.boolean().optional(), rerankProvider: z.enum(["off", "jev", "gemini"]).optional(), hybridSearch: z.boolean().optional(), searchUntilMatch: z.boolean().optional(), storeIds: z.array(z.string().max(4000)).min(1).max(10), topK: z.number().int().min(1).max(20).optional() });
 export async function action({ request }: Route.ActionArgs) {
   if (request.method !== "POST") return new Response("Method not allowed", { status: 405 });
   validateOrigin(request);

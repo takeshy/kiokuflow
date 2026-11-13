@@ -1,4 +1,5 @@
 import { normalizeRagSettings } from "./rag-search-options";
+import { isLocalRuntime } from "./app-runtime.server";
 // User settings CRUD via Google Drive (settings.json in root folder)
 
 import { listFiles, readFile, createFile, updateFile } from "./google-drive.server";
@@ -32,19 +33,21 @@ async function getSettingsFileId(
  */
 export async function getSettings(
   accessToken: string,
-  rootFolderId: string
+  rootFolderId: string,
+  options: { fresh?: boolean } = {},
 ): Promise<UserSettings> {
   const cacheKey = rootFolderId;
   const cached = settingsCache.get(cacheKey);
-  if (cached && Date.now() - cached.cachedAt < SETTINGS_CACHE_TTL) {
-    return cached.settings;
+  if (!options.fresh && cached && Date.now() - cached.cachedAt < SETTINGS_CACHE_TTL) {
+    return { ...cached.settings, localMode: isLocalRuntime() };
   }
 
   try {
     const fileId = await getSettingsFileId(accessToken, rootFolderId);
     if (!fileId) {
+      if (options.fresh) throw new Error("settings.json not found on Drive");
       settingsCache.set(cacheKey, { settings: DEFAULT_USER_SETTINGS, fileId: null, cachedAt: Date.now() });
-      return DEFAULT_USER_SETTINGS;
+      return { ...DEFAULT_USER_SETTINGS, localMode: isLocalRuntime() };
     }
 
     const content = await readFile(accessToken, fileId);
@@ -68,6 +71,7 @@ export async function getSettings(
     const settings: UserSettings = {
       ...DEFAULT_USER_SETTINGS,
       ...parsed,
+      localMode: isLocalRuntime(),
       ragSettings: normalizeRagSettings(parsed.ragSettings || DEFAULT_USER_SETTINGS.ragSettings, parsed.ragTopK ?? DEFAULT_USER_SETTINGS.ragTopK),
       mcpServers: normalizedMcpServers,
       slashCommands: normalizedSlashCommands,
@@ -88,12 +92,14 @@ export async function getSettings(
 
     settingsCache.set(cacheKey, { settings, fileId, cachedAt: Date.now() });
     return settings;
-  } catch {
+  } catch (error) {
+    // Scoped writes must not merge into a stale/default snapshot on read errors.
+    if (options.fresh) throw error;
     // Prefer expired cache over defaults — preserves the user's saved
     // language/settings even when Drive is temporarily unreachable.
     const expired = settingsCache.get(cacheKey);
-    if (expired) return expired.settings;
-    return DEFAULT_USER_SETTINGS;
+    if (expired) return { ...expired.settings, localMode: isLocalRuntime() };
+    return { ...DEFAULT_USER_SETTINGS, localMode: isLocalRuntime() };
   }
 }
 
@@ -133,7 +139,9 @@ export async function saveSettings(
       };
     }),
   };
-  const content = JSON.stringify(normalizedSettings, null, 2);
+  const persistedSettings = { ...normalizedSettings };
+  delete persistedSettings.localMode;
+  const content = JSON.stringify(persistedSettings, null, 2);
 
   const cacheKey = rootFolderId;
   const cached = settingsCache.get(cacheKey);

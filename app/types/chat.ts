@@ -65,6 +65,7 @@ export interface Message {
   toolResults?: ToolResult[];
   ragUsed?: boolean;
   ragSources?: string[];
+  ragWarnings?: string[];
   webSearchUsed?: boolean;
   webSearchSources?: WebSearchSource[];
   thinking?: string;
@@ -98,6 +99,7 @@ export interface StreamChunk {
   toolResult?: ToolResult;
   error?: string;
   ragSources?: string[];
+  ragWarnings?: string[];
   webSearchSources?: WebSearchSource[];
   generatedImage?: GeneratedImage;
   mcpApp?: McpAppInfo;

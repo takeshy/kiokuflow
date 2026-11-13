@@ -2,22 +2,24 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { Firestore } from "@google-cloud/firestore";
+import { isLocalRuntime } from "./app-runtime.server";
 
 let _firestore: Firestore | null = null;
 let _available: boolean | null = null;
 
 /**
  * Whether Google Cloud Application Default Credentials are plausibly
- * available. On Cloud Run (`K_SERVICE`) credentials come from the metadata
+ * available in hosted mode. Local mode always returns false, even with ADC.
+ * On Cloud Run (`K_SERVICE`) credentials come from the metadata
  * server; shared VM containers use an explicitly configured metadata broker
  * (`GCE_METADATA_HOST` / `GCE_METADATA_IP`). Other environments require
- * `GOOGLE_APPLICATION_CREDENTIALS` or a gcloud ADC file. Without this guard,
- * every Firestore call in a
- * credential-less environment (self-hosted / local dev) pays a failed
+ * explicit hosted mode plus `GOOGLE_APPLICATION_CREDENTIALS` or a gcloud ADC
+ * file. Without this guard, calls in credential-less hosted environments pay a failed
  * metadata-server lookup and surfaces a noisy NO_ADC_FOUND error, so
  * Hubwork features check this and disable themselves instead.
  */
 export function isFirestoreAvailable(): boolean {
+  if (isLocalRuntime()) return false;
   if (_available === null) {
     const gcloudConfigDir =
       process.env.CLOUDSDK_CONFIG ??
@@ -41,6 +43,7 @@ export function isFirestoreAvailable(): boolean {
 }
 
 export function getFirestore(): Firestore {
+  if (isLocalRuntime()) throw new Error("Firestore is disabled in local mode.");
   if (!_firestore) {
     if (!isFirestoreAvailable()) {
       throw new Error(

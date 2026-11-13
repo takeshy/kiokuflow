@@ -4,7 +4,7 @@
 
 **ドキュメントを読み、線を引き、選んだ AI に聞く — すべてあなた自身の Google Drive の中で。**
 
-Drive の PDF・EPUB・Markdown を開き、気になった一節をハイライトして、その場にメモを貼る。ハイライトもメモも、ダッシュボードもチャット履歴もワークフローも、すべて *あなたの* Drive にある普通のファイルです。だから AI はそのすべてを読めるし、あなたはいつでも全部を持って出ていけます。有料RAGの検索用抜粋とembeddingはFirestoreに保存します。セルフホスト可能。
+Drive の PDF・EPUB・Markdown を開き、気になった一節をハイライトして、その場にメモを貼る。ハイライトもメモも、ダッシュボードもチャット履歴もワークフローも、すべて *あなたの* Drive にある普通のファイルです。だから AI はそのすべてを読めるし、あなたはいつでも全部を持って出ていけます。RAGの検索用抜粋とembeddingは、ローカル実行ではディスク、有料ホスティング版ではFirestoreに保存します。セルフホスト可能。
 
 **[kiokuflow.net で今すぐ試す →](https://kiokuflow.net)** · [English README](./README.md)
 
@@ -38,7 +38,7 @@ Gemini・OpenAI・OpenRouter・OpenCode Goを選んでストリーミングチ�
 
 ### あなたのデータは、あなたの管理下に
 
-チャット履歴・ワークフロー・設定・編集履歴は、すべてあなた自身の Google Drive の `kiokuflow/` フォルダに保存されます。有料RAGではFirestoreに検索用インデックスを保存し、元のファイルから再構築できます。任意でハイブリッド RSA + AES 暗号化を有効にでき、単体で動く Python 復号スクリプトも同梱しているので、kiokuflow なしでも自分のデータを読めます。
+チャット履歴・ワークフロー・設定・編集履歴は、すべてあなた自身の Google Drive の `kiokuflow/` フォルダに保存されます。RAGの検索用インデックスはローカルではJSONとFloat32バイナリ、有料ホスティング版ではFirestoreに保存し、元のファイルから再構築できます。任意でハイブリッド RSA + AES 暗号化を有効にでき、単体で動く Python 復号スクリプトも同梱しているので、kiokuflow なしでも自分のデータを読めます。
 
 kiokuflow はオフラインファーストです。ファイルは IndexedDB にキャッシュされて即座に開き、ネットがなくても編集でき、同期は Push/Pull で自分のタイミングで行えます。MD5 による競合検出、差分表示付きの解決ダイアログ、選ばなかった方の自動バックアップ付き。同じ `_sync-meta.json` 形式を [Obsidian プラグイン](https://github.com/takeshy/obsidian-gemihub)も扱うため、Vault と kiokuflow で同じ Drive フォルダを共有できます。
 
@@ -52,9 +52,9 @@ kiokuflow はオフラインファーストです。ファイルは IndexedDB �
 
 **AI チャット** — Gemini・OpenAI・OpenRouter・OpenCode Goによるストリーミングチャット。OpenAI・OpenRouter・OpenCode Goはモデル情報を取得して複数選択可能（ツール・添付の対応はモデルによる）· 音声選択・割り込み・ミュート・会話記録・ファイル参照／RAG検索に対応したGemini／OpenAI Live会話モード · Gemini画像生成 · `{content}` / `{selection}` / `@file` テンプレートとコマンド別のモデル・ツール上書きを持つスラッシュコマンド · チャットからの `/run @workflow.yaml`
 
-**ナレッジ** — 有料ユーザー向けFirestore RAG。RAGごとにGemini／OpenAIのembeddingモデルとTop Kを選択し、任意でJevによる一致判定と「一致するまで検索」を利用可能 · チャットごとに選べる OKF ナレッジバンドル · MCP サーバーのツール化（OAuth 対応、インタラクティブな MCP Apps）· Agent Skills（カタログからワンクリック導入できる外部スキルを含む）· GitHub からインストール、あるいはローカル開発できるプラグイン
+**ナレッジ** — ローカルディスクRAG（ホスティング版では有料Firestore RAG）。RAGごとにGemini／OpenAIのembeddingモデルとTop Kを選択し、標準ONのBM25＋ベクトルhybrid検索と、任意のリランキング（OFF／Jev／Gemini Decisions API）・「一致するまで検索」を利用可能 · チャットごとに選べる OKF ナレッジバンドル · MCP サーバーのツール化（OAuth 対応、インタラクティブな MCP Apps）· Agent Skills（カタログからワンクリック導入できる外部スキルを含む）· GitHub からインストール、あるいはローカル開発できるプラグイン
 
-**検索** — ファイル名・パス検索と内容検索をタブで切り替え · 単語は端末に保存した本文の通常検索、文章は有料プランでサーバー同期済みRAG検索 · 結果からあいまい検索を追加可能
+**検索** — ファイル名・パス検索と内容検索をタブで切り替え · 単語は端末に保存した本文の通常検索、文章はローカルまたは有料ホスティング版でサーバー同期済みRAG検索 · 結果からあいまい検索を追加可能
 
 **編集** — WYSIWYG Markdown エディタ（wysimark-lite）· Obsidian 互換 JSON Canvas · ファイルとワークフローの差分ベース編集履歴 · ドキュメントの公開 URL 発行 · ファイル・チャット履歴・ワークフローログの暗号化
 
@@ -117,18 +117,18 @@ cp .env.example .env   # OAuth 認証情報と SESSION_SECRET を記入
 npm run dev            # http://localhost:8132
 ```
 
-必要なものは Node.js 24+、Google Cloud の OAuth クライアント、利用するAIプロバイダーの認証情報（または個人Vertex AIの前払い残高）です。有料RAGはGeminiまたはOpenAIのembeddingキーを設定・解除し、**設定 → RAG**でインデックスを作成・同期します。Jevは**AIプロバイダー → Jev**で直接キーまたはOpenRouterを設定し、RAGごとにTop Kと「一致するまで検索」を保存できます。Cloud プロジェクトの作成、OAuth 同意画面、`drive.file` スコープの意味、環境変数、Docker / 本番ビルドまでの詳細な手順は **[docs/architecture/self-hosting.md](./docs/architecture/self-hosting.md)** にまとめてあります。
+必要なものは Node.js 24+、Google Cloud の OAuth クライアント、利用するAIプロバイダーの認証情報（または個人Vertex AIの前払い残高）です。RAGはGeminiまたはOpenAIのembeddingキーを設定・解除し、**設定 → RAG**でインデックスを作成・同期します。RAGごとにhybrid検索（標準ON）、Top K、リランキングのOFF（標準）／Jev／Gemini Decisions APIを選択できます。Geminiは解除済みGeminiキー、Jevは**AIプロバイダー → Jev**の直接キーまたはOpenRouterを使います。点数は0〜3で、「一致するまで検索」は40候補ずつ最大1,000候補を調べ、2/3点以上で停止します。採点失敗時は警告付きで元の検索結果を返し、採点できないメディアの順位を保持します。Cloud プロジェクトの作成、OAuth 同意画面、`drive.file` スコープの意味、環境変数、Docker / 本番ビルドまでの詳細な手順は **[docs/architecture/self-hosting.md](./docs/architecture/self-hosting.md)** にまとめてあります。
 
 ## プラン
 
-kiokuflow は MIT ライセンスで、自分のAIプロバイダーのキーで基本機能を無料で使えます。プロバイダーのAPI利用料は別途かかり、Firestore RAGにはkiokuflowの有効な有料プランが必要です。ホスティング版には有料プランが 3 つあります（詳細は [docs/architecture/premium.md](docs/architecture/premium.md)）。
+kiokuflow は MIT ライセンスで、自分のAIプロバイダーのキーで基本機能を無料で使えます。プロバイダーのAPI利用料は別途かかり、ホスティング版のFirestore RAGにはkiokuflowの有効な有料プランが必要です。ローカル実行では契約不要で個人向けPremium機能とディスク保存のRAGを使えます。組織・Vertex AI・公開サイト・予定実行・KakerattaのTimeline同期はローカルでは対象外です。ホスティング版には有料プランが 3 つあります（詳細は [docs/architecture/premium.md](docs/architecture/premium.md)）。
 
 | | 無料 | Lite — 月額 ¥300（約 $2） | Pro — 月額 ¥3,000（約 $20） | Business — 月額 ¥7,500（約 $50）／組織単位 |
 |---|---|---|---|---|
 | 基本の読書・編集・ダッシュボード・チャット | ✓ | ✓ | ✓ | ✓ |
 | アップロード上限 | 1ファイル20 MB | 1ファイル5 GB | 1ファイル5 GB | 1ファイル5 GB |
 | PDF 生成・外部同期トークン・一時編集 URL | — | ✓ | ✓ | ✓ |
-| Firestore embedding RAG・RAGごとのTop K・任意のJev判定 | — | ✓ | ✓ | ✓ |
+| Firestore hybrid RAG・RAGごとのTop K・任意のJev／Geminiリランキング | — | ✓ | ✓ | ✓ |
 | Interactions API チャット | — | ✓ | ✓ | ✓ |
 | [Kakeratta の担当への回答](docs/integrations/kakeratta.md) | kiokuflow の画面を開いている間 | 画面を閉じても動作 | 画面を閉じても動作 | 画面を閉じても動作（個人 Drive） |
 | [Kakeratta と Timeline 同期](docs/integrations/kakeratta.md) | — | 投稿・スレッド・担当名 | 投稿・スレッド・担当名 | 個人 Drive |
@@ -138,7 +138,7 @@ kiokuflow は MIT ライセンスで、自分のAIプロバイダーのキーで
 
 Gemini API キーを自分で用意したくない場合は、設定で**パーソナル Vertex AI** を有効にすると、kiokuflow の Vertex 接続でチャットが動きます。料金は $10（¥1,500）単位で前払いする残高から消費され、有効期限はなく、どのプランでも利用できます。Business の月 $30 の AI 利用枠も同じ方法で追加購入できます。
 
-Businessの共有プロジェクトはCloud Storageにファイル、Firestoreにメタデータを保存し、チャットはVertex AIで動きます。個人の元ファイルはDriveに残り、有料RAGの抜粋とembeddingはFirestoreに保存します。質問と必要な内容は、選択したAI・embeddingプロバイダーと、有効時にはJevまたはOpenRouterへ送信します（[docs/architecture/mounts.md](docs/architecture/mounts.md)）。
+Businessの共有プロジェクトはCloud Storageにファイル、Firestoreにメタデータを保存し、チャットはVertex AIで動きます。個人の元ファイルはDriveに残り、RAGの抜粋とembeddingはローカルではディスク、ホスティング版ではFirestoreに保存します。質問と必要な内容は、選択したAI・embeddingプロバイダーと、リランキング選択時にはGemini Decisions API・Jev・OpenRouterのいずれかへ送信します（[docs/architecture/mounts.md](docs/architecture/mounts.md)）。
 
 ## ドキュメント
 
@@ -172,7 +172,7 @@ Businessの共有プロジェクトはCloud Storageにファイル、Firestore�
 |---------|------|
 | フロントエンド | React 19, React Router 7, Tailwind CSS v4, Mermaid |
 | バックエンド | React Router サーバー（SSR + API ルート） |
-| AI | Gemini／Vertex AI、OpenAI Responses・Realtime、OpenRouter、OpenCode Go、任意のJevによるRAG一致判定 |
+| AI | Gemini／Vertex AI、OpenAI Responses・Realtime、OpenRouter、OpenCode Go、任意のJev／GeminiによるRAGリランキング |
 | ストレージ | Google Drive API（デフォルトマウント）、Cloud Storage（組織プロジェクト）、Firestore |
 | 認証 | Google OAuth 2.0 → セッションクッキー |
 | インフラ | Compute Engine (shared VM), Cloud Build, Artifact Registry, Cloud DNS, Certificate Manager, Cloud Scheduler, Global HTTPS LB + CDN |

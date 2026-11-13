@@ -58,6 +58,7 @@ export default [
   route("api/storage/upload", "routes/api.storage.upload.tsx"),
   route("api/storage/move-between-mounts", "routes/api.storage.move-between-mounts.tsx"),
   route("api/rag/search", "routes/api.rag.search.tsx"),
+  route("api/rag/providers", "routes/api.rag.providers.tsx"),
   route("api/rag/context", "routes/api.rag.context.tsx"),
   route("api/rag/refine", "routes/api.rag.refine.tsx"),
   // API routes

@@ -637,6 +637,8 @@ export const MessageBubble = memo(function MessageBubble({ message, isStreaming 
             </div>
           )}
 
+          {!isUser && message.ragWarnings?.length ? <div role="status" className="mb-2 rounded border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">{message.ragWarnings.join(" ")}</div> : null}
+
           {/* RAG sources (assistant only) */}
           {!isUser && message.ragUsed && message.ragSources && message.ragSources.length > 0 && (
             <RagSourcesList sources={message.ragSources ?? []} />

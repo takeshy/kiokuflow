@@ -4,7 +4,7 @@
 
 **Read your documents, mark them up, and ask your chosen AI about them — all inside your own Google Drive.**
 
-Open a PDF, EPUB, or Markdown note from your Drive, highlight a passage, and pin a memo to it. Highlights, memos, dashboards, chat history, and workflows are all plain files in *your* Drive — so the AI can read every one of them, and you can walk away with everything at any time. Paid RAG stores searchable excerpts and embeddings in Firestore. Self-hostable.
+Open a PDF, EPUB, or Markdown note from your Drive, highlight a passage, and pin a memo to it. Highlights, memos, dashboards, chat history, and workflows are all plain files in *your* Drive — so the AI can read every one of them, and you can walk away with everything at any time. RAG stores searchable excerpts and embeddings on local disk when self-hosted, or in Firestore on the paid hosted service. Self-hostable.
 
 **[Try kiokuflow at kiokuflow.net →](https://kiokuflow.net)** · [日本語版 README](./README_ja.md)
 
@@ -38,7 +38,7 @@ Choose Gemini, OpenAI, OpenRouter, or OpenCode Go for streaming chat, with tools
 
 ### Your data, your control
 
-Personal chat history, workflows, settings and edit history live in a `kiokuflow/` folder in your own Google Drive. Paid RAG adds a Firestore search index that can be rebuilt from the source files. Optional hybrid RSA + AES encryption protects sensitive files, and a standalone Python decryption script ships with the repo so you can always read your own data without kiokuflow.
+Personal chat history, workflows, settings and edit history live in a `kiokuflow/` folder in your own Google Drive. RAG adds a rebuildable search index: local JSON/Float32 files for standalone servers, or Firestore for the paid hosted service. Optional hybrid RSA + AES encryption protects sensitive files, and a standalone Python decryption script ships with the repo so you can always read your own data without kiokuflow.
 
 kiokuflow is offline-first: files are cached in IndexedDB and load instantly, edits work with no connection, and Push/Pull syncs on your terms — with MD5 conflict detection, a diff-based resolution dialog, and a backup of whatever you did not keep. The same `_sync-meta.json` format is spoken by the [Obsidian plugin](https://github.com/takeshy/obsidian-gemihub), so a vault and kiokuflow can share one Drive folder.
 
@@ -52,9 +52,9 @@ kiokuflow is offline-first: files are cached in IndexedDB and load instantly, ed
 
 **AI chat** — Gemini, OpenAI, OpenRouter, and OpenCode Go streaming chat with fetched model catalogues and multiple enabled models, plus model-dependent tools and attachments · Gemini / OpenAI Live voice conversations with voice selection, interruption, mute, saved transcripts, and read-only file/RAG search · Gemini image generation · user-defined slash commands with `{content}` / `{selection}` / `@file` templates and per-command model and tool overrides · `/run @workflow.yaml` from chat
 
-**Knowledge** — Paid Firestore RAG using per-index Gemini/OpenAI embedding models, Top K, and optional Jev relevance filtering with search until a match is found · OKF knowledge bundles selectable per chat · MCP servers as tools (OAuth support, interactive MCP Apps) · Agent Skills, including one-click external skills from the catalog · plugins installed from GitHub or developed locally
+**Knowledge** — Local-disk RAG (or paid hosted Firestore RAG) using per-index Gemini/OpenAI embedding models, Top K, default-on BM25/vector hybrid search, and optional reranking (OFF / Jev / Gemini Decisions API) with search until a match is found · OKF knowledge bundles selectable per chat · MCP servers as tools (OAuth support, interactive MCP Apps) · Agent Skills, including one-click external skills from the catalog · plugins installed from GitHub or developed locally
 
-**Search** — Switch between file-name/path and content tabs · words use keyword search over cached text; sentences use the synchronized server RAG index on paid plans · optionally expand results with fuzzy matching
+**Search** — Switch between file-name/path and content tabs · words use keyword search over cached text; sentences use the synchronized server RAG index in local mode or on paid hosted plans · optionally expand results with fuzzy matching
 
 **Editing** — WYSIWYG Markdown editor (wysimark-lite) · Obsidian-compatible JSON Canvas · unified-diff edit history for files and workflows · publish any document to a public URL · encrypted files, chat history, and workflow logs
 
@@ -119,18 +119,18 @@ cp .env.example .env   # fill in OAuth credentials and SESSION_SECRET
 npm run dev            # http://localhost:8132
 ```
 
-You need Node.js 24+, a Google Cloud OAuth client, and credentials for your chosen AI provider (or prepaid personal Vertex AI). For paid RAG, configure and unlock a Gemini or OpenAI embedding key, then create and sync an index in **Settings > RAG**. Configure optional Jev directly or through OpenRouter under **AI providers > Jev**; each RAG has its own Top K and repeat-until-match preference. The full walkthrough — creating the Cloud project, the OAuth consent screen, the `drive.file` scope and what it implies, environment variables, and Docker/production builds — is in **[docs/architecture/self-hosting.md](./docs/architecture/self-hosting.md)**.
+You need Node.js 24+, a Google Cloud OAuth client, and credentials for your chosen AI provider (or prepaid personal Vertex AI). For RAG, configure and unlock a Gemini or OpenAI embedding key, then create and sync an index in **Settings > RAG**. Each RAG has Hybrid search (ON by default), Top K and a Reranking selector: OFF (default), Jev or Gemini Decisions API. Gemini uses the unlocked Gemini key; configure Jev directly or through OpenRouter under **AI providers > Jev**. Relevance scores are 0–3. Search until a match checks groups of 40 for scores ≥2/3, up to 1,000 candidates. Scoring failures return original results with a warning; unscorable media retains its rank. The full walkthrough — creating the Cloud project, the OAuth consent screen, the `drive.file` scope and what it implies, environment variables, and Docker/production builds — is in **[docs/architecture/self-hosting.md](./docs/architecture/self-hosting.md)**.
 
 ## Plans
 
-kiokuflow is MIT-licensed and offers free core features with your own AI-provider key; provider API usage is billed separately. Firestore RAG requires an active paid kiokuflow plan. The hosted service adds three paid plans; see [docs/architecture/premium.md](docs/architecture/premium.md) for details.
+kiokuflow is MIT-licensed and offers free core features with your own AI-provider key; provider API usage is billed separately. Hosted Firestore RAG requires an active paid kiokuflow plan. Standalone local mode includes Premium personal features and disk-based RAG without a kiokuflow subscription; it excludes organizations, Vertex AI, public hosting, scheduled execution and Kakeratta Timeline synchronization. The hosted service adds three paid plans; see [docs/architecture/premium.md](docs/architecture/premium.md) for details.
 
 | | Free | Lite — ¥300/month (≈$2) | Pro — ¥3,000/month (≈$20) | Business — ¥7,500/month (≈$50), per organization |
 |---|---|---|---|---|
 | Core reading, editing, dashboard and chat | ✓ | ✓ | ✓ | ✓ |
 | Upload limit | 20 MB/file | 5 GB/file | 5 GB/file | 5 GB/file |
 | PDF generation, external sync token, temp edit URL | — | ✓ | ✓ | ✓ |
-| Firestore embedding RAG, per-index Top K and optional Jev | — | ✓ | ✓ | ✓ |
+| Firestore hybrid RAG, per-index Top K and optional Jev/Gemini reranking | — | ✓ | ✓ | ✓ |
 | Interactions API chat | — | ✓ | ✓ | ✓ |
 | [Kakeratta persona answers](docs/integrations/kakeratta.md) | While kiokuflow is open | Also while closed | Also while closed | Also while closed (personal Drive) |
 | [Kakeratta Timeline synchronization](docs/integrations/kakeratta.md) | — | Posts, threads and author names | Posts, threads and author names | Personal Drive |
@@ -140,7 +140,7 @@ kiokuflow is MIT-licensed and offers free core features with your own AI-provide
 
 Don't want to manage a Gemini API key? Turn on **personal Vertex AI** in Settings and chat runs on kiokuflow's Vertex connection against a prepaid balance you top up in $10 (¥1,500) units — no expiry, available on any plan. A Business organization's included $30/month AI budget can be topped up the same way.
 
-Business shared projects store files in managed Cloud Storage with Firestore metadata and use Vertex AI for chat. Personal source files stay in Drive; paid RAG stores excerpts and embeddings in Firestore. Queries and relevant content are sent to the selected AI/embedding provider and, when enabled, Jev or OpenRouter. See [docs/architecture/mounts.md](docs/architecture/mounts.md).
+Business shared projects store files in managed Cloud Storage with Firestore metadata and use Vertex AI for chat. Personal source files stay in Drive; RAG stores excerpts and embeddings on local disk in local mode or in Firestore on the hosted service. Queries and relevant content are sent to the selected AI/embedding provider and, when selected for reranking, Gemini Decisions API, Jev or OpenRouter. See [docs/architecture/mounts.md](docs/architecture/mounts.md).
 
 ## Documentation
 
@@ -174,7 +174,7 @@ Documentation lives in [`docs/`](./docs/) as an OKF bundle — [docs/index.md](.
 |-------|------|
 | Frontend | React 19, React Router 7, Tailwind CSS v4, Mermaid |
 | Backend | React Router server (SSR + API routes) |
-| AI | Gemini / Vertex AI, OpenAI Responses and Realtime, OpenRouter, OpenCode Go; optional Jev RAG relevance filtering |
+| AI | Gemini / Vertex AI, OpenAI Responses and Realtime, OpenRouter, OpenCode Go; optional Jev/Gemini RAG reranking |
 | Storage | Google Drive API (default mount), Cloud Storage (organization projects), Firestore |
 | Auth | Google OAuth 2.0 → session cookies |
 | Infrastructure | Compute Engine (shared VM), Cloud Build, Artifact Registry, Cloud DNS, Certificate Manager, Cloud Scheduler, Global HTTPS LB + CDN |

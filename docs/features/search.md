@@ -1,7 +1,7 @@
 ---
 type: Guide
 title: Search
-description: "File-name and content search, automatic paid RAG for sentences, optional fuzzy expansion, and Quick Open."
+description: "File-name and content search, automatic RAG for sentences, optional fuzzy expansion, and Quick Open."
 tags:
   - search
 ---
@@ -30,7 +30,7 @@ punctuation, Japanese request/grammar cues, five or more whitespace-separated
 words, or Japanese text longer than 20 characters select RAG automatically.
 These intent rules follow kakeratta's `search-intent.js` and require no LLM call.
 
-RAG requires an active paid **kiokuflow subscription**, independently of the
+Local mode includes disk-based RAG without a subscription or Firestore. On the hosted service, RAG requires an active paid **kiokuflow subscription**, independently of the
 Gemini API's Free/Paid setting, and a configured/synchronized index. It uses
 the index's embedding provider. Automatic sentence searches return only server-index
 results and do not require a local content cache. Unsynced local changes are
@@ -48,7 +48,7 @@ local matches. It does not silently claim that lexical results are semantic.
 **Also search similar matches** is available after keyword searches, including
 zero-hit searches. It adds substring edit-distance matching locally. Very short
 terms are not expanded into arbitrary approximate matches. File search stays
-local; paid content search additionally includes semantic RAG matches. Exact
+local; content search in local mode or on paid hosted plans additionally includes semantic RAG matches. Exact
 keyword results are retained and duplicate files are removed. **Search keywords
 only** overrides automatic intent selection and returns to lexical matching.
 
@@ -66,7 +66,9 @@ run once rather than repeating embedding requests after every render.
   mode: "rag" | "drive";
   ragStoreIds?: string[]; // required for RAG, at most 10 indexes
   topK?: number; // integer 1–20; default: selected index's saved Top K
-  jevFilter?: boolean; // override the selected index's Jev toggle
+  rerankProvider?: "off" | "jev" | "gemini"; // missing selection defaults to OFF
+  hybridSearch?: boolean; // default: saved value, initially true
+  jevFilter?: boolean; // legacy false forces reranking OFF
   searchUntilMatch?: boolean; // override its repeat-until-match option
 }
 ```
@@ -78,13 +80,19 @@ search for callers; the panel uses the current tree and cached text instead.
 The API validates same-origin requests and rejects organization mounts, which
 must use the project endpoint. Responses are not cached.
 
-The content panel displays the selected RAG's Top K and, when Jev is configured,
-checkboxes for relevance filtering and searching until a match is found. Repeat
-checks successive Top K-sized batches until a confirmed match is found or the
-candidates run out (up to 1,000). Unchecked media and candidate-limit warnings are
-shown explicitly. These temporary panel choices do not change saved settings.
-Responses include `jevFiltered`, `judgedCount`, `uncheckedCount` and
-`candidateLimitReached`. See [RAG setup](../integrations/rag.md).
+The content panel shows the selected RAG's Top K, a Hybrid search checkbox and
+one Reranking selector (OFF / Jev / Gemini Decisions API). The initial selection
+is OFF unless a provider was explicitly saved. Hybrid combines vector search and
+BM25 using RRF and can be turned off independently. Search until a match requires
+reranking and scores groups of 40 until a score reaches 2/3 (up to 1,000 candidates).
+Top K limits returned results. Temporary panel choices do not change saved settings.
+
+Results expose `retrievalScore`, `retrievalSource` (`vector`, `bm25`, or `both`),
+`rerankScore` (0–3) and `rerankSkippedReason` where applicable. Scores are displayed
+separately. Responses include `warnings`, `judgedCount`, `uncheckedCount`,
+`candidateLimitReached` and the legacy `jevFiltered`/`jevVerified` compatibility
+fields. A scoring failure returns original retrieval results with a warning;
+unscorable media retains its retrieval position. See [RAG setup](../integrations/rag.md).
 
 ## Quick Open
 
@@ -99,5 +107,5 @@ and press Enter. It also supports the editor's image-picker mode.
   current-tree restriction, and result merging.
 - `app/routes/api.search.tsx`: personal search API.
 - `app/routes/api.rag.search.tsx`: organization/project RAG API.
-- `app/services/rag-index.server.ts`: paid personal embedding retrieval.
+- `app/services/rag-index.server.ts`: personal embedding retrieval with local disk or hosted Firestore storage.
 - `app/services/indexeddb-cache.ts`: mount-aware local data source.

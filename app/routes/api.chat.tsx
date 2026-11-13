@@ -1,3 +1,4 @@
+import { isLocalRuntime } from "~/services/app-runtime.server";
 import { getChatApiKey } from "~/types/settings";
 import { retrievePersonalRagForChat } from "~/services/rag-index.server";
 import { serverCompatibleOptions } from "~/services/compatible-provider.server";
@@ -88,7 +89,7 @@ export async function action({ request }: Route.ActionArgs) {
   // AI selected, the key path is never used even if a key is stored.
   {
     const settings = await getSettings(validTokens.accessToken, validTokens.rootFolderId).catch(() => null);
-    if (settings?.usePersonalVertex === true) {
+    if (!isLocalRuntime() && settings?.usePersonalVertex === true) {
       const { handlePersonalVertexChatAction } = await import("~/services/ai/personal-vertex-route.server");
       return handlePersonalVertexChatAction(request, rawBody);
     }
@@ -301,7 +302,7 @@ export async function action({ request }: Route.ActionArgs) {
       };
 
       try {
-        if (retrievedRag) sendChunk({ type: "rag_used", ragSources: retrievedRag.sources });
+        if (retrievedRag) sendChunk({ type: "rag_used", ragSources: retrievedRag.sources, ragWarnings: retrievedRag.warnings });
         let generator: AsyncGenerator<StreamChunk>;
 
         if (isImageGenerationModel(model)) {

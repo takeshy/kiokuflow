@@ -1,10 +1,11 @@
+import { isLocalRuntime, applyRuntimeSettings } from "~/services/app-runtime.server";
 import { publicDefaultDomain } from "~/services/hubwork-accounts.server";
 import { readProviderDefaultModels } from "~/utils/provider-default-models";
 import { useState, useEffect } from "react";
 import { normalizeSecretFolder } from "~/dashboard/secret-manager";
 import { data, redirect, useLoaderData, useNavigate, useSearchParams } from "react-router";
 import type { Route } from "./+types/settings";
-import { requireAuth, getSession, commitSession, setGeminiApiKey, setTokens } from "~/services/session.server";
+import { requireAuth, getSession, commitSession, setTokens } from "~/services/session.server";
 import { getValidTokens } from "~/services/google-auth.server";
 import { getSettings, saveSettings } from "~/services/user-settings.server";
 import { resolveLanguage } from "~/i18n/resolve-language";
@@ -37,6 +38,9 @@ import { I18nProvider } from "~/i18n/context";
 import { useApplySettings } from "~/hooks/useApplySettings";
 import { getLocalPlugins } from "~/services/local-plugins.server";
 import { updateSettingsEncryption } from "~/services/settings-encryption.server";
+import { prepareProviderSettingsSave } from "~/services/provider-settings-save.server";
+import { createProviderSettingsDrafts } from "~/services/provider-settings-drafts";
+import { validateOrigin } from "~/utils/security";
 import { buildEncryptedAuthFile, encodeMigrationToken } from "kiokuflow-sync-core/auth";
 import { EnterpriseProvider } from "~/contexts/EnterpriseContext";
 import type { EnterpriseSessionContext } from "~/types/enterprise";
@@ -46,6 +50,7 @@ import { resolveSubmittedGeminiApiKey } from "~/utils/settings-api-key";
 import { preserveOtherSettingsSection } from "~/utils/settings-form-sections";
 import { driveMigrationSummary } from "~/services/drive-migration.server";
 import { assertRagAccess, canUseRag } from "~/services/rag-access.server";
+import { prepareRagIndexSave, prepareRagIndexDeletion, prepareOkfSettingsSave } from "~/services/rag-settings-save";
 import {
   SettingsTemplate,
   isSettingsTabId,
@@ -79,8 +84,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   const driveSettings = await getSettings(validTokens.accessToken, validTokens.rootFolderId);
 
   let hubworkAccount: Awaited<ReturnType<typeof import("~/services/hubwork-accounts.server").getAccountByRootFolderId>> = null;
-  let hubworkLookupSucceeded = true;
-  try {
+  let hubworkLookupSucceeded = !isLocalRuntime();
+  if (!isLocalRuntime()) try {
     const { getAccountByOrganization, getAccountByRootFolderId, getAccountByEmail } = await import("~/services/hubwork-accounts.server");
     hubworkAccount = validTokens.currentOrgId
       ? await getAccountByOrganization(validTokens.currentOrgId)
@@ -118,7 +123,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       }
     }
   }
-  const settings = {
+  const settings = applyRuntimeSettings({
     ...driveSettings,
     ragAvailable: await canUseRag(validTokens.rootFolderId),
     hubwork: hubworkAccount?.plan
@@ -136,7 +141,7 @@ export async function loader({ request }: Route.LoaderArgs) {
           domainStatus: hubworkAccount.domainStatus || driveSettings.hubwork?.domainStatus,
         }
       : driveSettings.hubwork,
-  };
+  });
 
   // Persist plan/billingStatus into Drive settings.json so _index loader can
   // read it without querying Firestore on every page load.
@@ -260,16 +265,18 @@ export async function action({ request }: Route.ActionArgs) {
     }
     return Response.json(data, { ...init, headers });
   };
-  const currentSettings = await getSettings(validTokens.accessToken, validTokens.rootFolderId);
-
   const formData = await request.formData();
   const _action = formData.get("_action") as string;
+  const scopedRagSave = ["saveRagIndex", "deleteRagIndex", "saveOkf"].includes(_action);
+  if (scopedRagSave) validateOrigin(request);
   try {
+    const currentSettings = await getSettings(validTokens.accessToken, validTokens.rootFolderId, { fresh: scopedRagSave });
     switch (_action) {
       case "saveKakeratta": {
         const config = KakerattaSettingsSchema.parse(JSON.parse(String(formData.get("kakeratta") ?? "{}")));
+        if (isLocalRuntime() && currentSettings.kakeratta) config.timelineSync = currentSettings.kakeratta.timelineSync;
         validateKakerattaUrl(config);
-        if (config.enabled && config.timelineSync.enabled) {
+        if (!isLocalRuntime() && config.enabled && config.timelineSync.enabled) {
           const account = await getOwnedPersonalAccount(validTokens);
           if (!account || !isActivePremiumAccount(account)) return jsonWithCookie({ success: false, message: "Timeline synchronization requires your own active Premium plan." }, { status: 403 });
         }
@@ -277,7 +284,7 @@ export async function action({ request }: Route.ActionArgs) {
         config.timelineSync.enabledAt = config.timelineSync.enabled
           ? previousSync?.enabled && previousSync.name === config.timelineSync.name ? previousSync.enabledAt : new Date().toISOString()
           : previousSync?.enabledAt ?? "";
-        const ragError = getKakerattaRagError(config, currentSettings);
+        const ragError = getKakerattaRagError(config, isLocalRuntime() ? { ...currentSettings, usePersonalVertex: false } : currentSettings);
         if (ragError) return jsonWithCookie({ success: false, message: ragError }, { status: 400 });
         stopKakerattaPoll(validTokens.rootFolderId);
         const { activateDirectConnection } = await import("~/services/kakeratta-direct-store.server");
@@ -299,6 +306,7 @@ export async function action({ request }: Route.ActionArgs) {
         return jsonWithCookie({ success: true, message: "Kakeratta settings saved." });
       }
       case "saveGeneral": {
+        if (formData.has("providerDrafts")) validateOrigin(request);
         preserveOtherSettingsSection(formData, currentSettings);
         const apiPlan = (formData.get("apiPlan") as ApiPlan) || currentSettings.apiPlan;
         // GeneralTab hides the whole Gemini block (the model <select> included)
@@ -341,12 +349,12 @@ export async function action({ request }: Route.ActionArgs) {
         const workflowEnabled = formData.get("workflowEnabled") === "on";
         const ragFeatureEnabled = formData.get("ragFeatureEnabled") === "on";
         if (ragFeatureEnabled && !currentSettings.ragFeatureEnabled) await assertRagAccess(validTokens.rootFolderId);
-        const webpageBuilderEnabled = formData.get("webpageBuilderEnabled") === "on";
+        const webpageBuilderEnabled = isLocalRuntime() ? currentSettings.webpageBuilderEnabled : formData.get("webpageBuilderEnabled") === "on";
         // Same absent-vs-cleared distinction as selectedModel above: the whole
         // AI provider block is hidden on an org mount, so a missing field
         // means "not editable here". Reading it as false would turn personal
         // Vertex off every time an org member saved an unrelated setting.
-        const usePersonalVertex = formData.has("usePersonalVertex")
+        const usePersonalVertex = isLocalRuntime() ? currentSettings.usePersonalVertex === true : formData.has("usePersonalVertex")
           ? formData.get("usePersonalVertex") === "on"
           : currentSettings.usePersonalVertex === true;
         const personalVertexSource = formData.get("personalVertexSource") === "own" ? "own" : "prepaid";
@@ -379,7 +387,7 @@ export async function action({ request }: Route.ActionArgs) {
         const updatedSettings: UserSettings = {
           ...currentSettings,
           apiPlan,
-          providerDefaultModels: readProviderDefaultModels(formData, { ...currentSettings, apiPlan }),
+          providerDefaultModels: currentSettings.providerDefaultModels,
           selectedModel: selectedModel && isModelAllowedForPlan(apiPlan, selectedModel, !!currentSettings.openai?.encryptedApiKey, currentSettings.compatibleProviders, currentSettings.openai)
             ? selectedModel
             : getDefaultModelForPlan(apiPlan),
@@ -427,18 +435,29 @@ export async function action({ request }: Route.ActionArgs) {
           return jsonWithCookie({ success: false, message: describeError(error) });
         }
 
+        const providers = await prepareProviderSettingsSave(updatedSettings, validTokens, formData.get("providerDrafts"), request.signal);
+        Object.assign(updatedSettings, providers.settings);
+        updatedSettings.selectedModel = selectedModel && isModelAllowedForPlan(apiPlan, selectedModel, !!updatedSettings.openai?.encryptedApiKey, updatedSettings.compatibleProviders, updatedSettings.openai)
+          ? selectedModel : getDefaultModelForPlan(apiPlan);
+        updatedSettings.providerDefaultModels = readProviderDefaultModels(formData, updatedSettings);
+
+        // Validate cookie capacity before writing any provider changes to Drive.
+        const nextSession = await setTokens(request, { ...validTokens, ...providers.keys, ...(effectiveApiKey ? { geminiApiKey: effectiveApiKey } : {}), apiPlan, selectedModel: updatedSettings.selectedModel });
+        nextSession.set("language", language);
+        const nextCookie = await commitSession(nextSession).catch(async error => {
+          if (error instanceof Response) {
+            const body = await error.json().catch(() => null) as { error?: string } | null;
+            throw new Error(body?.error || "Could not save the provider session.");
+          }
+          throw error;
+        });
         await saveSettings(validTokens.accessToken, validTokens.rootFolderId, updatedSettings);
 
-        // Update session with API key and plan/model
-        // Use baseSession which already has refreshed tokens if applicable
         if (effectiveApiKey) {
-          const keySession = await setGeminiApiKey(request, effectiveApiKey);
-          baseSession.set("geminiApiKey", keySession.get("geminiApiKey"));
-
           // Refresh the encrypted API key in Hubwork Firestore only if the user
           // already has scheduled workflows (Scheduler needs it). When no
           // schedules exist, no copy is kept in Firestore.
-          if ((currentSettings.hubwork?.schedules?.length ?? 0) > 0) {
+          if (!isLocalRuntime() && (currentSettings.hubwork?.schedules?.length ?? 0) > 0) {
             try {
               const { updateAccount, encryptGeminiApiKey } = await import("~/services/hubwork-accounts.server");
               const hwAccount = await getOwnedPersonalAccount(validTokens);
@@ -448,13 +467,9 @@ export async function action({ request }: Route.ActionArgs) {
             } catch { /* best-effort */ }
           }
         }
-        baseSession.set("apiPlan", apiPlan);
-        baseSession.set("selectedModel", updatedSettings.selectedModel);
-        baseSession.set("language", language);
-
         return jsonWithCookie(
-          { success: true, message: "General settings saved.", apiKeyUpdated: !!effectiveApiKey },
-          { headers: { "Set-Cookie": await commitSession(baseSession) } }
+          { success: true, message: "General settings saved.", apiKeyUpdated: !!effectiveApiKey, providerDrafts: createProviderSettingsDrafts(updatedSettings) },
+          { headers: { "Set-Cookie": nextCookie } }
         );
       }
 
@@ -489,6 +504,45 @@ export async function action({ request }: Route.ActionArgs) {
         await saveSettings(validTokens.accessToken, validTokens.rootFolderId, updatedSettings);
         stopKakerattaPoll(validTokens.rootFolderId);
         return jsonWithCookie({ success: true, message: "MCP server settings saved." });
+      }
+
+      case "saveRagIndex": {
+        await assertRagAccess(validTokens.rootFolderId);
+        let prepared;
+        try {
+          prepared = prepareRagIndexSave(currentSettings,
+            String(formData.get("originalName") ?? ""), String(formData.get("name") ?? ""),
+            JSON.parse(String(formData.get("ragSetting") ?? "null")));
+        } catch (error) {
+          return jsonWithCookie({ success: false, message: describeError(error) });
+        }
+        await saveSettings(validTokens.accessToken, validTokens.rootFolderId, prepared.settings);
+        return jsonWithCookie({ success: true, message: currentSettings.language === "ja" ? "保存しました。" : "Index settings saved.", ragSettingName: prepared.name, ragSetting: prepared.setting });
+      }
+
+      case "deleteRagIndex": {
+        await assertRagAccess(validTokens.rootFolderId);
+        let prepared;
+        try { prepared = prepareRagIndexDeletion(currentSettings, String(formData.get("name") ?? "")); }
+        catch (error) { return jsonWithCookie({ success: false, message: describeError(error) }); }
+        await saveSettings(validTokens.accessToken, validTokens.rootFolderId, prepared.settings);
+        // Remove chunks only after the scoped settings deletion succeeds.
+        if (prepared.removedIndexes.length) {
+          const { deleteStore } = await import("~/services/rag-index.server");
+          for (const index of prepared.removedIndexes) {
+            try { await deleteStore(index, validTokens.rootFolderId); }
+            catch (error) { console.warn("[settings] Failed to delete RAG index:", describeError(error)); }
+          }
+        }
+        return jsonWithCookie({ success: true, message: currentSettings.language === "ja" ? "削除しました。" : "Index deleted." });
+      }
+
+      case "saveOkf": {
+        let updatedSettings;
+        try { updatedSettings = prepareOkfSettingsSave(currentSettings, String(formData.get("okfRoot") ?? "")); }
+        catch (error) { return jsonWithCookie({ success: false, message: describeError(error) }); }
+        await saveSettings(validTokens.accessToken, validTokens.rootFolderId, updatedSettings);
+        return jsonWithCookie({ success: true, message: currentSettings.language === "ja" ? "保存しました。" : "Knowledge folder saved.", okfRoot: updatedSettings.okfRoot });
       }
 
       case "saveRag": {
@@ -598,7 +652,7 @@ export async function action({ request }: Route.ActionArgs) {
 
       case "generateMigrationToken": {
         let account: Awaited<ReturnType<typeof import("~/services/hubwork-accounts.server").getAccountByRootFolderId>> = null;
-        try {
+        if (!isLocalRuntime()) try {
           const { getAccountByRootFolderId, getAccountByEmail } = await import("~/services/hubwork-accounts.server");
           account = await getAccountByRootFolderId(validTokens.rootFolderId);
           if (!account && validTokens.email) {
@@ -619,7 +673,7 @@ export async function action({ request }: Route.ActionArgs) {
         // organization someone belongs to: an org membership covers the shared
         // project, while syncing a personal Drive needs a personal Lite (or
         // Business) subscription of one's own.
-        const entitled = !!account && isActivePremiumAccount(account);
+        const entitled = isLocalRuntime() || (!!account && isActivePremiumAccount(account));
         if (!entitled) {
           return jsonWithCookie({ success: false, message: "A Premium plan is required to generate external sync tokens." }, { status: 403 });
         }
@@ -744,6 +798,7 @@ export async function action({ request }: Route.ActionArgs) {
       }
 
       case "hubwork-schedules": {
+        if (isLocalRuntime()) return jsonWithCookie({ success: false, message: "Scheduled workflows are unavailable in local mode." }, { status: 404 });
         const schedulesJson = formData.get("schedules") as string;
         let schedules: HubworkSchedule[];
         try {
@@ -857,12 +912,12 @@ export default function Settings() {
   useEffect(() => {
     const requestedTab = searchParams.get("tab");
     if (isSettingsTabId(requestedTab)) {
-      setActiveTab(requestedTab);
+      setActiveTab(settings.localMode && (requestedTab === "hubwork" || requestedTab === "enterprise") ? "ai" : requestedTab);
     }
     if (searchParams.has("mcp-oauth-return")) {
       setActiveTab("mcp");
     }
-    if (searchParams.has("hubwork_subscribed") || searchParams.has("hubwork_upgraded")) {
+    if (!settings.localMode && (searchParams.has("hubwork_subscribed") || searchParams.has("hubwork_upgraded"))) {
       setActiveTab("hubwork");
     }
     // Mirror the URL, so hubworkCallback clears on non-callback visits instead
@@ -885,7 +940,7 @@ export default function Settings() {
         { replace: true },
       );
     }
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams, settings.localMode]);
 
   return (
     <EnterpriseProvider
@@ -897,7 +952,7 @@ export default function Settings() {
       hasOrganizations={hasOrganizations}
     >
     <I18nProvider language={currentLang}>
-      <PluginProvider pluginConfigs={settings.plugins || []} language={currentLang} hasPremium={settings.hubwork?.plan === "business" || settings.hubwork?.plan === "granted"}>
+      <PluginProvider pluginConfigs={settings.plugins || []} language={currentLang} hasPremium={settings.localMode || settings.hubwork?.plan === "business" || settings.hubwork?.plan === "granted"}>
         <SettingsTemplate
           settings={settings}
           hasApiKey={hasApiKey}

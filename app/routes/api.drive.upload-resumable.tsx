@@ -1,3 +1,4 @@
+import { isLocalRuntime } from "~/services/app-runtime.server";
 import type { Route } from "./+types/api.drive.upload-resumable";
 import { requireAuth } from "~/services/session.server";
 import { getValidTokens } from "~/services/google-auth.server";
@@ -34,6 +35,7 @@ function guessUploadMimeType(fileName: string, requestedMimeType: string | null 
 }
 
 async function getMaxFileSize(rootFolderId: string, email?: string | null): Promise<number> {
+  if (isLocalRuntime()) return MAX_FILE_SIZE_PAID;
   try {
     const { getAccountByRootFolderIdOrEmail } = await import("~/services/hubwork-accounts.server");
     const account = await getAccountByRootFolderIdOrEmail(rootFolderId, email);

@@ -1,3 +1,4 @@
+import { isLocalRuntime } from "~/services/app-runtime.server";
 import type { Route } from "./+types/api.drive.upload";
 import { requireAuth } from "~/services/session.server";
 import { getValidTokens } from "~/services/google-auth.server";
@@ -23,8 +24,8 @@ export async function action({ request }: Route.ActionArgs) {
   const responseHeaders = setCookieHeader ? { "Set-Cookie": setCookieHeader } : undefined;
 
   // Determine upload limit based on plan
-  let maxFileSize = MAX_FILE_SIZE_FREE;
-  try {
+  let maxFileSize = isLocalRuntime() ? MAX_FILE_SIZE_PAID : MAX_FILE_SIZE_FREE;
+  if (!isLocalRuntime()) try {
     const { getAccountByRootFolderIdOrEmail } = await import("~/services/hubwork-accounts.server");
     const account = await getAccountByRootFolderIdOrEmail(validTokens.rootFolderId, validTokens.email);
     if (account?.plan) {

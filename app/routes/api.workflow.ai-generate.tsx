@@ -1,5 +1,6 @@
 import { getChatApiKey } from "~/types/settings";
 import type { Route } from "./+types/api.workflow.ai-generate";
+import { applyRuntimeSettings } from "~/services/app-runtime.server";
 import { requireAuth } from "~/services/session.server";
 import { generateWorkflowStream } from "~/services/gemini.server";
 import { getWorkflowSpecification, buildWorkflowUserPrompt } from "~/engine/workflowSpec";
@@ -99,7 +100,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   let settings;
   try {
-    settings = await getSettings(tokens.accessToken, tokens.rootFolderId);
+    settings = applyRuntimeSettings(await getSettings(tokens.accessToken, tokens.rootFolderId));
   } catch {
     // Use defaults if settings can't be loaded
   }

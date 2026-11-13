@@ -30,9 +30,10 @@ export async function action({ request }: Route.ActionArgs) {
       if (body.newPassword) return Response.json({ error: "Change the private-key password in General." }, { status: 400, headers });
       if (body.useOpenRouter !== undefined && typeof body.useOpenRouter !== "boolean") return Response.json({ error: "Invalid Jev mode." }, { status: 400, headers });
       const useOpenRouter = body.useOpenRouter ?? settings.jev?.useOpenRouter ?? false;
-      if (useOpenRouter && !settings.compatibleProviders?.openrouter?.encryptedApiKey) return Response.json({ error: "Configure OpenRouter first." }, { status: 400, headers });
+      const candidateRouterKey = body.action === "verify" && typeof body.openRouterApiKey === "string" ? body.openRouterApiKey.trim() : "";
+      if (useOpenRouter && !settings.compatibleProviders?.openrouter?.encryptedApiKey && !candidateRouterKey) return Response.json({ error: "Configure OpenRouter first." }, { status: 400, headers });
       const enteredKey = typeof body.apiKey === "string" ? body.apiKey.trim() : "";
-      const key = useOpenRouter ? valid.compatibleApiKeys?.openrouter : requestedProviderKey(enteredKey, valid.jevApiKey || "");
+      const key = useOpenRouter ? candidateRouterKey || valid.compatibleApiKeys?.openrouter : requestedProviderKey(enteredKey, valid.jevApiKey || "");
       if (!key) return Response.json({ error: "Enter the key or unlock it in General settings." }, { status: 401, headers });
       if (key.length > 1024 || /[\r\n]/.test(key)) return Response.json({ error: "Invalid API key." }, { status: 400, headers });
       // Confirm the exact candidate connection before changing settings or session keys.

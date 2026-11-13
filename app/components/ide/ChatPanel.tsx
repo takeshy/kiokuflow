@@ -336,6 +336,7 @@ export function ChatPanel({
   const [streamingContent, setStreamingContent] = useState("");
   const [streamingThinking, setStreamingThinking] = useState("");
   const [streamingToolCalls, setStreamingToolCalls] = useState<Message["toolCalls"]>([]);
+  const [streamingRagWarnings, setStreamingRagWarnings] = useState<string[]>([]);
   const [streamingRagSources, setStreamingRagSources] = useState<string[]>([]);
   const [streamingRagUsed, setStreamingRagUsed] = useState(false);
   const [streamingWebSearchUsed, setStreamingWebSearchUsed] = useState(false);
@@ -500,6 +501,7 @@ export function ChatPanel({
     setStreamingThinking("");
     setStreamingToolCalls([]);
     setStreamingRagSources([]);
+    setStreamingRagWarnings([]);
     setStreamingRagUsed(false);
     setStreamingWebSearchUsed(false);
   }, []);
@@ -763,6 +765,7 @@ export function ChatPanel({
       setStreamingThinking("");
       setStreamingToolCalls([]);
       setStreamingRagSources([]);
+      setStreamingRagWarnings([]);
       setStreamingRagUsed(false);
       setStreamingWebSearchUsed(false);
     };
@@ -1072,6 +1075,7 @@ export function ChatPanel({
       let webSearchUsed = false;
       let webSearchSources: NonNullable<Message["webSearchSources"]> = [];
       let ragSources: string[] = [];
+      let ragWarnings: string[] = [];
       let generatedImages: GeneratedImage[] = [];
       let mcpApps: McpAppInfo[] = [];
       const savedWebFiles = new Map<string, { path: string; action: "created" | "updated" }>();
@@ -1110,6 +1114,7 @@ export function ChatPanel({
           ragUsed: ragUsed || undefined,
           webSearchUsed: webSearchUsed || undefined,
           webSearchSources: webSearchSources.length > 0 ? webSearchSources : undefined,
+          ragWarnings: ragWarnings.length ? ragWarnings : undefined,
           ragSources:
             ragSources.length > 0 ? ragSources : undefined,
           generatedImages:
@@ -1307,6 +1312,8 @@ export function ChatPanel({
             case "rag_used":
               console.info("[RAG debug][client] received rag_used", chunk.ragSources ?? []);
               ragUsed = true;
+              ragWarnings = chunk.ragWarnings || [];
+              if (isActive()) setStreamingRagWarnings([...ragWarnings]);
               ragSources = chunk.ragSources || [];
               if (isActive()) {
                 setStreamingRagUsed(true);
@@ -1770,10 +1777,11 @@ export function ChatPanel({
         streamingThinking={streamingThinking}
         streamingToolCalls={streamingToolCalls}
         streamingRagSources={streamingRagSources}
+        streamingRagWarnings={streamingRagWarnings}
         streamingRagUsed={streamingRagUsed}
         streamingWebSearchUsed={streamingWebSearchUsed}
         isStreaming={isStreaming}
-        isPro={settings.hubwork?.plan === "business" || settings.hubwork?.plan === "granted"}
+        isPro={settings.localMode || settings.hubwork?.plan === "business" || settings.hubwork?.plan === "granted"}
         {...((SHOW_WEBPAGE_BUILDER && (settings.webpageBuilderEnabled ?? false))
           ? { onBuildWebApp: () => handleSend("", undefined, { skillId: "webpage-builder" }) }
           : // Opt-in advanced feature (Settings > General). The Business plan

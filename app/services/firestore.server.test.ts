@@ -11,7 +11,7 @@ test("Firestore recognizes metadata credentials without enabling credential-less
   for (const key of [
     "K_SERVICE", "GCE_METADATA_HOST", "GCE_METADATA_IP",
     "GOOGLE_APPLICATION_CREDENTIALS", "GCP_PROJECT_ID",
-    "GOOGLE_CLOUD_PROJECT", "FIRESTORE_DATABASE_ID",
+    "GOOGLE_CLOUD_PROJECT", "FIRESTORE_DATABASE_ID", "KIOKUFLOW_RUNTIME",
   ]) {
     delete env[key];
   }
@@ -22,7 +22,9 @@ test("Firestore recognizes metadata credentials without enabling credential-less
     [{ K_SERVICE: "gemihub" }, true],
     [{ GCE_METADATA_HOST: "172.28.1.1:8088" }, true],
     [{ GCE_METADATA_IP: "172.28.1.1:8088" }, true],
-    [{ GOOGLE_APPLICATION_CREDENTIALS: "/configured/credentials.json" }, true],
+    [{ GOOGLE_APPLICATION_CREDENTIALS: "/configured/credentials.json" }, false],
+    [{ KIOKUFLOW_RUNTIME: "hosted", GOOGLE_APPLICATION_CREDENTIALS: "/configured/credentials.json" }, true],
+    [{ KIOKUFLOW_RUNTIME: "local", K_SERVICE: "gemihub" }, false],
   ];
   try {
     for (const [overrides, expected] of cases) {

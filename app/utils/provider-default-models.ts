@@ -44,7 +44,7 @@ export function readProviderDefaultModels(form: FormData, settings: UserSettings
     if (!Object.prototype.hasOwnProperty.call(value, provider)) continue;
     const model = (value as Record<string, unknown>)[provider];
     // A provider without enabled models has no editable default yet.
-    if ((provider === "openrouter" || provider === "opencodego") && model === "") { models[provider] = ""; continue; }
+    if ((provider === "openai" || provider === "openrouter" || provider === "opencodego") && model === "") { models[provider] = ""; continue; }
     if (!isProviderDefaultModel(settings, provider, model)) throw new Error(`Invalid default model for ${provider}.`);
     models[provider] = model;
   }

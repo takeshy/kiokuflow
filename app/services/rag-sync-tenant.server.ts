@@ -546,5 +546,5 @@ export async function buildRagContext(params: {
   const { retrieveProjectRag } = await import("./project-rag-search.server");
   const { formatRagContext } = await import("./rag-context");
   const result = await retrieveProjectRag(params.ctx, params.tokens, params.settingName, params.query, { topK: params.topK, signal: params.signal });
-  return formatRagContext({ sources: [...new Set(result.results.map(hit => hit.docPath))], contexts: result.results.map(hit => ({ source: hit.docPath, text: hit.text, jevVerified: hit.jevVerified })) });
+  return formatRagContext({ warnings: result.warnings, sources: [...new Set(result.results.map(hit => hit.docPath))], contexts: result.results.map(hit => ({ source: hit.docPath, text: hit.text, jevVerified: hit.jevVerified, rerankScore: hit.rerankScore, rerankSkippedReason: hit.rerankSkippedReason })) });
 }

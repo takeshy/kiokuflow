@@ -1,5 +1,6 @@
 import type { FileListItem } from "~/contexts/EditorContext";
 import type { RagSetting } from "~/types/settings";
+import { resolveRerankProvider } from "./rag-search-options";
 import { getAllCachedFiles, getCachedFile, getCachedRemoteMeta, activeProjectMountKey } from "./indexeddb-cache";
 import { getCachedLoaderDataInMemory } from "./loader-data-memory";
 import { searchFileNames, searchFileContents } from "./file-search";
@@ -140,15 +141,15 @@ export function createLiveFileToolRunner(getContext: () => LiveFileContext, rag?
       if (typeof args.query !== "string" || !args.query.trim() || args.query.length > 16000) throw new Error("Enter a RAG query.");
       const response = await fetch("/api/rag/context", {
         method: "POST", headers: { "Content-Type": "application/json" }, signal,
-        body: JSON.stringify({ query: args.query, storeIds: [rag.setting.storeId], topK: rag.topK, jevFilter: rag.setting.jevRagFilterEnabled, searchUntilMatch: rag.setting.searchUntilMatch }),
+        body: JSON.stringify({ query: args.query, storeIds: [rag.setting.storeId], topK: rag.topK, rerankProvider: resolveRerankProvider(rag.setting), hybridSearch: rag.setting.hybridSearch !== false, searchUntilMatch: rag.setting.searchUntilMatch }),
       });
-      const result = await response.json() as { error?: string; contexts?: { source: string; text: string }[] }; checkScope();
+      const result = await response.json() as { error?: string; warnings?: string[]; contexts?: { source: string; text: string }[] }; checkScope();
       if (!response.ok) throw new Error(result.error || "RAG search failed");
       let remaining = MAX_TEXT;
       const contexts = (result.contexts || []).filter(item => !isLivePrivatePath(item.source, context.secretFolder)).slice(0, 20).map(item => {
         const text = item.text.slice(0, Math.min(6000, remaining)); remaining -= text.length; return { source: item.source, text };
       }).filter(item => item.text);
-      return { index: rag.name, contexts, scope: "server-indexed content only" };
+      return { index: rag.name, contexts, ...(result.warnings?.length ? { warnings: result.warnings } : {}), scope: "server-indexed content only" };
     }
     return { error: "Live only supports file reading and search." };
   };

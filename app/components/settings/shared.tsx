@@ -50,11 +50,11 @@ export function Label({ htmlFor, children }: { htmlFor?: string; children: React
   );
 }
 
-export function SaveButton({ loading }: { loading?: boolean }) {
+export function SaveButton({ loading, disabled }: { loading?: boolean; disabled?: boolean }) {
   return (
     <button
       type="submit"
-      disabled={loading}
+      disabled={loading || disabled}
       className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm"
     >
       {loading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}

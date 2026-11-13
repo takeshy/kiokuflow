@@ -9,7 +9,7 @@ tags:
 ---
 # Self-Hosting
 
-kiokuflow runs entirely on your own infrastructure: a Node.js server, your Google Cloud OAuth client, and your Gemini API key. No database is required — all user data lives in the user's Google Drive.
+kiokuflow runs on your own infrastructure with a Node.js server, your Google Cloud OAuth client, and your chosen AI provider's API key. Documents and settings live in the user's Google Drive. Local RAG indexes use JSON metadata and Float32 binary vectors on the server's disk; no Firestore database is required.
 
 For the managed Cloud Run / Terraform deployment used by kiokuflow.net, see [Infrastructure](infrastructure.md).
 
@@ -82,6 +82,9 @@ GOOGLE_CLIENT_SECRET=GOCSPX-your-client-secret
 GOOGLE_PICKER_API_KEY=your-browser-api-key
 GOOGLE_REDIRECT_URI=http://localhost:8132/auth/google/callback
 SESSION_SECRET=<random string>
+# Optional; standalone servers use local mode by default, even with ADC installed.
+KIOKUFLOW_RUNTIME=local
+LOCAL_RAG_DIR=data/rag
 # Optional: managed kiokuflow OKF distribution in private Cloud Storage
 KIOKUFLOW_OKF_BUCKET=<bucket-name>
 KIOKUFLOW_OKF_PREFIX=gemihub-okf
@@ -110,6 +113,17 @@ The dev server port is `8132`, configured in `vite.config.ts`. To change it, upd
 
 Chat, workflows, and file editing are ready.
 
+Local mode includes Premium personal features without a kiokuflow subscription:
+RAG, PDF export, edit URLs, external sync token export, larger uploads and manual
+Google Sheets/Gmail/Calendar workflow nodes. Provider API usage is billed to your
+own provider account. In **Settings > RAG**, create and save a vector index, then
+sync its target folders. Embedding and reranking use the selected provider APIs;
+vector and keyword retrieval run locally.
+
+Keep `LOCAL_RAG_DIR` on persistent storage (the default is `data/rag`). When
+switching from hosted Firestore RAG or moving to another server, sync each index
+once to rebuild it locally. This does not delete the hosted index.
+
 ## Production
 
 ### Build and run
@@ -126,6 +140,8 @@ npm run start
 ```bash
 docker build -t gemihub .
 docker run -p 8080:8080 \
+  -v kiokuflow-data:/app/data \
+  -e KIOKUFLOW_RUNTIME=local \
   -e GOOGLE_CLIENT_ID=... \
   -e GOOGLE_CLIENT_SECRET=... \
   -e GOOGLE_PICKER_API_KEY=... \
@@ -136,6 +152,16 @@ docker run -p 8080:8080 \
 
 Remember to add the production redirect URI to the OAuth client in the Google Cloud Console, and to publish the OAuth consent screen if users other than your test accounts will sign in.
 
-## What self-hosting does not include
+## Hosted-only features
 
-Paid-plan features of the hosted service — page hosting from `web/`, custom domains, scheduled workflows, Google Sheets nodes, organization projects on Cloud Storage and Vertex AI — depend on Firestore, Cloud Storage, and Stripe wiring described in [Premium Plan](premium.md) and [Storage Mounts & AI Providers](mounts.md). A plain self-hosted instance runs the free feature set against the user's own Drive.
+Public sites and custom domains, scheduled workflows, organization projects,
+Vertex AI and Kakeratta Timeline synchronization are unavailable in local mode.
+Local mode never connects to Firestore, even if the developer has Application
+Default Credentials or Firestore project variables configured.
+
+Cloud Run (`K_SERVICE`) and servers with `GCE_METADATA_HOST` or `GCE_METADATA_IP`
+use hosted mode by default. Other managed deployments must explicitly set
+`KIOKUFLOW_RUNTIME=hosted`; hosted features then require the credentials and
+infrastructure described in [Premium Plan](premium.md) and
+[Storage Mounts & AI Providers](mounts.md). Runtime mode is server configuration;
+request hostnames and saved settings cannot grant local Premium access.

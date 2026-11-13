@@ -1,4 +1,5 @@
 import type { Route } from "./+types/api.workflow.ai-prompt";
+import { applyRuntimeSettings } from "~/services/app-runtime.server";
 import { requireAuth } from "~/services/session.server";
 import { getWorkflowSpecification, buildWorkflowUserPrompt } from "~/engine/workflowSpec";
 import { getSettings } from "~/services/user-settings.server";
@@ -45,7 +46,7 @@ export async function action({ request }: Route.ActionArgs) {
   // Build dynamic workflow spec with user's settings context
   let settings;
   try {
-    settings = await getSettings(tokens.accessToken, tokens.rootFolderId);
+    settings = applyRuntimeSettings(await getSettings(tokens.accessToken, tokens.rootFolderId));
   } catch {
     // Use defaults if settings can't be loaded
   }

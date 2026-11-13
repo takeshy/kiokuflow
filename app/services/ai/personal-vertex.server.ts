@@ -1,3 +1,4 @@
+import { isLocalRuntime } from "~/services/app-runtime.server";
 /**
  * Personal (non-org) Vertex AI on the Drive mount.
  *
@@ -98,7 +99,7 @@ export function personalVertexRunForUser(
   email: string | undefined,
   settings: PersonalVertexSettings | undefined | null,
 ): PersonalVertexRun | null {
-  if (settings?.usePersonalVertex !== true) return null;
+  if (isLocalRuntime() || settings?.usePersonalVertex !== true) return null;
   const uid = emailToUid(email ?? "");
   if (!uid) return null;
   return resolvePersonalVertexRun(uid, settings);

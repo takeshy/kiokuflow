@@ -1,5 +1,7 @@
 import { ragSettingDisplayName } from "~/config/branding";
-import { resolveRagTopK } from "~/services/rag-search-options";
+import { resolveRagTopK, resolveRerankProvider } from "~/services/rag-search-options";
+import { useRagConnections } from "~/hooks/useRagConnections";
+import { RerankingSelect } from "~/components/settings/RerankingSelect";
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { ArrowLeft, Search, Loader2, FileCode, FileText, FileJson, File } from "lucide-react";
 import { ICON } from "~/utils/icon-sizes";
@@ -36,7 +38,7 @@ function getFileIcon(name: string) {
 }
 
 type SearchMethod = "keyword" | "expanded";
-export function SearchPanel({ ragAvailable = false, ragStoreIds, ragSettingName = "gemihub", ragSettings, jevAvailable = false, ragTopK, fileList, onSelectFile, onClose, initialQuery = "", initialTarget, autoSearch = false, workspaceKey = "" }: SearchPanelProps) {
+export function SearchPanel({ ragAvailable = false, ragStoreIds, ragSettingName = "gemihub", ragSettings, ragTopK, fileList, onSelectFile, onClose, initialQuery = "", initialTarget, autoSearch = false, workspaceKey = "" }: SearchPanelProps) {
   const { t, language } = useI18n();
   const project = useEnterpriseSelection();
   const [target, setTarget] = useState<SearchTarget>(initialTarget || (autoSearch ? "content" : "files"));
@@ -54,10 +56,15 @@ export function SearchPanel({ ragAvailable = false, ragStoreIds, ragSettingName 
   const [searchRagName, setSearchRagName] = useState(ragSettingName);
   const currentRagSetting = ragSettings?.[searchRagName];
   const effectiveStoreIds = useMemo(() => ragSettings ? currentRagSetting?.storeId ? [currentRagSetting.storeId] : [] : ragStoreIds, [ragSettings, currentRagSetting?.storeId, ragStoreIds]);
-  const batchTopK = resolveRagTopK(currentRagSetting, ragTopK);
-  const [jevEnabled, setJevEnabled] = useState(currentRagSetting?.jevRagFilterEnabled !== false);
+  const defaultTopK = resolveRagTopK(currentRagSetting, ragTopK);
+  const scope = JSON.stringify([workspaceKey, project?.projectId, searchRagName]);
+  const [topKOverride, setTopKOverride] = useState<{ scope: string; value: number }>();
+  const batchTopK = topKOverride?.scope === scope ? topKOverride.value : defaultTopK;
+  const { connections, error: connectionError, refresh: refreshConnections } = useRagConnections(project?.projectId, "", ragAvailable);
+  const [rerankProvider, setRerankProvider] = useState(resolveRerankProvider(currentRagSetting));
+  const [hybridSearch, setHybridSearch] = useState(currentRagSetting?.hybridSearch !== false);
   const [untilMatch, setUntilMatch] = useState(currentRagSetting?.searchUntilMatch === true);
-  const jevActive = jevAvailable && jevEnabled;
+  const jevActive = rerankProvider !== "off";
   const canRag = ragAvailable && (project ? !!searchRagName : effectiveStoreIds.length > 0);
 
   const resetSearch = useCallback(() => {
@@ -98,18 +105,18 @@ export function SearchPanel({ ragAvailable = false, ragStoreIds, ragSettingName 
         try {
           const response = await fetch(project ? "/api/rag/search" : "/api/search", {
             method: "POST", headers: { "Content-Type": "application/json" }, signal: controller.signal,
-            body: JSON.stringify(project ? { projectId: project.projectId, ragSettingName: searchRagName, query: q, topK: batchTopK, jevFilter: jevActive, searchUntilMatch: jevActive && untilMatch } : { mode: "rag", query: q, ragStoreIds: effectiveStoreIds, topK: batchTopK, jevFilter: jevActive, searchUntilMatch: jevActive && untilMatch }),
+            body: JSON.stringify(project ? { projectId: project.projectId, ragSettingName: searchRagName, query: q, topK: batchTopK, rerankProvider, hybridSearch, searchUntilMatch: jevActive && untilMatch } : { mode: "rag", query: q, ragStoreIds: effectiveStoreIds, topK: batchTopK, rerankProvider, hybridSearch, searchUntilMatch: jevActive && untilMatch }),
           });
           const data = await response.json();
           if (!response.ok) throw new Error(data.error || t("search.error"));
           if (!current()) return;
-          const hits = project ? (data.results || []).map((result: { docPath: string; text: string; contentType?: string; jevVerified?: boolean }) => ({ title: result.docPath, snippet: result.text, mimeType: result.contentType, jevVerified: result.jevVerified })) : data.results || [];
+          const hits = project ? (data.results || []).map((result: { docPath: string; text: string; contentType?: string; jevVerified?: boolean; retrievalScore?: number; retrievalSource?: string; rerankScore?: number; rerankSkippedReason?: string }) => ({ title: result.docPath, snippet: result.text, mimeType: result.contentType, jevVerified: result.jevVerified, retrievalScore: result.retrievalScore, retrievalSource: result.retrievalSource, rerankScore: result.rerankScore, rerankSkippedReason: result.rerankSkippedReason })) : data.results || [];
           const semantic = resolveRagResults(hits, fileList);
           localResults = serverOnly ? mergeFileSearchResults(semantic) : mergeFileSearchResults(keywords, semantic, localResults);
           setRagScope(serverOnly ? "server" : "hybrid");
-          const warnings = [];
+          const warnings: string[] = Array.isArray(data.warnings) ? data.warnings : [];
           if (data.candidateLimitReached) warnings.push(language === "ja" ? "1000候補の検索上限に達しました。検索条件を絞って再検索してください。" : "Reached the 1,000-candidate limit. Narrow the query and search again.");
-          if (data.uncheckedCount) warnings.push(language === "ja" ? "一部の画像・PDFはJevで判定できず、未判定の候補として表示しています。" : "Some media could not be judged and is shown as unchecked candidates.");
+          if (data.uncheckedCount) warnings.push(language === "ja" ? "一部のメディアは採点できないため元の検索順位を保持しています。" : "Some media could not be judged and is shown as unchecked candidates.");
           if (warnings.length) setNotice(warnings.join(" "));
         } catch (cause) {
           if (!current()) return;
@@ -129,7 +136,7 @@ export function SearchPanel({ ragAvailable = false, ragStoreIds, ragSettingName 
     } finally {
       if (current()) setSearching(false);
     }
-  }, [query, target, fileList, canRag, ragAvailable, effectiveStoreIds, batchTopK, searchRagName, jevActive, untilMatch, project, t, language]);
+  }, [query, target, fileList, canRag, ragAvailable, effectiveStoreIds, batchTopK, searchRagName, jevActive, rerankProvider, hybridSearch, untilMatch, project, t, language]);
 
   useEffect(() => {
     if (autoSearch && initialQuery && !autoRunRef.current) {
@@ -151,16 +158,23 @@ export function SearchPanel({ ragAvailable = false, ragStoreIds, ragSettingName 
       {target === "content" && ragAvailable && <div className="space-y-2 px-2 pt-2 text-xs">
         {ragSettings && Object.keys(ragSettings).length > 0 && <label className="block">RAG<select aria-label="RAG" value={searchRagName} onChange={event => {
           resetSearch(); setSearchRagName(event.target.value);
-          setJevEnabled(ragSettings[event.target.value]?.jevRagFilterEnabled !== false);
+          setRerankProvider(resolveRerankProvider(ragSettings[event.target.value]));
+          setHybridSearch(ragSettings[event.target.value]?.hybridSearch !== false);
           setUntilMatch(ragSettings[event.target.value]?.searchUntilMatch === true);
+          setTopKOverride(undefined);
         }} className="mt-1 w-full rounded border border-gray-300 bg-white p-1 dark:border-gray-700 dark:bg-gray-900">{Object.keys(ragSettings).map(name => <option key={name} value={name} disabled={!project && !ragSettings[name].storeId}>{ragSettingDisplayName(name)}</option>)}</select></label>}
-        <p>Top K: {batchTopK}</p>
-        {jevAvailable && <>
-          <label className="flex items-center gap-2"><input type="checkbox" checked={jevEnabled} onChange={event => { resetSearch(); setJevEnabled(event.target.checked); }} />{language === "ja" ? "Jevで一致を判定する" : "Check relevance with Jev"}</label>
-          {jevActive && <p className="text-[10px] text-gray-500">{language === "ja" ? "Top Kは1回に判定する候補数です。" : "Top K is the number of candidates judged per batch."}</p>}
-          <label className="flex items-center gap-2"><input type="checkbox" checked={jevActive && untilMatch} disabled={!jevActive} onChange={event => { resetSearch(); setUntilMatch(event.target.checked); }} />{language === "ja" ? "一致するまで検索" : "Search until a match is found"}</label>
-          <p className="text-[10px] text-gray-500">{language === "ja" ? "一致が見つかるか候補が尽きるまで、Top K件ずつ確認します（最大1000候補）。" : "Check Top K batches until a match is found or candidates run out (up to 1,000 candidates)."}</p>
-        </>}
+        <details className="rounded border border-gray-200 p-2 dark:border-gray-700">
+        <summary className="cursor-pointer font-medium">{language === "ja" ? "検索設定" : "Search settings"} · Top K: {batchTopK}</summary>
+        <div className="mt-2 max-h-[40vh] space-y-2 overflow-y-auto">
+        <p className="text-[10px] text-gray-500">{language === "ja" ? "この検索だけに適用します。保存済みの設定は変更しません。" : "Applies to this search only. Saved defaults stay unchanged."}</p>
+        <label className="flex flex-wrap items-center gap-2">Top K<input type="number" min={1} max={20} value={batchTopK} onChange={event => { resetSearch(); setTopKOverride({ scope, value: resolveRagTopK({ topK: Number(event.target.value) || 1 }) }); }} className="w-16 rounded border bg-transparent p-1" /></label>
+        <button type="button" onClick={() => { resetSearch(); setTopKOverride(undefined); }} className="text-blue-600 underline">{language === "ja" ? `既定のTop Kに戻す（${defaultTopK}）` : `Reset Top K to default (${defaultTopK})`}</button>
+        <label className="flex items-center gap-2"><input type="checkbox" checked={hybridSearch} onChange={event => { resetSearch(); setHybridSearch(event.target.checked); }} />{language === "ja" ? "ハイブリッド検索" : "Hybrid search"}</label>
+        <RerankingSelect value={rerankProvider} onChange={provider => { resetSearch(); setRerankProvider(provider); }} connections={connections} error={connectionError} onRefresh={refreshConnections} projectId={project?.projectId} />
+        <label className="flex items-center gap-2"><input type="checkbox" checked={jevActive && untilMatch} disabled={!jevActive} onChange={event => { resetSearch(); setUntilMatch(event.target.checked); }} />{language === "ja" ? "回答が見つかるまで検索する" : "Search until an answer is found"}</label>
+        {jevActive && <p className="text-[10px] text-gray-500">{language === "ja" ? "Top Kは採点後の件数です。繰り返し時は40件ずつ、2点以上が見つかるまで確認します（最大1000候補）。" : "Top K limits final results. Repeated searches score groups of 40 until relevance reaches 2/3 (up to 1,000 candidates)."}</p>}
+        </div>
+        </details>
       </div>}
       <form className="space-y-2 px-2 py-2" onSubmit={event => { event.preventDefault(); void runSearch(); }}>
         <textarea ref={inputRef} aria-label={t(target === "files" ? "search.filePlaceholder" : "search.contentPlaceholder")} placeholder={t(target === "files" ? "search.filePlaceholder" : "search.contentPlaceholder")} value={query} maxLength={16000} rows={target === "files" ? 1 : 3} onChange={event => { resetSearch(); setQuery(event.target.value); }} onKeyDown={event => {
@@ -184,7 +198,7 @@ export function SearchPanel({ ragAvailable = false, ragStoreIds, ragSettingName 
           </div>
           {results.length === 0 && <p className="py-4 text-center text-xs text-gray-400">{t("search.noResults")}</p>}
           <div className="space-y-1">{results.map((result, index) => <button type="button" key={result.id || `${result.location}-${index}`} title={result.location || result.name} disabled={!result.id} onClick={() => { if (result.id) onSelectFile(result.id, result.name, result.mimeType || (/\.ya?ml$/i.test(result.name) ? "text/yaml" : "text/plain")); }} className="flex w-full items-start gap-1.5 rounded px-1.5 py-1 text-left text-xs hover:bg-gray-100 disabled:cursor-default disabled:opacity-60 dark:hover:bg-gray-800">
-            {getFileIcon(result.name)}<span className="min-w-0 flex-1"><span className="block truncate font-medium text-gray-700 dark:text-gray-300">{result.name}</span><span className="block truncate text-[10px] text-gray-400">{result.location}</span>{result.match === "rag" && <span className="text-[10px] text-blue-500">{result.jevVerified === false ? (language === "ja" ? "RAG · Jev未判定" : "RAG · unchecked") : "RAG"}</span>}{result.snippet && <span className="mt-0.5 block whitespace-pre-wrap break-words text-[10px] text-gray-500 dark:text-gray-400">{result.snippet}</span>}</span>
+            {getFileIcon(result.name)}<span className="min-w-0 flex-1"><span className="block truncate font-medium text-gray-700 dark:text-gray-300">{result.name}</span><span className="block truncate text-[10px] text-gray-400">{result.location}</span>{result.match === "rag" && <span className="text-[10px] text-blue-500">{result.jevVerified === false ? (language === "ja" ? "RAG · 未採点" : "RAG · unchecked") : "RAG"}</span>}{result.retrievalScore !== undefined && <span className="ml-1 text-[10px] text-gray-500">score: {result.retrievalScore.toFixed(4)}{result.retrievalSource ? ` (${result.retrievalSource})` : ""}</span>}{result.rerankScore !== undefined && <span className="ml-1 text-[10px] text-blue-500">rerank: {result.rerankScore.toFixed(3)}/3</span>}{result.rerankSkippedReason && <span className="block text-[10px] text-amber-600">{result.rerankSkippedReason}</span>}{result.snippet && <span className="mt-0.5 block whitespace-pre-wrap break-words text-[10px] text-gray-500 dark:text-gray-400">{result.snippet}</span>}</span>
           </button>)}</div>
         </>}
       </div>

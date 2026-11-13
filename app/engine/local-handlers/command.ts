@@ -45,6 +45,7 @@ export interface CommandNodeLocalResult {
   mcpApps?: McpAppInfo[];
   toolCalls?: CommandToolCall[];
   ragSources?: string[];
+  ragWarnings?: string[];
   webSearchSources?: string[];
   attachmentNames?: string[];
   driveEvents: DriveEvent[];
@@ -306,9 +307,13 @@ export async function handleCommandNodeLocal(
   }
 
   // Normal chat with tools
+  let ragSources: string[] | undefined;
+  const ragWarnings: string[] = [];
   if (ragStoreIds?.length) {
     const rag = await loadRagContext(messages, ragStoreIds, undefined, abortSignal);
     systemPrompt = [systemPrompt, rag.prompt].filter(Boolean).join("\n\n");
+    ragSources = rag.sources;
+    ragWarnings.push(...rag.warnings ?? []);
   }
   const generator = isExternalChatModel(modelName) ? openAIChatWithToolsStream(modelName, messages, tools, systemPrompt, executeToolCall, {
     webSearchEnabled, abortSignal,
@@ -335,7 +340,7 @@ export async function handleCommandNodeLocal(
 
   let fullResponse = "";
   const collectedToolCalls: CommandToolCall[] = [];
-  let collectedRagSources: string[] | undefined;
+  let collectedRagSources = ragSources;
   let collectedWebSources: string[] | undefined;
   let pendingToolCall: { name: string; args: Record<string, unknown> } | null = null;
 
@@ -350,8 +355,9 @@ export async function handleCommandNodeLocal(
         collectedToolCalls.push({ ...pendingToolCall, result: chunk.toolResult.result });
         pendingToolCall = null;
       }
-    } else if (chunk.type === "rag_used" && chunk.ragSources) {
-      collectedRagSources = chunk.ragSources;
+    } else if (chunk.type === "rag_used") {
+      if (chunk.ragSources) collectedRagSources = chunk.ragSources;
+      ragWarnings.push(...chunk.ragWarnings ?? []);
     } else if (chunk.type === "web_search_used" && chunk.ragSources) {
       collectedWebSources = chunk.ragSources;
     } else if (chunk.type === "error") {
@@ -370,6 +376,7 @@ export async function handleCommandNodeLocal(
     mcpApps: collectedMcpApps.length > 0 ? collectedMcpApps : undefined,
     toolCalls: collectedToolCalls.length > 0 ? collectedToolCalls : undefined,
     ragSources: collectedRagSources,
+    ragWarnings,
     webSearchSources: collectedWebSources,
     attachmentNames: attachments.length > 0 ? attachments.map(a => a.name) : undefined,
     driveEvents,

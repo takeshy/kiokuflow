@@ -4,6 +4,7 @@ import { getValidTokens } from "~/services/google-auth.server";
 import { getSettings } from "~/services/user-settings.server";
 import { unlockSettingsKeys } from "~/services/api-key-password.server";
 import { validateOrigin } from "~/utils/security";
+import { isLocalRuntime } from "~/services/app-runtime.server";
 
 export async function action({ request }: Route.ActionArgs) {
   if (request.method !== "POST") return new Response("Method not allowed", { status: 405 });
@@ -29,7 +30,7 @@ export async function action({ request }: Route.ActionArgs) {
     // Refresh the server-side encrypted API key in Firestore only if the user
     // has scheduled workflows registered (the Scheduler needs it). Otherwise,
     // no server-side copy is kept.
-    if ((settings.hubwork?.schedules?.length ?? 0) > 0) {
+    if (!isLocalRuntime() && (settings.hubwork?.schedules?.length ?? 0) > 0) {
       try {
         const { getAccountByRootFolderId, getAccountByEmail, updateAccount, encryptGeminiApiKey } = await import("~/services/hubwork-accounts.server");
         let account = await getAccountByRootFolderId(validTokens.rootFolderId);

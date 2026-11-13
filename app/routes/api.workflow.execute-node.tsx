@@ -1,3 +1,4 @@
+import { isLocalRuntime } from "~/services/app-runtime.server";
 import { explicitMcpApproval, rememberMcpTool, McpApprovalRequiredError } from "~/services/mcp-approval.server";
 import type { Route } from "./+types/api.workflow.execute-node";
 import { requireAuth } from "~/services/session.server";
@@ -112,7 +113,7 @@ export async function action({ request }: Route.ActionArgs) {
     settings = await getSettings(validTokens.accessToken, validTokens.rootFolderId);
   } catch { /* ignore */ }
 
-  if (SHEET_NODE_TYPES.has(nodeType)) {
+  if (!isLocalRuntime() && SHEET_NODE_TYPES.has(nodeType)) {
     const { hasBusinessFeatures } = await import("~/types/hubwork");
     const hubworkAccount = await getAccountByRootFolderId(validTokens.rootFolderId);
     if (!hubworkAccount || !hasBusinessFeatures(hubworkAccount)) {
@@ -121,7 +122,7 @@ export async function action({ request }: Route.ActionArgs) {
         { status: 403, headers: responseHeaders }
       );
     }
-  } else if (GMAIL_NODE_TYPES.has(nodeType) || CALENDAR_NODE_TYPES.has(nodeType)) {
+  } else if (!isLocalRuntime() && (GMAIL_NODE_TYPES.has(nodeType) || CALENDAR_NODE_TYPES.has(nodeType))) {
     const { hasPaidFeatures } = await import("~/types/hubwork");
     const hubworkAccount = await getAccountByRootFolderId(validTokens.rootFolderId);
     if (!hubworkAccount || !hasPaidFeatures(hubworkAccount)) {
@@ -193,6 +194,7 @@ export async function action({ request }: Route.ActionArgs) {
         // log shows the same tool/RAG/web-search lines as a local command node.
         const pushLog = (message: string, input?: Record<string, unknown>, output?: unknown) =>
           logs.push({ nodeId: node.id, nodeType: node.type, message, status: "info", timestamp: new Date().toISOString(), input, output });
+        for (const warning of cmdResult.ragWarnings ?? []) pushLog(`RAG warning: ${warning}`);
         if (cmdResult.attachmentNames && cmdResult.attachmentNames.length > 0) pushLog(`Attachments: ${cmdResult.attachmentNames.join(", ")}`);
         for (const tc of cmdResult.toolCalls ?? []) pushLog(`Tool: ${tc.name}`, tc.args, tc.result);
         if (cmdResult.ragSources && cmdResult.ragSources.length > 0) pushLog(`RAG sources: ${cmdResult.ragSources.join(", ")}`);

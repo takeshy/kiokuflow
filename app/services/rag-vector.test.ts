@@ -1,3 +1,5 @@
+// This suite exercises the hosted Firestore path.
+process.env.KIOKUFLOW_RUNTIME = "hosted";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { embeddingConfig } from "./rag-config";
@@ -61,6 +63,37 @@ test("embedding errors and unsupported OpenAI media fail before any index replac
   await assert.rejects(embedRagInputs([{ inlineData: { mimeType: "image/png", data: "AA==" } }], { apiKey: "synthetic-key", provider: "openai", model: "text-embedding-3-small" }), /accept text/);
 });
 
+test("Gemini Embedding 2 keeps every PDF text chunk separate across batch boundaries", async t => {
+  const sizes: number[] = [];
+  let offset = 0;
+  t.mock.method(globalThis, "fetch", async (_url: unknown, init: RequestInit) => {
+    const body = JSON.parse(String(init.body));
+    sizes.push(body.requests.length);
+    const embeddings = body.requests.map((request: { content: { parts: { text: string }[] } }) => {
+      assert.equal(request.content.parts.length, 1, "different chunks must never be merged into one multimodal input");
+      assert.equal(request.content.parts[0].text, `title: none | text: PDF chunk ${offset}`);
+      return { values: [++offset, ...Array(2047).fill(0)] };
+    });
+    return Response.json({ embeddings });
+  });
+  const vectors = await embedRagInputs(Array.from({ length: 66 }, (_, i) => `PDF chunk ${i}`), { provider: "gemini", apiKey: "synthetic", model: "gemini-embedding-2" });
+  assert.deepEqual(sizes, [32, 32, 2]);
+  assert.deepEqual(vectors.map(vector => vector[0]), Array.from({ length: 66 }, (_, i) => i + 1));
+});
+
+test("Gemini preserves text order around isolated scanned PDF media and rejects incomplete responses", async t => {
+  const sizes: number[] = [];
+  t.mock.method(globalThis, "fetch", async (_url: unknown, init: RequestInit) => {
+    const body = JSON.parse(String(init.body)); sizes.push(body.requests.length);
+    if (sizes.length === 2) assert.deepEqual(body.requests[0].content.parts, [{ inlineData: { mimeType: "application/pdf", data: "cGRm" } }]);
+    return Response.json({ embeddings: body.requests.map(() => ({ values: Array(2048).fill(0.1) })) });
+  });
+  assert.equal((await embedRagInputs(["a", "b", { inlineData: { mimeType: "application/pdf", data: "cGRm" } }, "c"], { provider: "gemini", apiKey: "synthetic", model: "gemini-embedding-2" })).length, 4);
+  assert.deepEqual(sizes, [2, 1, 1]);
+  t.mock.method(globalThis, "fetch", async () => Response.json({ embeddings: [{ values: Array(2048).fill(0.1) }] }));
+  await assert.rejects(embedRagInputs(["a", "b"], { provider: "gemini", apiKey: "synthetic", model: "gemini-embedding-2" }), /expected 2, received 1/);
+});
+
 test("paid RAG entitlement rejects missing, disabled and canceled accounts", async () => {
   for (const account of [null, { plan: "pro", accountStatus: "disabled", billingStatus: "active" }, { plan: "pro", accountStatus: "enabled", billingStatus: "canceled" }, { plan: null, accountStatus: "enabled", billingStatus: "active" }]) {
     const deps = { isFirestoreAvailable: () => true, getAccountByRootFolderId: async () => account as HubworkAccount | null, getAccountByOrganization: async () => account as HubworkAccount | null };
@@ -119,8 +152,13 @@ test("document replacement writes all new chunks before removing obsolete ones",
   await registerSingleFile("synthetic-key", ragIndexId("root", "notes", setting), "Notes/a.md", "a".repeat(150), null, { rootFolderId: "root" }, {
     assertRagAccess: async () => {}, embedRagInputs: async (inputs) => inputs.map(() => Array(2048).fill(0.1)), getFirestore: () => db as never,
   });
-  assert.deepEqual(events, ["set", "set", "commit", "delete:obsolete", "commit"]);
-  assert.ok(writes.every((write) => write.orgId === "personal-rag-v1" && write.docPath === "Notes/a.md"));
+  assert.deepEqual(events, ["set", "set", "set", "commit", "delete:obsolete", "set", "commit"]);
+  const chunks = writes.filter(write => !write.revision);
+  assert.equal(chunks.length, 2);
+  assert.ok(chunks.every(write => write.orgId === "personal-rag-v1" && write.docPath === "Notes/a.md"));
+  const revisions = writes.filter(write => write.revision);
+  assert.equal(revisions.length, 2, "both replacement and cleanup commits invalidate lexical caches");
+  assert.notEqual(revisions[0].revision, revisions[1].revision);
 });
 
 test("Office text extraction preserves Word paragraphs and Excel shared strings", () => {

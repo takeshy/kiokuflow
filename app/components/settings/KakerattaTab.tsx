@@ -82,7 +82,7 @@ export function KakerattaTab({ settings }: { settings: UserSettings }) {
   }}>
     <h2 className="text-lg font-semibold">Kakeratta</h2>
     <p>{ja ? "Kakeratta の外部エージェントとして担当の依頼に回答します。Kakeratta の設定で MCP 接続を発行し、対象の担当を外部エージェントに切り替えてください。" : "Answer persona requests as a Kakeratta external agent. Create an MCP connection in Kakeratta and switch the personas to that external agent."}</p>
-    <p>{ja ? "通常は kiokuflow の画面を開いている間に1分ごとに確認します。Premium では画面を閉じてもサーバーが毎分確認します。定期確認をオフにすると画面を開いた時に1回だけ確認します。" : "Check every minute while kiokuflow is open. Premium also checks on the server while the page is closed. Turning off periodic checks runs once when the page opens."}</p>
+    {!settings.localMode && <p>{ja ? "通常は kiokuflow の画面を開いている間に1分ごとに確認します。Premium では画面を閉じてもサーバーが毎分確認します。定期確認をオフにすると画面を開いた時に1回だけ確認します。" : "Check every minute while kiokuflow is open. Premium also checks on the server while the page is closed. Turning off periodic checks runs once when the page opens."}</p>}
     <p>{ja ? "回答生成には選択した AI 提供元の料金・残高が適用されます。認証ヘッダーは Drive の設定に保存されます。ファイル参照をオンにすると kiokuflow の保存領域全体が対象になります。" : "Answer generation uses your selected AI provider's billing or balance. Authentication headers are stored in Drive settings. File access covers the kiokuflow storage root."}</p>
     <label className="flex items-center gap-2"><input type="checkbox" checked={config.enabled} onChange={e => setConfig({ ...config, enabled: e.target.checked })} />{ja ? "連携を有効にする" : "Enable integration"}</label>
     <label className="flex items-center gap-2"><input type="checkbox" checked={config.pollEnabled} onChange={e => setConfig({ ...config, pollEnabled: e.target.checked })} />{ja ? "定期確認" : "Periodic checks"}</label>
@@ -95,6 +95,7 @@ export function KakerattaTab({ settings }: { settings: UserSettings }) {
       </div>)}
       <button type="button" onClick={() => setHeaders([...headers, ["", ""]])}>{ja ? "ヘッダーを追加" : "Add header"}</button>
     </div>
+    {!settings.localMode && <>
     <section className="space-y-3 rounded-lg border p-4 dark:border-gray-700">
       <h3 className="font-semibold">{ja ? "Timeline 同期（Premium）" : "Timeline synchronization (Premium)"}</h3>
       <label className="flex items-center gap-2"><input type="checkbox" checked={config.timelineSync.enabled}
@@ -109,6 +110,7 @@ export function KakerattaTab({ settings }: { settings: UserSettings }) {
       </button>
       {syncStatus && <p role="status" className="text-green-700 dark:text-green-300">{syncStatus}</p>}
     </section>
+    </>}
     <section className="space-y-3 rounded-lg border p-4 dark:border-gray-700"><h3 className="font-semibold">{ja ? "共通設定" : "Default profile"}</h3>{profileEditor(config.defaultProfile, profile => setConfig({ ...config, defaultProfile: profile }))}</section>
     <section className="space-y-3 rounded-lg border p-4 dark:border-gray-700">
       <h3 className="font-semibold">{ja ? "エージェントへの直接依頼" : "Direct requests to the agent"}</h3>

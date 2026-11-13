@@ -1,3 +1,4 @@
+import { isLocalRuntime } from "~/services/app-runtime.server";
 import { createHash, randomUUID } from "node:crypto";
 import { google } from "googleapis";
 import { FieldValue, type Firestore } from "@google-cloud/firestore";
@@ -43,7 +44,7 @@ interface MigrationJob {
 }
 
 export function driveMigrationEnabled(): boolean {
-  return !!process.env.GOOGLE_MIGRATION_CLIENT_ID && !!process.env.GOOGLE_MIGRATION_CLIENT_SECRET
+  return !isLocalRuntime() && !!process.env.GOOGLE_MIGRATION_CLIENT_ID && !!process.env.GOOGLE_MIGRATION_CLIENT_SECRET
     && process.env.GOOGLE_MIGRATION_CLIENT_ID !== process.env.GOOGLE_CLIENT_ID;
 }
 

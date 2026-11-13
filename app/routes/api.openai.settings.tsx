@@ -5,6 +5,7 @@ import { getSettings, saveSettings } from "~/services/user-settings.server";
 import { decryptSavedProviderKey, prepareCommonKeySettings, encryptProviderKey, requestedProviderKey, PROVIDER_KEY_HEADERS as noStore } from "~/services/provider-key-settings.server";
 import { validateOrigin } from "~/utils/security";
 import { discoverOpenAIModels } from "~/services/openai.server";
+import { discoverRagEmbeddingModels } from "~/services/rag-providers.server";
 import { getDefaultModelForPlan, isOpenAIModel, type UserSettings, type OpenAISettingsConfig, type OpenAIModelEntry, type ModelType } from "~/types/settings";
 
 function selectedModelSettings(settings: UserSettings, openai: OpenAISettingsConfig, models: OpenAIModelEntry[], selection: unknown) {
@@ -36,8 +37,27 @@ export async function action({ request }: Route.ActionArgs) {
   const body = await request.json().catch(() => null) as {
     action?: unknown; apiKey?: unknown; password?: unknown; newPassword?: unknown; enabledModels?: unknown;
   } | null;
-  if (!body || !["verify", "saveModels", "save", "unlock", "lock", "remove"].includes(String(body.action))) {
+  if (!body || !["verify", "saveModels", "save", "saveEmbeddingKey", "unlock", "lock", "remove"].includes(String(body.action))) {
     return Response.json({ error: "Invalid request" }, { status: 400, headers: noStore });
+  }
+  if (body.action === "saveEmbeddingKey") {
+    // Keep the usual chat save contract intact. This path initializes an
+    // embedding-only connection without selecting or enabling chat models.
+    if (settings.openai && settings.openai.enabledModels?.length !== 0) return Response.json({ error: "Use the API key and models save action to update a chat connection." }, { status: 400, headers: noStore });
+    try {
+      const key = requestedProviderKey(body.apiKey, validTokens.openaiApiKey || "");
+      if (!key || key.length > 1024 || /[\r\n]/.test(key)) return Response.json({ error: "Enter a valid OpenAI API key." }, { status: 400, headers: noStore });
+      const models = await discoverRagEmbeddingModels("openai", key, AbortSignal.any([request.signal, AbortSignal.timeout(20_000)]));
+      if (!models.some(model => model.supported)) return Response.json({ error: "No supported embedding models were listed for this key." }, { status: 400, headers: noStore });
+      const common = await prepareCommonKeySettings(settings, body);
+      const encrypted = await encryptProviderKey(key, common);
+      await saveSettings(validTokens.accessToken, validTokens.rootFolderId, { ...common, openai: { ...encrypted, enabledModels: [], availableModels: [] } });
+      const session = await setTokens(request, { ...validTokens, openaiApiKey: key });
+      return Response.json({ ok: true, unlocked: true }, { headers: { ...noStore, "Set-Cookie": await commitSession(session) } });
+    } catch (error) {
+      if (error instanceof Response) return error;
+      return Response.json({ error: error instanceof Error ? error.message : "Could not save the embedding key." }, { status: 502, headers: noStore });
+    }
   }
   if (body.action === "verify") {
     const key = requestedProviderKey(body.apiKey, validTokens.openaiApiKey || "") || await decryptSavedProviderKey(settings.openai, typeof body.password === "string" ? body.password : "", "OpenAI", noStore, settings.encryption);

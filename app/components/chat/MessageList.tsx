@@ -11,6 +11,7 @@ interface MessageListProps {
   streamingThinking?: string;
   streamingToolCalls?: ToolCall[];
   streamingRagSources?: string[];
+  streamingRagWarnings?: string[];
   streamingRagUsed?: boolean;
   streamingWebSearchUsed?: boolean;
   isStreaming?: boolean;
@@ -35,6 +36,7 @@ export function MessageList({
   streamingThinking,
   streamingToolCalls,
   streamingRagSources,
+  streamingRagWarnings,
   streamingRagUsed,
   streamingWebSearchUsed,
   isStreaming,
@@ -65,6 +67,7 @@ export function MessageList({
           content: hasStreamingData ? (streamingContent || "") : "",
           thinking: streamingThinking || undefined,
           toolCalls: streamingToolCalls && streamingToolCalls.length > 0 ? streamingToolCalls : undefined,
+          ragWarnings: streamingRagWarnings,
           ragUsed: streamingRagUsed || undefined,
           webSearchUsed: streamingWebSearchUsed || undefined,
           ragSources: streamingRagSources && streamingRagSources.length > 0 ? streamingRagSources : undefined,

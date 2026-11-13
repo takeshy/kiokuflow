@@ -21,6 +21,36 @@ async function request(body: unknown, overrides: Partial<SessionTokens> = {}, or
 }
 function args(request: Request) { return { request, params: {}, context: {} } as never; }
 
+test("embedding-only key save verifies the catalogue and enables no chat models", async t => {
+  clearSettingsCache();
+  const { configureCommonPassword } = await import("./api-key-password.server");
+  const { decryptStoredApiKey } = await import("./api-key-crypto");
+  const initial = await configureCommonPassword(DEFAULT_USER_SETTINGS, "encryption-password");
+  let settings: UserSettings = { ...initial.settings, selectedModel: "gemini-3.8-flash" };
+  let writes = 0;
+  t.mock.method(globalThis, "fetch", async (input: unknown, init?: RequestInit) => {
+    const url = String(input);
+    if (url.startsWith("https://www.googleapis.com/drive/v3/files?")) return Response.json({ files: [{ id: "settings", name: SETTINGS_FILE_NAME }] });
+    if (url.startsWith("https://www.googleapis.com/drive/v3/files/settings")) return Response.json(settings);
+    if (url.startsWith("https://www.googleapis.com/upload/drive/v3/files/settings")) { writes++; settings = JSON.parse(String(init?.body)); return Response.json({ id: "settings" }); }
+    assert.equal(url, "https://api.openai.com/v1/models");
+    assert.equal(new Headers(init?.headers).get("Authorization"), "Bearer embedding-only-key");
+    return Response.json({ data: [{ id: "text-embedding-3-small" }] });
+  });
+  const response = await configure(args(await request({ action: "saveEmbeddingKey", apiKey: "embedding-only-key" }, { openaiApiKey: "" })));
+  assert.equal(response.status, 200); assert.equal(writes, 1);
+  assert.deepEqual(settings.openai?.enabledModels, []);
+  assert.deepEqual(getConfiguredOpenAIModels(settings.openai), []);
+  assert.equal(settings.selectedModel, "gemini-3.8-flash");
+  assert.equal(await decryptStoredApiKey(settings.openai, "encryption-password", settings.encryption), "embedding-only-key");
+  const session = await getTokens(new Request("https://gemihub.example", { headers: { Cookie: response.headers.get("Set-Cookie")!.split(";")[0] } }));
+  assert.equal(session?.openaiApiKey, "embedding-only-key");
+  settings.openai!.enabledModels = ["gpt-6.1-sol"];
+  clearSettingsCache();
+  const blocked = await configure(args(await request({ action: "saveEmbeddingKey", apiKey: "embedding-only-key" })));
+  assert.equal(blocked.status, 400); assert.equal(writes, 1, "key-only save must not overwrite existing chat selections");
+});
+
 test("OpenAI model discovery uses the fixed authenticated list endpoint, filters specialized/retired models, and keeps basic information", async t => {
   t.mock.method(globalThis, "fetch", async (input: unknown, init?: RequestInit) => { assert.equal(String(input), "https://api.openai.com/v1/models"); assert.equal(new Headers(init?.headers).get("Authorization"), "Bearer synthetic-openai"); assert.equal(init?.method, undefined); return Response.json(catalogue); });
   const models = await discoverOpenAIModels("synthetic-openai");

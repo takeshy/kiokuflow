@@ -1,3 +1,4 @@
+import { isLocalRuntime } from "~/services/app-runtime.server";
 import { redirect } from "react-router";
 import type { Route } from "./+types/auth.google.callback";
 import {
@@ -57,14 +58,14 @@ export async function loader({ request }: Route.LoaderArgs) {
       email = about.user?.emailAddress;
     }
   } catch { /* non-critical */ }
-  if (driveMigrationEnabled() && !email) {
+  if (!isLocalRuntime() && driveMigrationEnabled() && !email) {
     throw new Response("Googleアカウントを確認できませんでした。もう一度ログインしてください。", { status: 503 });
   }
 
   // Read returnTo before setTokens (which creates a new session)
   const returnTo = safeReturnTo(stateSession.get("oauthReturnTo"));
 
-  try {
+  if (!isLocalRuntime()) try {
     const {
       getAccountByRootFolderId,
       getAccountByEmail,

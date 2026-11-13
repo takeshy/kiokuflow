@@ -86,7 +86,7 @@ export async function action({ request }: Route.ActionArgs) {
         // create a gemini-embedding-2 store and let the sync re-index files.
         if (!isCurrentRagIndex(ragSetting, validTokens.rootFolderId, settingName)) {
           sendEvent("progress", {
-            message: "Preparing Firestore vector index...",
+            message: "Preparing vector index...",
             current: 0,
             total: 0,
           });

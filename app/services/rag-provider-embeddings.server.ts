@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, type Content } from "@google/genai";
 import type { RagEmbeddingInput } from "./rag-embeddings.server";
 import type { EmbeddingProvider } from "./rag-config";
 
@@ -48,15 +48,17 @@ async function embedGroup(group: RagEmbeddingInput[], options: {
     });
   }
   const ai = new GoogleGenAI({ apiKey: options.apiKey });
-  // A group is either text only or a single media input (see embedRagInputs).
-  const contents = group.every((input) => typeof input === "string")
-    ? group.map((input) => options.model === "gemini-embedding-2" ? (options.query ? `task: search result | query: ${input}` : `title: none | text: ${input}`) : input)
-    : group.map((input) => typeof input === "string" ? { role: "user", parts: [{ text: input }] } : { role: "user", parts: [...(input.text ? [{ text: input.text }] : []), { inlineData: input.inlineData }] });
+  // Embedding 2's SDK normalizes string[] into ONE Content with multiple text
+  // parts. Explicit Content objects preserve one embedding per indexed chunk.
+  const contents: Content[] = group.map(input => ({ role: "user", parts: typeof input === "string"
+    ? [{ text: options.model === "gemini-embedding-2" ? (options.query ? `task: search result | query: ${input}` : `title: none | text: ${input}`) : input }]
+    : [...(input.text ? [{ text: input.text }] : []), { inlineData: input.inlineData }],
+  }));
   const response = await ai.models.embedContent({ model: options.model, contents, config: {
     outputDimensionality: VECTOR_DIMENSIONS,
     ...(options.model !== "gemini-embedding-2" ? { taskType: options.query ? "RETRIEVAL_QUERY" : "RETRIEVAL_DOCUMENT" } : {}),
     abortSignal: options.signal,
   } });
-  if (response.embeddings?.length !== group.length) throw new Error("Unexpected Gemini embedding count");
+  if (response.embeddings?.length !== group.length) throw new Error(`Unexpected Gemini embedding count (${options.model}): expected ${group.length}, received ${response.embeddings?.length ?? 0}`);
   return response.embeddings.map((embedding) => embedding.values);
 }

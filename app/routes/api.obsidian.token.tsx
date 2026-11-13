@@ -1,3 +1,4 @@
+import { isLocalRuntime } from "~/services/app-runtime.server";
 import type { Route } from "./+types/api.obsidian.token";
 import { refreshAccessToken } from "~/services/google-auth.server";
 import { getAccountByEmail, getAccountByRootFolderId } from "~/services/hubwork-accounts.server";
@@ -32,22 +33,23 @@ export async function action({ request }: Route.ActionArgs) {
 
   try {
     const { accessToken, expiryTime } = await refreshAccessToken(refreshToken);
-    let account = body.rootFolderId
-      ? await getAccountByRootFolderId(body.rootFolderId)
-      : null;
-    if (!account) {
-      const email = await getGoogleAccountEmail(accessToken);
-      if (email) {
-        account = await getAccountByEmail(email);
+    if (!isLocalRuntime()) {
+      let account = body.rootFolderId
+        ? await getAccountByRootFolderId(body.rootFolderId)
+        : null;
+      if (!account) {
+        const email = await getGoogleAccountEmail(accessToken);
+        if (email) {
+          account = await getAccountByEmail(email);
+        }
+      }
+      if (!account || !isActivePremiumAccount(account)) {
+        return Response.json(
+          { error: "Premium plan is required" },
+          { status: 403 }
+        );
       }
     }
-    if (!account || !isActivePremiumAccount(account)) {
-      return Response.json(
-        { error: "Premium plan is required" },
-        { status: 403 }
-      );
-    }
-
     const expiresIn = Math.floor((expiryTime - Date.now()) / 1000);
     return Response.json({
       access_token: accessToken,

@@ -56,14 +56,14 @@ test("Live reads DOCX text and rejects oversized PDF ranges before downloading",
   await assert.rejects(f.call("read_drive_file", { fileId: "pdf", startPage: 1, endPage: 20 }), /16 pages/);
 });
 
-test("Live RAG uses the selected index and its Top K and filters private excerpts", async t => {
+for (const rerankProvider of ["gemini", "jev"] as const) test(`Live RAG respects ${rerankProvider}, hybrid and Top K despite the legacy toggle`, async t => {
   const f = await fixture();
   t.mock.method(globalThis, "fetch", async (input: unknown, init?: RequestInit) => {
-    assert.equal(input, "/api/rag/context"); assert.deepEqual(JSON.parse(String(init?.body)), { query: "launch date", storeIds: ["selected-store"], topK: 7, jevFilter: false, searchUntilMatch: true });
-    return Response.json({ contexts: [{ source: "notes/memo.md", text: "Friday" }, { source: "Secrets/key.md", text: "secret" }] });
+    assert.equal(input, "/api/rag/context"); assert.deepEqual(JSON.parse(String(init?.body)), { query: "launch date", storeIds: ["selected-store"], topK: 7, rerankProvider, hybridSearch: false, searchUntilMatch: true });
+    return Response.json({ warnings: ["Reranking unavailable"], contexts: [{ source: "notes/memo.md", text: "Friday" }, { source: "Secrets/key.md", text: "secret" }] });
   });
-  const run = createLiveFileToolRunner(() => f.context, { name: "Work", setting: { ...DEFAULT_RAG_SETTING, storeId: "selected-store", jevRagFilterEnabled: false, searchUntilMatch: true }, topK: 7 });
-  assert.deepEqual(await run({ id: "rag", name: "search_rag", args: { query: "launch date" } }, new AbortController().signal), { index: "Work", contexts: [{ source: "notes/memo.md", text: "Friday" }], scope: "server-indexed content only" });
+  const run = createLiveFileToolRunner(() => f.context, { name: "Work", setting: { ...DEFAULT_RAG_SETTING, storeId: "selected-store", jevRagFilterEnabled: false, rerankProvider, hybridSearch: false, searchUntilMatch: true }, topK: 7 });
+  assert.deepEqual(await run({ id: "rag", name: "search_rag", args: { query: "launch date" } }, new AbortController().signal), { index: "Work", warnings: ["Reranking unavailable"], contexts: [{ source: "notes/memo.md", text: "Friday" }], scope: "server-indexed content only" });
 });
 
 test("Live deduplicates reads, blocks writes and rejects results after the workspace changes", async t => {

@@ -347,7 +347,7 @@ export async function handlePersonalVertexChatAction(
       };
 
       try {
-        if (retrievedRag) sendChunk({ type: "rag_used", ragSources: retrievedRag.sources });
+        if (retrievedRag) sendChunk({ type: "rag_used", ragSources: retrievedRag.sources, ragWarnings: retrievedRag.warnings });
         for await (const chunk of streamWithTools({
           tenant,
           model,

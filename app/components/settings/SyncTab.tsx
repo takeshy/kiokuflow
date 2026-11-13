@@ -52,7 +52,7 @@ export function SyncTab({ settings }: { settings: UserSettings }) {
   const enterpriseSelection = useEnterpriseSelection();
   const inOrganizationProject = enterpriseSelection !== null;
   const hasPremium =
-    !!settings.hubwork?.plan
+    settings.localMode || !!settings.hubwork?.plan
     && settings.hubwork?.billingStatus !== "canceled"
     && settings.hubwork?.accountStatus !== "disabled";
 

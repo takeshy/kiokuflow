@@ -11,6 +11,10 @@ export interface FileSearchResult {
   location?: string;
   match: "keyword" | "fuzzy" | "rag";
   jevVerified?: boolean;
+  retrievalScore?: number;
+  retrievalSource?: string;
+  rerankScore?: number;
+  rerankSkippedReason?: string;
 }
 
 /** Same inexpensive intent rules as kakeratta; short ambiguous names stay lexical. */
@@ -85,13 +89,13 @@ export function searchFileContents(files: FileListItem[], cached: CachedFile[], 
   }).sort((a, b) => a.edits - b.edits || a.name.localeCompare(b.name));
 }
 
-export function resolveRagResults(results: { title: string; snippet?: string; mimeType?: string; uri?: string; jevVerified?: boolean }[], files: FileListItem[]): FileSearchResult[] {
+export function resolveRagResults(results: { title: string; snippet?: string; mimeType?: string; uri?: string; jevVerified?: boolean; retrievalScore?: number; retrievalSource?: string; rerankScore?: number; rerankSkippedReason?: string }[], files: FileListItem[]): FileSearchResult[] {
   return results.map(result => {
     const exact = files.find(file => file.path === result.title);
     // Duplicate basenames must never open a different document by accident.
     const byName = files.filter(file => file.name === result.title);
     const file = exact || (byName.length === 1 ? byName[0] : undefined);
-    return { id: file?.id, name: file?.name || result.title, location: file?.path || result.title, mimeType: result.mimeType, jevVerified: result.jevVerified, snippet: result.snippet ? result.snippet.slice(0, 400) + (result.snippet.length > 400 ? "…" : "") : undefined, match: "rag" };
+    return { id: file?.id, name: file?.name || result.title, location: file?.path || result.title, mimeType: result.mimeType, jevVerified: result.jevVerified, retrievalScore: result.retrievalScore, retrievalSource: result.retrievalSource, rerankScore: result.rerankScore, rerankSkippedReason: result.rerankSkippedReason, snippet: result.snippet ? result.snippet.slice(0, 400) + (result.snippet.length > 400 ? "…" : "") : undefined, match: "rag" };
   });
 }
 

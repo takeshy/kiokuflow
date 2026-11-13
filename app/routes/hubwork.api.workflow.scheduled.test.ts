@@ -1,3 +1,5 @@
+// Hosted-only behavior is configured explicitly; standalone defaults to local.
+process.env.KIOKUFLOW_RUNTIME = "hosted";
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { HubworkAccount } from "~/types/hubwork";

@@ -1,3 +1,4 @@
+import { isLocalRuntime } from "~/services/app-runtime.server";
 import { FieldValue } from "@google-cloud/firestore";
 import { listFiles, type DriveFile } from "./google-drive.server";
 import { getOwnedPersonalAccount } from "./personal-hubwork-account.server";
@@ -38,7 +39,7 @@ export async function syncTimelineFromDrive(
   signal: AbortSignal,
   localFiles: TimelineFileSnapshot[] = [],
 ) {
-  if (!config.enabled || !config.timelineSync.enabled) return { disabled: true, files: [], conflicts: 0, pending: 0 };
+  if (isLocalRuntime() || !config.enabled || !config.timelineSync.enabled) return { disabled: true, files: [], conflicts: 0, pending: 0 };
   const account = await requireTimelinePremium(tokens);
   const directory = timelineDirectory(config.timelineSync.name);
   const matchesDay = (name: string) => name.startsWith(`${directory}/`) && /^\d{4}-\d{2}-\d{2}\.md$/.test(name.slice(directory.length + 1));
