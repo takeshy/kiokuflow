@@ -114,18 +114,13 @@ export async function action({ request }: Route.ActionArgs) {
         }
       }
 
-      // Personal Vertex AI wins over a stored key when the user selected it
-      // ("Vertex only"). The command node asserts the prepaid balance before
-      // running and records usage afterwards; an empty balance throws and is
-      // handled by the regular retry/lastError flow below.
-      const personalVertex = mountCtx.gcs ? undefined : personalVertexRunForSchedule(settings, account.email);
       const serviceContext: ServiceContext = {
         driveAccessToken: accessToken,
         driveRootFolderId: rootFolderId,
         driveHistoryFolderId: "",
         settings,
-        geminiApiKey: personalVertex ? undefined : geminiApiKey,
-        personalVertex,
+        // Decision APIs require this key independently of Vertex chat.
+        geminiApiKey,
       };
 
       const hubworkSpreadsheetId = settings?.hubwork?.spreadsheets?.[0]?.id;
@@ -176,13 +171,17 @@ export async function action({ request }: Route.ActionArgs) {
           const { bytes: workflowBytes } = await readObject(mountCtx, resolvedWorkflowPath);
           const yamlContent = new TextDecoder("utf-8").decode(workflowBytes);
           const workflow = parseWorkflowYaml(yamlContent);
+          const hasCommand = Array.from(workflow.nodes.values()).some(node => node.type === "command");
+          const personalVertex = !mountCtx.gcs && hasCommand
+            ? personalVertexRunForSchedule(settings, account.email)
+            : undefined;
 
           const variables = new Map<string, string | number>(
             Object.entries(schedule.variables || {})
           );
           const input: WorkflowInput = { variables };
 
-          const result = await executeWorkflow(workflow, input, serviceContext, undefined, {
+          const result = await executeWorkflow(workflow, input, { ...serviceContext, personalVertex }, undefined, {
             workflowName: schedule.workflowPath,
           });
 

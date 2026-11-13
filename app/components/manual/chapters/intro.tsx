@@ -22,7 +22,7 @@ function IntroEn() {
         <ul>
           <li><strong>AI Chat</strong> — Choose Gemini, OpenAI, OpenRouter or OpenCode Go for file-aware chat and model-dependent tools. Gemini and OpenAI also support Live conversations; Gemini supports image generation.</li>
           <li><strong>File Editor</strong> — Edit Markdown files with WYSIWYG, Preview, and Raw modes. Built-in diff view and edit history.</li>
-          <li><strong>Visual Workflows</strong> — Build automation with a drag-and-drop editor. 24 node types including AI prompts, Drive operations, HTTP requests, and interactive prompts.</li>
+          <li><strong>Visual Workflows</strong> — Build automation with a drag-and-drop editor. 26 base node types including AI prompts, AI decisions, Drive operations, HTTP requests, and interactive prompts.</li>
           <li><strong>Smart Search</strong> — Search your files by keyword (Local/Drive) or by meaning (RAG).</li>
           <li><strong>Offline-First</strong> — All files are cached in your browser. Edit offline, then sync changes to Drive when ready.</li>
           <li><strong>Encryption</strong> — Optional client-side RSA+AES encryption for sensitive files, chat history, and workflow logs.</li>
@@ -67,7 +67,7 @@ function IntroJa() {
         <ul>
           <li><strong>AIチャット</strong> — Gemini・OpenAI・OpenRouter・OpenCode Goを選べる、ファイルやツールを使った対話。GeminiとOpenAIのLive会話にも対応し、Geminiでは画像生成も使えます。</li>
           <li><strong>ファイルエディタ</strong> — WYSIWYG、プレビュー、Rawモードでのマークダウン編集。差分表示と編集履歴も内蔵。</li>
-          <li><strong>ビジュアルワークフロー</strong> — ドラッグ＆ドロップで自動化を構築。AIプロンプト、Drive操作、HTTPリクエスト、対話型プロンプトなど24種のノードタイプ。</li>
+          <li><strong>ビジュアルワークフロー</strong> — ドラッグ＆ドロップで自動化を構築。AIプロンプト、AI判定、Drive操作、HTTPリクエスト、対話型プロンプトなど26種の基本ノード。</li>
           <li><strong>スマート検索</strong> — キーワード検索（ローカル/Drive）と意味検索(RAG)。</li>
           <li><strong>オフラインファースト</strong> — すべてのファイルがブラウザにキャッシュ。オフラインで編集し、準備ができたらドライブ反映。</li>
           <li><strong>暗号化</strong> — クライアントサイドのRSA+AES暗号化で、ファイル、チャット履歴、ワークフローログを保護。</li>

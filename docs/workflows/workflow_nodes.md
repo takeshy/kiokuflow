@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: Workflow Node Reference
-description: Reference for all 25 workflow node types with their properties and outputs.
+description: Reference for workflow node types with their properties and outputs.
 tags:
   - workflow_nodes
 ---
@@ -15,7 +15,7 @@ This document provides detailed specifications for all workflow node types.
 |----------|-------|-------------|
 | Variables | `variable`, `set` | Declare and update variables |
 | Control | `if`, `while`, `sleep` | Conditional branching, loops, pausing |
-| LLM | `command` | Execute prompts via Gemini API |
+| LLM | `command`, `decision` | Execute prompts and typed AI decisions |
 | Data | `http`, `json`, `script` | HTTP requests, JSON parsing, JavaScript execution |
 | Drive | `drive-file`, `drive-read`, `drive-search`, `drive-list`, `drive-folder-list`, `drive-save`, `drive-delete` | Google Drive file operations |
 | Prompts | `prompt-value`, `prompt-file`, `prompt-selection`, `dialog`, `drive-file-picker` | User input dialogs |
@@ -116,6 +116,83 @@ Conditional branching.
 The `contains` operator works with both strings and JSON arrays:
 - String: `{{text}} contains error`
 - Array: `{{dialogResult.selected}} contains Option A`
+
+---
+
+### decision
+
+Evaluate text with a dedicated decision model. Available in the node editor as **AI Decision**, with matching flowchart branches and execution history. Calls the decision API through the server in both browser and server workflow execution.
+
+```yaml
+- id: judge
+  type: decision
+  model: gemini-decision-1
+  prompt: "Does the input describe an urgent request?"
+  input: "{{text}}"
+  saveTo: urgent
+  trueNext: handle-urgent
+  falseNext: end
+```
+
+| Property | Description |
+|----------|-------------|
+| `model` | `gemini-decision-1` (default), `jev`, or `openrouter`. Uses the selected provider's configured, unlocked API key, independently of chat/Vertex model selection. `jev` respects Settings' Jev OpenRouter switch. |
+| `decisionType` | `boolean` (default), `score`, `choice`, `noul` (probability), or `batch`. |
+| `prompt` | Instructions with variable expansion; required except for batch. |
+| `input` | Text to evaluate, with variable expansion. |
+| `criteria` | Score: ordered JSON array of at least two descriptions. Choice: JSON object mapping at least two choice names to descriptions. YAML arrays/maps also work. |
+| `threshold` | Score/noul result >= threshold takes true. Defaults to the midpoint of the result range. Supports variables and must fall within the range. |
+| `trueNext`, `falseNext` | Boolean/score/noul branch destinations. `trueNext` is required; omitted `falseNext` uses the next node in the list. `end` terminates. |
+| `branches` | Choice destinations as JSON object/YAML map, with exactly one static node ID or `end` per criterion. |
+| `questions` | Batch named questions as JSON object/YAML map; each has `type`, `instructions`, and any required `criteria`. |
+| `saveTo` | Optional result variable; required for batch. |
+| `next` | Batch continuation; inspect saved answers with an `if` node to branch. |
+
+Score results are numbers from 0 to criteria.length - 1 (fractional values allowed). Noul results are numbers from 0 to 1 (default threshold 0.5). Boolean results save as `"true"` / `"false"`; choice results save as strings. Batch results save as a JSON object string, available through nested variable access. Invalid answers, unavailable keys, API errors and timeouts fail the node rather than silently choosing a branch. Requests have a 20-second deadline including rate-limit retries and support cancellation.
+
+Scheduled workflows can use `gemini-decision-1` with the Gemini API key stored on the Hubwork account, even when chat uses personal Vertex AI. Jev and OpenRouter keys are available through interactive sessions; the scheduler does not store them.
+
+```yaml
+# Choice routing
+- id: route
+  type: decision
+  decisionType: choice
+  model: jev
+  prompt: Classify the request
+  input: "{{text}}"
+  criteria:
+    urgent: Needs immediate action
+    normal: Can wait
+  branches:
+    urgent: handle-urgent
+    normal: end
+  saveTo: category
+```
+
+```yaml
+# Multiple questions in one request, followed by a normal if node
+- id: evaluate
+  type: decision
+  decisionType: batch
+  input: "{{text}}"
+  questions:
+    urgency:
+      type: score
+      instructions: Rate urgency
+      criteria: [Low, Medium, High]
+    refund:
+      type: boolean
+      instructions: Does this request a refund?
+  saveTo: answers
+  next: check
+- id: check
+  type: if
+  condition: "{{answers.urgency}} >= 1"
+  trueNext: handle-urgent
+  falseNext: end
+```
+
+Use `{{variable:json}}` inside quoted JSON strings when interpolated values may contain quotes or newlines. All batch answers are validated before any result is saved.
 
 ---
 

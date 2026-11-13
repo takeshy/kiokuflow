@@ -10,6 +10,8 @@ export function getNodeSummary(node: WorkflowNode): string {
     case "if":
     case "while":
       return truncate(p.condition || "", 60);
+    case "decision":
+      return truncate(p.prompt || p.questions || "", 60);
     case "command":
       return truncate(p.prompt || "", 60);
     case "http":
@@ -70,6 +72,7 @@ export function getNodeTypeLabel(type: WorkflowNodeType): string {
     if: "If",
     while: "While",
     command: "LLM",
+    decision: "AI Decision",
     http: "HTTP",
     json: "JSON",
     "drive-file": "Drive File",
@@ -114,6 +117,7 @@ export function getNodeTypeColor(type: WorkflowNodeType): string {
     case "set":
       return "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300";
     // AI: purple
+    case "decision":
     case "command":
       return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300";
     // Drive: green

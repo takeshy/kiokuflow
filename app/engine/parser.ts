@@ -1,4 +1,5 @@
 import yaml from "js-yaml";
+import { isBranchingNode, isBooleanBranchNode, isChoiceDecision, parseDecisionBranches } from "./decision-options";
 import type {
   Workflow,
   WorkflowNode,
@@ -30,7 +31,7 @@ function normalizeValue(value: unknown): string {
 }
 
 const VALID_NODE_TYPES: Set<string> = new Set([
-  "variable", "set", "if", "while", "command", "http", "json",
+  "variable", "set", "if", "while", "command", "decision", "http", "json",
   "drive-file", "drive-read", "drive-search", "drive-list",
   "drive-folder-list", "drive-file-picker", "drive-save", "drive-delete",
   "dialog", "prompt-value", "prompt-file", "prompt-selection",
@@ -138,7 +139,7 @@ export function parseWorkflowData(data: Record<string, unknown>): Workflow {
 
   const nodeIds = new Set<string>(workflow.nodes.keys());
 
-  const addEdge = (from: string, to: string, label?: "true" | "false") => {
+  const addEdge = (from: string, to: string, label?: string) => {
     if (!nodeIds.has(from) || (to !== "end" && !nodeIds.has(to))) {
       throw new Error(`Invalid edge reference: ${from} -> ${to}`);
     }
@@ -155,7 +156,11 @@ export function parseWorkflowData(data: Record<string, unknown>): Workflow {
     if (!node) continue;
     const typeRaw = node.type;
 
-    if (typeRaw === "if" || typeRaw === "while") {
+    if (isChoiceDecision(node)) {
+      const branches = parseDecisionBranches(node.properties.branches || "");
+      if (!Object.keys(branches).length) throw new Error(`Node ${id} missing choice branches`);
+      for (const [choice, target] of Object.entries(branches)) addEdge(id, target, choice);
+    } else if (isBooleanBranchNode(node)) {
       const trueNext = normalizeValue(rawNode.trueNext);
       const falseNext = normalizeValue(rawNode.falseNext);
 
@@ -196,7 +201,7 @@ export function parseWorkflowData(data: Record<string, unknown>): Workflow {
 export function getNextNodes(
   workflow: Workflow,
   currentNodeId: string,
-  conditionResult?: boolean
+  conditionResult?: boolean | string
 ): string[] {
   const nextNodes: string[] = [];
   const currentNode = workflow.nodes.get(currentNodeId);
@@ -204,9 +209,9 @@ export function getNextNodes(
 
   const outgoingEdges = workflow.edges.filter((e) => e.from === currentNodeId);
 
-  if (currentNode.type === "if" || currentNode.type === "while") {
+  if (isBranchingNode(currentNode)) {
     if (conditionResult !== undefined) {
-      const expectedLabel = conditionResult ? "true" : "false";
+      const expectedLabel = String(conditionResult);
       for (const edge of outgoingEdges) {
         if (edge.label === expectedLabel && edge.to !== "end") {
           nextNodes.push(edge.to);
@@ -269,11 +274,15 @@ export function serializeWorkflow(workflow: Workflow, name?: string): string {
   }
 
   // Build edge lookup for next/trueNext/falseNext
-  const edgeMap = new Map<string, { next?: string; trueNext?: string; falseNext?: string }>();
+  const edgeMap = new Map<string, { next?: string; trueNext?: string; falseNext?: string; branches?: Record<string, string> }>();
   for (const edge of workflow.edges) {
+    const source = workflow.nodes.get(edge.from);
+    if (!source) continue;
     if (!edgeMap.has(edge.from)) edgeMap.set(edge.from, {});
     const entry = edgeMap.get(edge.from)!;
-    if (edge.label === "true") entry.trueNext = edge.to;
+    if (isChoiceDecision(source)) {
+      entry.branches = { ...entry.branches, [edge.label!]: edge.to };
+    } else if (edge.label === "true") entry.trueNext = edge.to;
     else if (edge.label === "false") entry.falseNext = edge.to;
     else entry.next = edge.to;
   }
@@ -297,7 +306,12 @@ export function serializeWorkflow(workflow: Workflow, name?: string): string {
     const nodeIdx = nodeOrder.indexOf(id);
     const nextNodeId = nodeIdx < nodeOrder.length - 1 ? nodeOrder[nodeIdx + 1] : undefined;
 
-    if (node.type === "if" || node.type === "while") {
+    if (isChoiceDecision(node)) {
+      // Edges are authoritative after graph edits (including node deletion).
+      const branches = parseDecisionBranches(node.properties.branches || "{}");
+      const targets = edgeInfo?.branches || {};
+      obj.branches = Object.fromEntries(Object.keys(branches).map(choice => [choice, Object.hasOwn(targets, choice) ? targets[choice] : "end"]));
+    } else if (isBooleanBranchNode(node)) {
       const trueTarget = edgeInfo?.trueNext;
       const falseTarget = edgeInfo?.falseNext;
 
@@ -312,6 +326,8 @@ export function serializeWorkflow(workflow: Workflow, name?: string): string {
         if (falseTarget === "end" || falseTarget !== nextNodeId) {
           obj.falseNext = falseTarget;
         }
+      } else if (node.type === "decision") {
+        obj.falseNext = "end";
       }
     } else {
       const nextTarget = edgeInfo?.next;

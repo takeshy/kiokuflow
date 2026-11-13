@@ -2,6 +2,7 @@
 // Ported from obsidian-gemini-helper, adapted for this project's types
 
 import type { Workflow, WorkflowNode } from "~/engine/types";
+import { isBranchingNode, isChoiceDecision } from "~/engine/decision-options";
 
 /**
  * Escape text for Mermaid labels (handle quotes and special chars)
@@ -29,6 +30,9 @@ function getNodeLabel(node: WorkflowNode): string {
     case "if":
     case "while":
       label = p.condition || "condition";
+      break;
+    case "decision":
+      label = `**${id}**\n${p.prompt || p.questions || "AI decision"}${p.saveTo ? `\n→ ${p.saveTo}` : ""}`;
       break;
     case "command": {
       const prompt = p.prompt || "(no prompt)";
@@ -152,6 +156,8 @@ function getMermaidShape(node: WorkflowNode, label: string): string {
   const safeLabel = escapeLabel(label);
 
   switch (node.type) {
+    case "decision":
+      return `${safeId}{"◇ DECISION<br/>${safeLabel}"}`;
     case "if":
       return `${safeId}{"◇ IF<br/>${safeLabel}"}`;
     case "while":
@@ -234,11 +240,11 @@ export function workflowToMermaid(workflow: Workflow): string {
 
     const edges = outgoing.get(nodeId) || [];
 
-    if (node.type === "if" || node.type === "while") {
+    if (isBranchingNode(node)) {
       for (const edge of edges) {
         if (edge.to === "end") {
           hasTerminal = true;
-          const lbl = edge.label === "true"
+          const lbl = isChoiceDecision(node) ? escapeLabel(edge.label || "") : edge.label === "true"
             ? (node.type === "while" ? "Yes ↓" : "Yes")
             : edge.label === "false"
               ? (node.type === "while" ? "No →" : "No")
@@ -247,7 +253,9 @@ export function workflowToMermaid(workflow: Workflow): string {
         } else {
           defineNode(edge.to);
           const targetId = edge.to.replace(/-/g, "_");
-          if (edge.label === "true") {
+          if (isChoiceDecision(node)) {
+            lines.push(`  ${safeId} -->|"${escapeLabel(edge.label || "")}"| ${targetId}`);
+          } else if (edge.label === "true") {
             const lbl = node.type === "while" ? "Yes ↓" : "Yes";
             lines.push(`  ${safeId} -->|"${lbl}"| ${targetId}`);
           } else if (edge.label === "false") {

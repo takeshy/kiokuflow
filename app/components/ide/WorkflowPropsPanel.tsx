@@ -24,6 +24,7 @@ import {
 import { ICON } from "~/utils/icon-sizes";
 import type { Workflow, WorkflowNode } from "~/engine/types";
 import { parseWorkflowYaml, serializeWorkflow } from "~/engine/parser";
+import { isBranchingNode, isBooleanBranchNode, isChoiceDecision, parseDecisionBranches } from "~/engine/decision-options";
 import {
   getNodeSummary,
   getNodeTypeLabel,
@@ -283,8 +284,9 @@ function WorkflowNodeListView({
     async (updated: Workflow) => {
       try {
         const yamlContent = serializeWorkflow(updated, yamlName);
+        const normalized = updated.nodes.size ? parseWorkflowYaml(yamlContent) : updated;
         await saveToCache(yamlContent);
-        setWorkflow(updated);
+        setWorkflow(normalized);
         setRawYaml(yamlContent);
         onWorkflowChanged?.();
       } catch (err) {
@@ -310,7 +312,7 @@ function WorkflowNodeListView({
       const outgoing = workflow.edges.filter((e) => e.from === node.id);
       const nextInfo: { next?: string; trueNext?: string; falseNext?: string } =
         {};
-      if (node.type === "if" || node.type === "while") {
+      if (isBooleanBranchNode(node)) {
         nextInfo.trueNext =
           outgoing.find((e) => e.label === "true")?.to || "";
         nextInfo.falseNext =
@@ -372,7 +374,7 @@ function WorkflowNodeListView({
       // 1. Bridge the gap at old position: oldPrev → oldNext
       if (oldPrevId) {
         const prevNode = workflow.nodes.get(oldPrevId);
-        if (prevNode && prevNode.type !== "if" && prevNode.type !== "while") {
+        if (prevNode && !isBranchingNode(prevNode)) {
           edges = edges.filter((e) => !(e.from === oldPrevId && !e.label));
           if (oldNextId) edges.push({ from: oldPrevId, to: oldNextId });
         }
@@ -380,21 +382,21 @@ function WorkflowNodeListView({
 
       // 2. Remove moved node's old sequential edge
       const movedNode = workflow.nodes.get(movedId);
-      if (movedNode && movedNode.type !== "if" && movedNode.type !== "while") {
+      if (movedNode && !isBranchingNode(movedNode)) {
         edges = edges.filter((e) => !(e.from === movedId && !e.label));
       }
 
       // 3. Insert at new position: newPrev → moved
       if (newPrevId) {
         const prevNode = workflow.nodes.get(newPrevId);
-        if (prevNode && prevNode.type !== "if" && prevNode.type !== "while") {
+        if (prevNode && !isBranchingNode(prevNode)) {
           edges = edges.filter((e) => !(e.from === newPrevId && !e.label));
           edges.push({ from: newPrevId, to: movedId });
         }
       }
 
       // 4. Moved → newNext
-      if (movedNode && movedNode.type !== "if" && movedNode.type !== "while" && newNextId) {
+      if (movedNode && !isBranchingNode(movedNode) && newNextId) {
         edges.push({ from: movedId, to: newNextId });
       }
 
@@ -440,7 +442,11 @@ function WorkflowNodeListView({
       updated.edges = updated.edges.filter((e) => e.from !== node.id);
 
       // Add new edges
-      if (node.type === "if" || node.type === "while") {
+      if (isChoiceDecision(node)) {
+        for (const [label, to] of Object.entries(parseDecisionBranches(node.properties.branches || ""))) {
+          updated.edges.push({ from: node.id, to, label });
+        }
+      } else if (isBooleanBranchNode(node)) {
         if (nextInfo.trueNext) {
           updated.edges.push({
             from: node.id,
@@ -781,7 +787,7 @@ function WorkflowNodeListView({
                                 : "text-red-400"
                             }
                           >
-                            {edge.label === "true" ? "T" : "F"}
+                            {isChoiceDecision(node) ? edge.label : edge.label === "true" ? "T" : "F"}
                           </span>
                         ) : (
                           <ArrowRight size={9} />

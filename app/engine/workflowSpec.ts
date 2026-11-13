@@ -211,6 +211,85 @@ Pause execution.
 
 ### AI & LLM
 
+#### decision
+Use a dedicated Gemini, Jev, or OpenRouter decision API to evaluate text. Runs through the server in both local and server workflow execution. Independent of chat/Vertex model selection.
+- **model** (optional): "gemini-decision-1" (default, uses unlocked Gemini API key), "jev" (uses Jev settings, including its OpenRouter switch), or "openrouter" (uses unlocked OpenRouter API key). Chat models are not supported. Missing/locked keys and malformed responses fail the workflow.
+- **decisionType** (optional): "boolean" (default), "score", "choice", "noul", or "batch".
+- **prompt** (required except batch): Evaluation instructions; supports variables.
+- **input** (optional): Text to evaluate, usually \`{{text}}\`.
+- **criteria** (required for score/choice): Score: ordered JSON array of at least two descriptions (score 0 to length-1, fractional values allowed). Choice: JSON object mapping at least two choice names to descriptions. YAML arrays/mappings also work. Supports variables; use :json when embedding text in JSON strings.
+- **threshold** (score/noul only): True when result >= threshold. Defaults to midpoint (score: (criteria.length-1)/2; noul: 0.5); supports variables, must be within the result range. Noul returns a probability from 0 to 1.
+- **trueNext** (required for boolean/score/noul), **falseNext** (optional, defaults to next node): Branch destinations; "end" terminates.
+- **branches** (required for choice): JSON object or YAML mapping with exactly one destination per choice, e.g. \`{"urgent":"handle-urgent","normal":"end"}\`. Choice names "true" and "false" remain choice names. Targets are static node IDs or "end".
+- **questions** (required for batch): JSON object or YAML mapping of named questions, each with type (boolean/score/choice/noul), instructions and any required criteria. All answers are validated before saving.
+- **saveTo** (optional; required for batch): Result variable. Booleans are strings "true"/"false", score/noul are numbers, choice is a string, batch is a JSON object string accessible as \`{{answers.urgency}}\`.
+- **next** (batch only): Continue normally; batch does not branch automatically. Inspect saved results using an if node.
+- **Execution limits**: Requests have a 20-second deadline including rate-limit retries and support cancellation. Scheduled workflows can use "gemini-decision-1" with the Gemini API key stored on the Hubwork account; the scheduler does not store Jev/OpenRouter keys. Decision-only workflows do not require a completed Vertex chat setup.
+
+\`\`\`yaml
+- id: judge
+  type: decision
+  prompt: "Does this describe an urgent request?"
+  input: "{{text}}"
+  saveTo: urgent
+  trueNext: handle-urgent
+  falseNext: end
+\`\`\`
+
+Score example (fractional scores allowed):
+\`\`\`yaml
+- id: rate
+  type: decision
+  decisionType: score
+  prompt: Rate the urgency of the request
+  input: "{{text}}"
+  criteria: [Low, Medium, High]
+  threshold: 1.5
+  saveTo: urgency
+  trueNext: handle-urgent
+  falseNext: end
+\`\`\`
+
+Choice example (all criteria require destinations):
+\`\`\`yaml
+- id: classify
+  type: decision
+  decisionType: choice
+  model: jev
+  prompt: Classify the request
+  input: "{{text}}"
+  criteria:
+    urgent: Needs immediate action
+    normal: Can wait
+  branches:
+    urgent: handle-urgent
+    normal: end
+  saveTo: category
+\`\`\`
+
+Batch example (save named answers, then branch with if):
+\`\`\`yaml
+- id: evaluate
+  type: decision
+  decisionType: batch
+  input: "{{text}}"
+  questions:
+    urgency:
+      type: score
+      instructions: Rate urgency
+      criteria: [Low, Medium, High]
+    refund:
+      type: boolean
+      instructions: Does this request a refund?
+  saveTo: answers
+  next: check
+- id: check
+  type: if
+  condition: "{{answers.urgency}} >= 1"
+  trueNext: handle-urgent
+  falseNext: end
+\`\`\`
+
 #### command
 Execute LLM prompt via Gemini API with optional tools.
 - **prompt** (required): Prompt template (supports {{variables}})

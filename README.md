@@ -58,7 +58,9 @@ kiokuflow is offline-first: files are cached in IndexedDB and load instantly, ed
 
 **Editing** — WYSIWYG Markdown editor (wysimark-lite) · Obsidian-compatible JSON Canvas · unified-diff edit history for files and workflows · publish any document to a public URL · encrypted files, chat history, and workflow logs
 
-**Automation** — Visual workflow editor with 25 node types that run in the browser (plus Sheets nodes on eligible paid plans), YAML import/export, and real-time SSE execution · AI workflow generation from natural language with streaming diff preview
+**Automation** — Visual workflow editor with 26 base node types (plus Sheets nodes on eligible paid plans), browser and server execution, YAML import/export, and live execution logs · AI workflow generation from natural language with streaming diff preview
+
+Add an **AI Decision** (`decision`) node to evaluate text as true/false, a score, a choice, or a probability, or answer multiple questions in one request. It supports result variables and branch routing; batch answers continue to the next node and can be checked with `if`. Choose `gemini-decision-1`, Jev, or OpenRouter using the provider's configured, unlocked API key, independently of your chat/Vertex model. See the [decision node reference](./docs/workflows/workflow_nodes.md#decision) for YAML examples.
 
 **Teams** — Organization projects on managed Cloud Storage and Vertex AI, with member roles, per-member AI budgets, and project-scoped dashboards and workflows
 

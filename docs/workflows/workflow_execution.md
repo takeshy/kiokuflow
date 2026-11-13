@@ -16,8 +16,8 @@ Workflows are **off by default**. `UserSettings.workflowEnabled` (Settings > Gen
 ## Features
 
 - **YAML Parser**: Converts YAML workflow definitions into an executable AST
-- **Handler-Based Execution**: 25 base node types dispatched to isolated handler functions, plus 9 hosted paid-feature nodes
-- **Local Execution**: 22/25 base node types run in the browser; only 3 (mcp, rag-sync, gemihub-command) call the server
+- **Handler-Based Execution**: 26 base node types dispatched to isolated handler functions, plus hosted paid-feature nodes
+- **Local Execution**: 22 base node types execute in the browser; `decision`, `mcp`, `rag-sync`, and `gemihub-command` delegate to the server. `command` also delegates when personal Vertex AI is selected; HTTP and MCP tools may use server proxies
 - **Interactive Prompts**: Pause execution to prompt users for input, then resume
 - **Sub-Workflow Execution**: Recursive workflow calls with cycle detection
 - **Variable Templating**: `{{var}}` syntax with nested access, array indexing, and JSON escaping
@@ -47,11 +47,11 @@ Workflow {
 
 Edges are resolved in the following order:
 
-1. Explicit `next` / `trueNext` / `falseNext` properties on node
+1. Explicit `next` / `trueNext` / `falseNext` properties, or `branches` for choice decisions
 2. Default to next node in sequential order if not specified
 3. `"end"` keyword terminates the execution path
 
-Conditional nodes (`if` / `while`) require `trueNext`, with optional `falseNext` (defaults to next node in sequence).
+Conditional nodes (`if` / `while`) and boolean/score/noul `decision` nodes require `trueNext`, with optional `falseNext` (defaults to next node in sequence). Choice decisions route through `branches`, with one target per criterion. Batch decisions continue through `next` without automatic branching.
 
 ### Node ID Normalization
 
@@ -63,7 +63,7 @@ Conditional nodes (`if` / `while`) require `trueNext`, with optional `falseNext`
 
 ## Executor
 
-`executeWorkflow()` is the server-side executor, used only by `/api/workflow/execute-node` for the 3 server-requiring node types (mcp, rag-sync, gemihub-command). It runs a parsed workflow using a stack-based depth-first approach. For the primary client-side executor, see [Local Execution](#local-execution-client-side).
+`executeWorkflow()` is the server-side executor used by full server execution and scheduled runs. It runs a parsed workflow using a stack-based depth-first approach. `/api/workflow/execute-node` invokes individual server-side handlers, including `handleDecisionNode`. For the primary client-side executor, see [Local Execution](#local-execution-client-side).
 
 ### Execution Flow
 
@@ -187,10 +187,11 @@ By default, workflow execution runs in the browser. The execution loop runs clie
 Browser (client):
 ├── Parse workflow YAML locally (parser.ts)
 ├── Run executor loop locally (local-executor.ts)
-│   ├── Local nodes (21 types) → execute directly in browser
+│   ├── Local nodes (22 base types) → execute in browser
 │   │   ├── variable, set, if, while, sleep, json
+│   │   ├── script (sandboxed browser iframe)
 │   │   ├── dialog, prompt-value, prompt-selection (UI shown directly)
-│   │   ├── command (Gemini API called directly from browser via gemini-chat-core.ts)
+│   │   ├── command (browser API call by default; delegates for personal Vertex AI)
 │   │   │   ├── Drive tools → drive-tools-local.ts (IndexedDB)
 │   │   │   └── MCP tools → /api/workflow/mcp-proxy (server proxy)
 │   │   ├── http (fetch from browser; cross-origin routes through /api/workflow/http-fetch for CORS bypass — 60 req/min Premium, 2 req/min free)
@@ -198,7 +199,8 @@ Browser (client):
 │   │   │   drive-save, drive-delete (IndexedDB via drive-local.ts)
 │   │   ├── drive-file-picker, prompt-file (UI shown locally, file read from IndexedDB)
 │   │   └── workflow (sub-workflow loaded from IndexedDB, executed recursively)
-│   └── Server-required nodes (3 types) → POST /api/workflow/execute-node
+│   └── Server-required nodes (4 base types) → POST /api/workflow/execute-node
+│       ├── decision (dedicated Gemini/Jev/OpenRouter decision APIs)
 │       ├── mcp (MCP server calls)
 │       ├── rag-sync (Gemini RAG API)
 │       └── gemihub-command (encryption, publish, PDF/HTML export)
@@ -206,7 +208,7 @@ Browser (client):
 
 ### Local Nodes
 
-These 21 node types run entirely in the browser with no server call:
+These 22 base node types execute in the browser by default. `command` delegates to the server when personal Vertex AI is selected; HTTP requests and MCP tools may use server proxies:
 
 | Node Type | Description |
 |-----------|-------------|
@@ -216,6 +218,7 @@ These 21 node types run entirely in the browser with no server call:
 | `while` | Loop with condition |
 | `sleep` | Delay execution |
 | `json` | Parse JSON string |
+| `script` | Run sandboxed JavaScript in a browser iframe |
 | `dialog` | Show dialog UI directly |
 | `prompt-value` | Show text input UI directly |
 | `prompt-selection` | Show multiline input UI directly |
@@ -234,13 +237,20 @@ These 21 node types run entirely in the browser with no server call:
 
 ### Server-Required Nodes
 
-These 3 node types call `POST /api/workflow/execute-node` per invocation:
+These 4 base node types call `POST /api/workflow/execute-node` per invocation. Personal Vertex `command` nodes and supported hosted integration nodes use the same endpoint:
 
 | Node Type | Reason |
 |-----------|--------|
+| `decision` | Dedicated decision APIs use server-held provider keys; the browser applies the returned result and route |
 | `mcp` | MCP server calls require server-side HTTP |
 | `rag-sync` | Gemini RAG API requires server-side access |
 | `gemihub-command` | Drive operations (encrypt, publish, PDF/HTML export) require server-side access |
+
+### Decision execution
+
+`decision` uses the dedicated decision API contract in `app/engine/decision.ts` and node options in `app/engine/decision-options.ts`. Browser execution delegates the request to `/api/workflow/execute-node`, then uses its validated result and route to update history and continue; full server execution calls the same handler directly. API keys remain in the server session. The selected chat or Vertex model does not choose the decision provider. The default is `gemini-decision-1`; explicit `jev` and `openrouter` models use those configured connections. Requests have a 20-second deadline, cancellation and rate-limit retries. Invalid or partial answers fail the node before saving; they never imply a false branch. See [node reference](workflow_nodes.md#decision) for configuration and examples.
+
+Scheduled execution can use `gemini-decision-1` with the Gemini API key stored on the Hubwork account, including when chat uses personal Vertex AI. Jev and OpenRouter decision keys are available through interactive sessions; the scheduler does not store these keys. Decision-only workflows do not require a completed Vertex chat configuration.
 
 ### Node Execution API
 
@@ -251,9 +261,9 @@ These 3 node types call `POST /api/workflow/execute-node` per invocation:
 **Request body:**
 ```json
 {
-  "nodeType": "drive-read",
-  "nodeId": "read-file",
-  "properties": { "path": "example.md", "saveTo": "content" },
+  "nodeType": "decision",
+  "nodeId": "judge",
+  "properties": { "prompt": "Is this urgent?", "input": "{{content}}", "saveTo": "urgent" },
   "variables": { "content": "" },
   "workflowId": "abc123",
   "promptResponse": null
@@ -263,9 +273,14 @@ These 3 node types call `POST /api/workflow/execute-node` per invocation:
 **Response (non-streaming):**
 ```json
 {
-  "variables": { "content": "file content here" },
+  "variables": { "content": "", "urgent": "false" },
   "logs": [],
-  "driveEvents": []
+  "driveEvents": [],
+  "decision": {
+    "result": false,
+    "branch": false,
+    "input": { "input": "", "model": "gemini-decision-1", "prompt": "Is this urgent?", "type": "boolean" }
+  }
 }
 ```
 
@@ -316,7 +331,7 @@ For server nodes that need prompts (drive-file with confirm, encrypted files):
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/workflow/execute-node` | Execute a single server-requiring node (mcp, rag-sync, gemihub-command) |
+| POST | `/api/workflow/execute-node` | Execute a server-requiring node, including decision, mcp, rag-sync, gemihub-command, and personal Vertex command nodes |
 | POST | `/api/workflow/mcp-proxy` | Proxy for MCP tool definitions and execution (used by local command node) |
 | GET/POST | `/api/workflow/history` | List/load/save/delete execution history records |
 
@@ -376,7 +391,7 @@ The `workflow` node type executes another workflow file.
 
 ## Handlers
 
-All 25 base node types are dispatched to isolated handler functions. Local handlers (22 types) live in `app/engine/local-handlers/`. Server-side handlers (3 types: mcp, rag-sync, gemihub-command) live in `app/engine/handlers/`. Some shared handlers (control flow, json) in `app/engine/handlers/` are also imported by the local executor. The hosted service adds 9 paid-feature nodes for Sheets, Gmail, and Calendar.
+All 26 base node types are dispatched to isolated handler functions. Browser-specific handlers live in `app/engine/local-handlers/`; server-side handlers, including `decision`, live in `app/engine/handlers/`. Some shared handlers (control flow, json) in `app/engine/handlers/` are also imported by the local executor. Hosted integration nodes use server-side handlers as well.
 
 ### Control Flow
 
@@ -385,6 +400,7 @@ All 25 base node types are dispatched to isolated handler functions. Local handl
 | `handleVariableNode` | `variable` | Declare/initialize a variable |
 | `handleSetNode` | `set` | Update variable with expression (arithmetic: `+`, `-`, `*`, `/`, `%`) |
 | `handleIfNode` | `if` | Evaluate condition, return boolean for branch selection |
+| `handleDecisionNode` | `decision` | Call the dedicated Gemini/Jev API, validate and save results, select boolean/choice route; batch continues sequentially |
 | `handleWhileNode` | `while` | Evaluate condition for loop continuation |
 | `handleSleepNode` | `sleep` | Async sleep with abort signal support |
 
@@ -576,7 +592,9 @@ Shortcut bindings are stored in `settings.json` on Drive as the `shortcutKeys` f
 |------|-------------|
 | `app/engine/parser.ts` | YAML parser, AST builder, edge resolution |
 | `app/engine/executor.ts` | Stack-based server executor with handler dispatch |
-| `app/engine/local-executor.ts` | Client-side executor (22/25 base nodes local, 3 server) |
+| `app/engine/local-executor.ts` | Client-side executor (22 base nodes local, 4 delegated to the server; Vertex command nodes also delegate) |
+| `app/engine/decision.ts` | Typed decision API contract, response validation, timeout and retries |
+| `app/engine/decision-options.ts` | Decision definitions, questions, thresholds and branch helpers |
 | `app/engine/local-handlers/` | Local node handlers (command, http, drive, prompt, workflow) |
 | `app/engine/types.ts` | Core types (WorkflowNode, ExecutionContext, ServiceContext, PromptCallbacks) |
 | `app/engine/handlers/` | Base-node handlers shared by the server and local executors, plus hosted paid-feature handlers |

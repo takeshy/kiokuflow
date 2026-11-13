@@ -39,6 +39,18 @@ function getTypeSpecificPropertyDefs(type: WorkflowNodeType, context?: NodePrope
       return [
         { key: "condition", label: "Condition", required: true, placeholder: "{{count}} < 5" },
       ];
+    case "decision":
+      return [
+        { key: "decisionType", label: "Decision Type", required: false, options: ["boolean", "score", "choice", "noul", "batch"], defaultValue: "boolean" },
+        { key: "prompt", label: "Decision Instructions", required: true, multiline: true, placeholder: "Does the input describe an urgent request?" },
+        { key: "input", label: "Input to Evaluate", required: false, multiline: true, placeholder: "{{text}}" },
+        { key: "model", label: "Decision Model", required: false, options: ["gemini-decision-1", "jev", "openrouter"], defaultValue: "gemini-decision-1" },
+        { key: "criteria", label: "Criteria (JSON)", required: true, multiline: true, placeholder: '["Low", "Medium", "High"] or {"urgent":"Needs immediate action","normal":"Can wait"}' },
+        { key: "threshold", label: "Threshold (greater than or equal)", required: false, placeholder: "Defaults to midpoint; supports {{variables}}" },
+        { key: "branches", label: "Choice Destinations (JSON)", required: true, multiline: true, placeholder: '{"urgent":"urgent_node","normal":"normal_node"}' },
+        { key: "questions", label: "Named Questions (JSON)", required: true, multiline: true, placeholder: '{"urgency":{"type":"score","instructions":"Rate urgency","criteria":["Low","High"]}}' },
+        { key: "saveTo", label: "Save To", required: false, placeholder: "answer" },
+      ];
     case "command":
       return [
         { key: "prompt", label: "Prompt", required: true, multiline: true, placeholder: "Summarize the following text: {{input}}" },

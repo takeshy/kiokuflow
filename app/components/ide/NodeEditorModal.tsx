@@ -6,9 +6,10 @@ import { ICON } from "~/utils/icon-sizes";
 import type { WorkflowNode, WorkflowNodeType } from "~/engine/types";
 import { getNodePropertyDefs, type NodePropertyContext } from "~/utils/workflow-node-properties";
 import { getNodeTypeLabel } from "~/utils/workflow-node-summary";
+import { isBooleanBranchNode, isChoiceDecision, parseDecisionBranches } from "~/engine/decision-options";
 
 const ALL_NODE_TYPES: WorkflowNodeType[] = [
-  "variable", "set", "if", "while", "command", "http", "json",
+  "variable", "set", "if", "while", "command", "decision", "http", "json",
   "drive-file", "drive-read", "drive-search", "drive-list",
   "drive-folder-list", "drive-file-picker", "drive-save", "drive-delete",
   "dialog", "prompt-value", "prompt-file", "prompt-selection",
@@ -46,8 +47,18 @@ export function NodeEditorModal({
   const [falseNext, setFalseNext] = useState(initialNext?.falseNext || "");
   const [idError, setIdError] = useState("");
 
-  const isConditional = type === "if" || type === "while";
-  const propDefs = getNodePropertyDefs(type, propertyContext);
+  const isConditional = isBooleanBranchNode({ type, properties });
+  const isChoice = isChoiceDecision({ type, properties });
+  const decisionType = properties.decisionType || "boolean";
+  const propDefs = getNodePropertyDefs(type, propertyContext).filter(def => {
+    if (type !== "decision") return true;
+    if (def.key === "prompt") return decisionType !== "batch";
+    if (def.key === "criteria") return decisionType === "score" || decisionType === "choice";
+    if (def.key === "threshold") return decisionType === "score" || decisionType === "noul";
+    if (def.key === "branches") return decisionType === "choice";
+    if (def.key === "questions") return decisionType === "batch";
+    return true;
+  }).map(def => type === "decision" && def.key === "saveTo" && decisionType === "batch" ? { ...def, required: true } : def);
 
   useEffect(() => {
     // Reset properties when type changes (keep properties that match new type)
@@ -79,14 +90,40 @@ export function NodeEditorModal({
       return;
     }
 
+    if (type === "decision") {
+      const missing = propDefs.find(def => def.required && !properties[def.key]?.trim());
+      if (missing) {
+        setIdError(`${missing.label} is required`);
+        return;
+      }
+    }
+
+    if (isChoice) {
+      try {
+        const branches = parseDecisionBranches(properties.branches || "");
+        if (!Object.keys(branches).length) throw new Error("Choice destinations are required");
+        if (Object.values(branches).some(target => target !== "end" && !allNodeIds.includes(target) && target !== trimmedId)) {
+          throw new Error("Choice destinations must refer to existing node IDs or end");
+        }
+      } catch (err) {
+        setIdError(err instanceof Error ? err.message : "Invalid choice destinations");
+        return;
+      }
+    }
+
     const workflowNode: WorkflowNode = {
       id: trimmedId,
       type,
       properties: { ...properties },
     };
 
+    const nodeIndex = allNodeIds.indexOf(trimmedId);
+    const implicitNext = nodeIndex >= 0 ? allNodeIds[nodeIndex + 1] : undefined;
     const nextInfo = isConditional
-      ? { trueNext: trueNext || undefined, falseNext: falseNext || undefined }
+      ? {
+        trueNext: trueNext || (type === "decision" ? "end" : undefined),
+        falseNext: falseNext || (type === "decision" ? implicitNext || "end" : undefined),
+      }
       : { next: next || undefined };
 
     onSave(workflowNode, nextInfo);
@@ -235,7 +272,7 @@ export function NodeEditorModal({
                 >
                   {nextOptions.map((opt) => (
                     <option key={opt} value={opt}>
-                      {opt || "(auto / next in list)"}
+                      {opt || (type === "decision" ? "(end)" : "(auto / next in list)")}
                     </option>
                   ))}
                 </select>
@@ -257,7 +294,7 @@ export function NodeEditorModal({
                 </select>
               </div>
             </>
-          ) : (
+          ) : !isChoice ? (
             <div>
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Next Node
@@ -274,7 +311,7 @@ export function NodeEditorModal({
                 ))}
               </select>
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Footer */}

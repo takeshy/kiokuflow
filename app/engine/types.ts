@@ -5,6 +5,7 @@ export type WorkflowNodeType =
   | "if"
   | "while"
   | "command"
+  | "decision"
   | "http"
   | "json"
   | "drive-file"       // was: note
@@ -45,7 +46,7 @@ export interface WorkflowNode {
 export interface WorkflowEdge {
   from: string;
   to: string;
-  label?: string; // "true" or "false" for conditional nodes
+  label?: string; // "true"/"false" for conditions, or a decision choice name
 }
 
 export interface WorkflowOptions {

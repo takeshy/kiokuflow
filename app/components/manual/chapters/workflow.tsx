@@ -47,7 +47,7 @@ function WorkflowEn() {
         </ol>
         <p>Note: You must sync the workflow to Drive (Push to Drive) before executing it.</p>
 
-        <h2>Node Types (24 types)</h2>
+        <h2>Node Types</h2>
         <h3>Control Flow</h3>
         <ul>
           <li><strong>variable</strong> — Declare and initialize a variable.</li>
@@ -60,6 +60,7 @@ function WorkflowEn() {
         <h3>AI / LLM</h3>
         <ul>
           <li><strong>command</strong> — Run a Gemini AI prompt with optional function calling, attachments, and system prompt.</li>
+          <li><strong>decision</strong> — Evaluate text with Gemini, Jev, or OpenRouter: true/false, score, choice, or probability, with result storage and branch routing. Batch mode saves named answers and continues to the next node; use an if node to branch on those answers. Uses the provider's unlocked API key independently of chat/Vertex.</li>
         </ul>
 
         <h3>Drive Operations</h3>
@@ -148,7 +149,7 @@ function WorkflowJa() {
         </ol>
         <p>注意：実行前にワークフローをドライブ反映でDriveに同期する必要があります。</p>
 
-        <h2>ノードタイプ（24種類）</h2>
+        <h2>ノードタイプ</h2>
         <h3>制御フロー</h3>
         <ul>
           <li><strong>variable</strong> — 変数の宣言と初期化。</li>
@@ -161,6 +162,7 @@ function WorkflowJa() {
         <h3>AI / LLM</h3>
         <ul>
           <li><strong>command</strong> — ファンクションコール、添付ファイル、システムプロンプト対応のGemini AIプロンプト実行。</li>
+          <li><strong>decision</strong> — Gemini／Jev／OpenRouterで真偽・スコア・選択肢・確率を判定し、結果の保存と分岐に対応。一括判定では名前付きの回答を保存して次へ進み、ifノードで回答に応じて分岐できます。チャット／Vertexとは独立した、各プロバイダのロック解除済みAPIキーを使います。</li>
         </ul>
 
         <h3>Drive操作</h3>

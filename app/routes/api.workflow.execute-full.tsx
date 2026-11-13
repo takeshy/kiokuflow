@@ -82,11 +82,13 @@ export async function action({ request }: Route.ActionArgs) {
   const oauth2Client = new google.auth.OAuth2();
   oauth2Client.setCredentials({ access_token: tokens.accessToken });
 
-  // "Vertex only": a user who selected personal Vertex AI runs LLM nodes on
-  // it and the stored Gemini API key stays unused.
+  // Resolve Vertex only for chat nodes. Decision nodes use dedicated APIs
+  // and must also work when an unrelated Vertex setup is incomplete.
   let personalVertex;
   try {
-    personalVertex = personalVertexRunForUser(tokens.email, settings) ?? undefined;
+    personalVertex = nodeTypes.has("command")
+      ? personalVertexRunForUser(tokens.email, settings) ?? undefined
+      : undefined;
   } catch (err) {
     throw new Response(err instanceof Error ? err.message : String(err), { status: 400 });
   }
@@ -94,10 +96,10 @@ export async function action({ request }: Route.ActionArgs) {
     driveAccessToken: tokens.accessToken,
     driveRootFolderId: tokens.rootFolderId,
     driveHistoryFolderId: driveContext.historyFolderId,
-    geminiApiKey: personalVertex ? undefined : tokens.geminiApiKey,
+    geminiApiKey: tokens.geminiApiKey, // Decision models use API keys independently of Vertex chat.
     openaiApiKey: personalVertex ? undefined : tokens.openaiApiKey,
     jevApiKey: tokens.jevApiKey,
-    compatibleApiKeys: personalVertex ? undefined : tokens.compatibleApiKeys,
+    compatibleApiKeys: tokens.compatibleApiKeys,
     personalVertex,
     abortSignal: abortController.signal,
     settings,

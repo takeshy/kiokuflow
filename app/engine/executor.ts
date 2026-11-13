@@ -17,6 +17,7 @@ import { handleDriveSearchNode } from "./handlers/driveSearch";
 import { handleDriveListNode, handleDriveFolderListNode } from "./handlers/driveListing";
 import { handleDriveSaveNode } from "./handlers/driveSave";
 import { handleCommandNode } from "./handlers/command";
+import { handleDecisionNode } from "./handlers/decision";
 import { handlePromptValueNode, handlePromptFileNode, handlePromptSelectionNode, handleDialogNode, handleDriveFilePickerNode } from "./handlers/prompt";
 import { handleWorkflowNode, handleJsonNode } from "./handlers/integration";
 import { handleMcpNode } from "./handlers/mcp";
@@ -174,6 +175,15 @@ export async function executeWorkflow(
             { name: setName, expression: node.properties["value"] }, setValue);
           addHistoryStep(node.id, node.type, { name: setName }, setValue);
           const next = getNextNodes(workflow, node.id);
+          for (const id of next.reverse()) stack.push({ nodeId: id, iterationCount: 0 });
+          break;
+        }
+
+        case "decision": {
+          const outcome = await handleDecisionNode(node, context, { ...serviceContext, abortSignal: options?.abortSignal ?? serviceContext.abortSignal });
+          log(node.id, node.type, `Decision: ${JSON.stringify(outcome.result)}`, "success", outcome.input, outcome.result);
+          addHistoryStep(node.id, node.type, outcome.input, outcome.result);
+          const next = getNextNodes(workflow, node.id, outcome.branch);
           for (const id of next.reverse()) stack.push({ nodeId: id, iterationCount: 0 });
           break;
         }

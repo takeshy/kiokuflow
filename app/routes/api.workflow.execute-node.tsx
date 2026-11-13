@@ -12,6 +12,7 @@ import type {
 } from "~/engine/types";
 import { getSettings } from "~/services/user-settings.server";
 import { handleCommandNode } from "~/engine/handlers/command";
+import { handleDecisionNode, type DecisionOutcome } from "~/engine/handlers/decision";
 import { handleMcpNode } from "~/engine/handlers/mcp";
 import { handleRagSyncNode } from "~/engine/handlers/ragSync";
 import { handleGemihubCommandNode } from "~/engine/handlers/gemihubCommand";
@@ -27,7 +28,7 @@ const SERVER_NODE_TYPES = new Set<WorkflowNodeType>([
   "mcp", "rag-sync", "gemihub-command",
   // Only when the user selected personal Vertex AI: the browser cannot hold
   // Vertex credentials, so the local executor delegates LLM nodes here.
-  "command",
+  "command", "decision",
   // Hubwork nodes (paid feature, server-only)
   "sheet-read", "sheet-write", "sheet-update", "sheet-delete", "gmail-send",
   "calendar-list", "calendar-create", "calendar-update", "calendar-delete",
@@ -135,7 +136,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   let personalVertex;
   try {
-    personalVertex = personalVertexRunForUser(validTokens.email, settings) ?? undefined;
+    personalVertex = nodeType === "decision" ? undefined : personalVertexRunForUser(validTokens.email, settings) ?? undefined;
   } catch (err) {
     return Response.json({ error: err instanceof Error ? err.message : String(err) }, { status: 400, headers: responseHeaders });
   }
@@ -187,7 +188,11 @@ export async function action({ request }: Route.ActionArgs) {
 
   // Execute the server-side node and return JSON
   try {
+    let decision: DecisionOutcome | undefined;
     switch (nodeType) {
+      case "decision":
+        decision = await handleDecisionNode(node, context, serviceContext);
+        break;
       case "command": {
         const cmdResult = await handleCommandNode(node, context, serviceContext);
         // Mirror the server executor's per-node logging so the browser's run
@@ -267,7 +272,7 @@ export async function action({ request }: Route.ActionArgs) {
       });
     }
 
-    return Response.json({ variables: updatedVars, logs, driveEvents }, { headers: responseHeaders });
+    return Response.json({ variables: updatedVars, logs, driveEvents, decision }, { headers: responseHeaders });
   } catch (err) {
     if (err instanceof McpApprovalRequiredError) return err.response();
     const errorMessage = err instanceof Error ? err.message : String(err);

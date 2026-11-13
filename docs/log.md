@@ -1,5 +1,8 @@
 # Update Log
 
+## 2026-11-13
+* **New**: Workflow `decision` nodes evaluate text with dedicated Gemini, Jev, or OpenRouter decision APIs, independently of the chat/Vertex model. Boolean, score, choice, and probability (`noul`) results select a branch; `batch` saves named answers for downstream nodes. The AI Decision editor, flowchart, YAML round-trip, execution history, and AI workflow specification support the new node. Invalid answers and API errors stop execution before saving; requests support cancellation and a 20-second deadline including rate-limit retries. Scheduled runs use the Gemini API key stored on the Hubwork account (`workflows/workflow_nodes.md#decision`, `workflows/workflow_execution.md#decision-execution`).
+
 ## 2026-11-06
 * **Fix**: Chat retains partial replies, tool calls and errors when a provider ends without a completion event or a tool throws. Previously the streaming bubble disappeared when cleanup ran before a final message had been committed (`features/chat.md`).
 

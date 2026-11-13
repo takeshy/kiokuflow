@@ -1,4 +1,5 @@
 import { answerMcpApproval, fetchWithMcpApproval } from "~/hooks/mcp-approval-client";
+import type { DecisionOutcome } from "./handlers/decision";
 /**
  * Client-side workflow executor.
  *
@@ -108,6 +109,7 @@ export interface LocalExecuteResult {
 }
 
 interface ServerNodeResponse {
+  decision?: DecisionOutcome;
   variables?: Record<string, string | number>;
   logs?: Array<{
     nodeId: string;
@@ -142,7 +144,7 @@ async function executeServerNode(
   abortSignal?: AbortSignal,
   promptResponse?: string,
   promptRetryCount = 0,
-): Promise<void> {
+): Promise<ServerNodeResponse> {
   const variables: Record<string, string | number> = {};
   for (const [k, v] of context.variables) {
     variables[k] = v;
@@ -210,8 +212,7 @@ async function executeServerNode(
       throw new Error("User cancelled prompt");
     }
     // Retry the node execution with the prompt response
-    await executeServerNode(node, context, workflowId, callbacks, abortSignal, userResponse, promptRetryCount + 1);
-    return;
+    return executeServerNode(node, context, workflowId, callbacks, abortSignal, userResponse, promptRetryCount + 1);
   }
 
   // Apply variable updates from server
@@ -223,6 +224,7 @@ async function executeServerNode(
     }
   }
 
+  return data;
 }
 
 /**
@@ -424,6 +426,19 @@ export async function executeWorkflowLocally(
             { name: setName, expression: node.properties["value"] }, setValue);
           addHistoryStep(node.id, node.type, { name: setName }, setValue);
           const next = getNextNodes(workflow, node.id);
+          for (const id of next.reverse()) stack.push({ nodeId: id, iterationCount: 0 });
+          break;
+        }
+
+        case "decision": {
+          if (options.abortSignal?.aborted) throw new Error("Execution cancelled");
+          const data = await executeServerNode(node, context, options.workflowId, callbacks, options.abortSignal);
+          if (options.abortSignal?.aborted) throw new Error("Execution cancelled");
+          const outcome = data.decision;
+          if (!outcome) throw new Error("Server omitted the decision result");
+          log(node.id, node.type, `Decision: ${JSON.stringify(outcome.result)}`, "success", outcome.input, outcome.result);
+          addHistoryStep(node.id, node.type, outcome.input, outcome.result);
+          const next = getNextNodes(workflow, node.id, outcome.branch);
           for (const id of next.reverse()) stack.push({ nodeId: id, iterationCount: 0 });
           break;
         }
